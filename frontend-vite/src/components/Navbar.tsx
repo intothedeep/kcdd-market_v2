@@ -17,9 +17,9 @@ export function Navbar() {
 
   return (
     <header className="w-full border-b bg-white">
-      <div className="container flex items-center justify-between px-5 py-5">
-        {/* Logo */}
-        <div className="flex items-center gap-5">
+      <div className="flex items-center justify-between px-5 py-5">
+        {/* Logo - Fixed width for balance */}
+        <div className="flex items-center gap-5 flex-1">
           <Link to={routes.home}>
             <h1 
               className="text-[30px] font-black text-[hsl(var(--brand-primary))] whitespace-nowrap"
@@ -30,8 +30,8 @@ export function Navbar() {
           </Link>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="hidden md:flex items-center gap-[15px]">
+        {/* Navigation Links - Centered */}
+        <nav className="hidden md:flex items-center gap-[15px] flex-shrink-0">
           <Link
             to={routes.home}
             className={`text-sm transition-colors ${
@@ -74,8 +74,8 @@ export function Navbar() {
           </Link>
         </nav>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-[15px]">
+        {/* Action Buttons - Fixed width for balance */}
+        <div className="flex items-center gap-[15px] justify-end flex-1">
           {isSignedIn ? (
             <>
               <Link to={routes.donor.dashboard}>
