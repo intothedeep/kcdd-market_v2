@@ -9,14 +9,6 @@ import { Button } from '@/components/ui/button'
 export function HomePage() {
   return (
     <div className="flex flex-col">
-      {/* Dev Status Banner */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-        <div className="container py-4 text-center">
-          <h2 className="text-2xl font-bold">Hello World!</h2>
-          <p className="text-sm mt-1">System Running | Frontend: OK | Database: OK | API: Needs Setup</p>
-        </div>
-      </div>
-
       {/* Hero Section */}
       <section className="container flex flex-col items-center justify-center gap-4 pb-8 pt-6 md:py-10">
         <div className="flex max-w-[980px] flex-col items-center gap-4 text-center">
