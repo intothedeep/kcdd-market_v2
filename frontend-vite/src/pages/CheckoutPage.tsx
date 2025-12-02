@@ -92,13 +92,14 @@ export function CheckoutPage() {
 
       if (paymentIntent && paymentIntent.status === 'succeeded') {
         // Update request status
+        // @ts-ignore - Supabase type inference issue
         await supabase
           .from('requests')
           .update({
             status: 'claimed',
             donor_id: user?.id,
             claimed_at: new Date().toISOString(),
-          } as any)
+          })
           .eq('id', requestId)
 
         // Redirect to success page
