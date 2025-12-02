@@ -13,11 +13,51 @@ export function HomePage() {
         <div className="flex items-center gap-5">
           {/* Left Decorative Grid */}
           <div className="hidden lg:grid flex-1 h-[650px] grid-cols-6 grid-rows-7 gap-2.5">
-            <div className="col-start-5 col-span-2 row-start-2 row-span-3 bg-[hsl(var(--brand-primary))] rounded-[10px]" />
-            <div className="col-start-3 col-span-2 row-start-1 row-span-3 bg-[hsl(var(--brand-primary))] rounded-[10px]" />
-            <div className="col-start-3 col-span-2 row-start-4 row-span-3 bg-[hsl(var(--brand-primary))] rounded-[10px]" />
-            <div className="col-start-1 col-span-2 row-start-5 row-span-3 bg-[hsl(var(--brand-primary))] rounded-[10px]" />
-            <div className="col-start-1 col-span-2 row-start-2 row-span-3 bg-[hsl(var(--brand-primary))] rounded-[10px]" />
+            <div className="col-start-5 col-span-2 row-start-2 row-span-3 rounded-[10px] overflow-hidden relative group">
+              <img 
+                src="/images/cheerful-black-man-looking-at-camera-on-street-2025-01-07-04-40-17-utc.jpg" 
+                alt="Community member"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[hsl(var(--brand-primary))]/60 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
+            <div className="col-start-3 col-span-2 row-start-1 row-span-3 rounded-[10px] overflow-hidden relative group">
+              <img 
+                src="/images/close-up-portrait-of-millennial-black-female-creat-2024-10-21-18-29-53-utc.jpg" 
+                alt="Community member"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[hsl(var(--brand-primary))]/60 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
+            <div className="col-start-3 col-span-2 row-start-4 row-span-3 rounded-[10px] overflow-hidden relative group">
+              <img 
+                src="/images/face-of-mature-handsome-persian-man-looking-at-cam-2025-01-29-01-56-31-utc.jpg" 
+                alt="Community member"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[hsl(var(--brand-primary))]/60 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
+            <div className="col-start-1 col-span-2 row-start-5 row-span-3 rounded-[10px] overflow-hidden relative group">
+              <img 
+                src="/images/portrait-of-a-young-woman-2025-04-04-09-20-52-utc.jpg" 
+                alt="Community member"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[hsl(var(--brand-primary))]/60 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
+            <div className="col-start-1 col-span-2 row-start-2 row-span-3 rounded-[10px] overflow-hidden relative group">
+              <img 
+                src="/images/portrait-of-mid-adult-bearded-indian-man-looking-a-2025-01-09-12-53-48-utc.jpg" 
+                alt="Community member"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[hsl(var(--brand-primary))]/60 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
           </div>
 
           {/* Center Content */}
@@ -55,11 +95,51 @@ export function HomePage() {
 
           {/* Right Decorative Grid */}
           <div className="hidden lg:grid flex-1 h-[650px] grid-cols-6 grid-rows-7 gap-2.5">
-            <div className="col-start-1 col-span-2 row-start-4 row-span-3 bg-[hsl(var(--brand-primary))] rounded-[10px]" />
-            <div className="col-start-3 col-span-2 row-start-5 row-span-3 bg-[hsl(var(--brand-primary))] rounded-[10px]" />
-            <div className="col-start-3 col-span-2 row-start-2 row-span-3 bg-[hsl(var(--brand-primary))] rounded-[10px]" />
-            <div className="col-start-5 col-span-2 row-start-1 row-span-3 bg-[hsl(var(--brand-primary))] rounded-[10px]" />
-            <div className="col-start-5 col-span-2 row-start-4 row-span-3 bg-[hsl(var(--brand-primary))] rounded-[10px]" />
+            <div className="col-start-1 col-span-2 row-start-4 row-span-3 rounded-[10px] overflow-hidden relative group">
+              <img 
+                src="/images/short-haired-mixed-race-woman-on-grey-2025-03-07-14-38-42-utc (1).jpg" 
+                alt="Community member"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[hsl(var(--brand-primary))]/60 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
+            <div className="col-start-3 col-span-2 row-start-5 row-span-3 rounded-[10px] overflow-hidden relative group">
+              <img 
+                src="/images/young-asian-man-wearing-blue-sweater-against-gray-2025-01-29-02-37-51-utc.jpg" 
+                alt="Community member"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[hsl(var(--brand-primary))]/60 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
+            <div className="col-start-3 col-span-2 row-start-2 row-span-3 rounded-[10px] overflow-hidden relative group">
+              <img 
+                src="/images/young-beautiful-african-american-black-woman-with-2025-01-08-23-40-19-utc.jpg" 
+                alt="Community member"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[hsl(var(--brand-primary))]/60 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
+            <div className="col-start-5 col-span-2 row-start-1 row-span-3 rounded-[10px] overflow-hidden relative group">
+              <img 
+                src="/images/cheerful-black-man-looking-at-camera-on-street-2025-01-07-04-40-17-utc.jpg" 
+                alt="Community member"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[hsl(var(--brand-primary))]/60 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
+            <div className="col-start-5 col-span-2 row-start-4 row-span-3 rounded-[10px] overflow-hidden relative group">
+              <img 
+                src="/images/close-up-portrait-of-millennial-black-female-creat-2024-10-21-18-29-53-utc.jpg" 
+                alt="Community member"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[hsl(var(--brand-primary))]/60 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
           </div>
         </div>
       </div>
