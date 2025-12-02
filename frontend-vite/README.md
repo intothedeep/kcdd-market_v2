@@ -89,7 +89,7 @@ VITE_ENVIRONMENT=development
 See `.env.example` for complete list.
 
 ## Documentation
-
+ 
 - [Vite Documentation](https://vitejs.dev/)
 - [React Documentation](https://react.dev/)
 - [Clerk Documentation](https://clerk.com/docs)

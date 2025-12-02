@@ -10,13 +10,10 @@ export function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Dev Status Banner */}
-      <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
-        <div className="container py-3 text-center">
-          <p className="text-sm font-semibold flex items-center justify-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-white animate-pulse"></span>
-            System Running | Frontend: OK | Database: OK | API: Needs Setup
-            <span className="inline-block h-2 w-2 rounded-full bg-white animate-pulse"></span>
-          </p>
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+        <div className="container py-4 text-center">
+          <h2 className="text-2xl font-bold">Hello World!</h2>
+          <p className="text-sm mt-1">System Running | Frontend: OK | Database: OK | API: Needs Setup</p>
         </div>
       </div>
 
