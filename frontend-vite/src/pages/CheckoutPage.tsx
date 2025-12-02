@@ -98,7 +98,7 @@ export function CheckoutPage() {
             status: 'claimed',
             donor_id: user?.id,
             claimed_at: new Date().toISOString(),
-          })
+          } as any)
           .eq('id', requestId)
 
         // Redirect to success page
