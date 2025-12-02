@@ -5,8 +5,8 @@
 
 export function NoticeBanner() {
   return (
-    <div className="bg-[#c4e5c1] flex items-center justify-center px-4 py-2.5 overflow-hidden">
-      <p className="text-[#1b5858] text-sm font-normal whitespace-nowrap animate-scroll">
+    <div className="bg-[hsl(var(--brand-primary-light))] flex items-center justify-center px-4 py-2.5 overflow-hidden">
+      <p className="text-[hsl(var(--brand-primary))] text-sm font-normal whitespace-nowrap">
         Important Notice Banner • Important Notice Banner • Important Notice Banner • Important Notice Banner • Important Notice Banner • Important Notice Banner • Important Notice Banner
       </p>
     </div>
