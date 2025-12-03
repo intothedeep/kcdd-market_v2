@@ -2,33 +2,37 @@
  * Features Section Component
  * Location: src/components/home/FeaturesSection.tsx
  * 
- * Displays the 3 main features: CBOs Submit, Donors Claim, Fulfillment Tracking
+ * Reusable section for displaying feature cards with icons, titles, and descriptions
  */
 
-import { FileText, Heart, BarChart3 } from 'lucide-react'
+import { LucideIcon } from 'lucide-react'
 
-export function FeaturesSection() {
-  const features = [
-    {
-      icon: FileText,
-      title: 'CBOs Submit Requests',
-      description: 'Community-based organizations submit detailed technology equipment requests, explaining their needs and the impact they\'ll create.'
-    },
-    {
-      icon: Heart,
-      title: 'Donors Claim Requests',
-      description: 'Generous donors browse through requests and claim the ones that align with their interests and capacity to help.'
-    },
-    {
-      icon: BarChart3,
-      title: 'Fulfillment Tracking',
-      description: 'We track the entire fulfillment process and measure the real impact on Kansas City communities.'
-    }
-  ]
+export interface Feature {
+  icon: LucideIcon
+  title: string
+  description: string
+}
 
+interface FeaturesSectionProps {
+  features: Feature[]
+  heading?: string
+  showHeading?: boolean
+}
+
+export function FeaturesSection({ 
+  features, 
+  heading = 'How It Works',
+  showHeading = false 
+}: FeaturesSectionProps) {
   return (
     <section className="container mx-auto px-4 py-8 md:py-12" aria-labelledby="features-heading">
-      <h2 id="features-heading" className="sr-only">How It Works</h2>
+      {showHeading ? (
+        <h2 id="features-heading" className="text-3xl font-bold text-center mb-8">
+          {heading}
+        </h2>
+      ) : (
+        <h2 id="features-heading" className="sr-only">{heading}</h2>
+      )}
       
       <div className="flex flex-col md:flex-row gap-5 items-center justify-center">
         {features.map((feature, index) => {
