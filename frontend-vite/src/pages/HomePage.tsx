@@ -233,6 +233,49 @@ export function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* Content Block with Image */}
+      <div className="bg-[#103032] py-8 md:py-12 px-4">
+        <div className="max-w-[1000px] mx-auto flex flex-col lg:flex-row gap-10 items-center">
+          {/* Image Placeholder */}
+          <div className="w-full lg:flex-1 h-[390px] bg-[#d25c2c] rounded-[10px]" />
+          
+          {/* Text Content */}
+          <div className="w-full lg:flex-1 flex flex-col gap-6">
+            <p className="text-base text-white">Lorem ipsum dolor sit amet</p>
+            
+            <h2 className="text-[30px] font-bold text-white leading-normal">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+            </h2>
+            
+            <div className="text-base text-white">
+              <p className="mb-4">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.
+              </p>
+              <ul className="list-disc ml-6 space-y-1">
+                <li>Lorem ipsum dolor si</li>
+                <li>incididunt ut labor</li>
+                <li>qua. Ut enim ad mi</li>
+                <li>ut labore et dol</li>
+              </ul>
+            </div>
+            
+            <div className="flex gap-4">
+              <Button
+                className="bg-[#d25c2c] hover:bg-[#d25c2c]/90 text-white rounded-full h-10 px-4 shadow-sm"
+              >
+                Login
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-white hover:bg-white/90 text-[hsl(var(--brand-primary))] border-0 rounded-full h-10 px-4 shadow-sm"
+              >
+                Login
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
