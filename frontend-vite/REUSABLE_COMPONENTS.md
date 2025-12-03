@@ -2,6 +2,13 @@
 
 This guide shows how to use prop-based components for maximum reusability.
 
+## Components Overview
+
+1. **FeaturesSection** - Display feature cards with icons
+2. **ContentBlockSection** - Content section with image and CTA buttons
+
+---
+
 ## FeaturesSection Component
 
 ### Component Location
@@ -242,4 +249,237 @@ To apply this pattern to other components:
 5. **Import and pass as props** from pages
 
 This pattern makes your codebase more maintainable and scalable! 🚀
+
+---
+
+## ContentBlockSection Component
+
+### Component Location
+`src/components/home/ContentBlockSection.tsx`
+
+### Props Interface
+
+```typescript
+interface ContentBlockButton {
+  label: string
+  href?: string              // Link destination (uses React Router Link)
+  onClick?: () => void       // Click handler (for non-link buttons)
+  variant?: 'primary' | 'secondary'
+}
+
+interface ContentBlockData {
+  subtitle?: string          // Optional subtitle text
+  heading: string            // Main heading (required)
+  description: string        // Main description paragraph (required)
+  listItems?: string[]       // Optional bullet points
+  imageUrl?: string          // Optional image URL
+  imageAlt?: string          // Alt text for image
+  buttons?: ContentBlockButton[]  // CTA buttons
+  backgroundColor?: string   // Background color (default: #103032)
+  imageBackgroundColor?: string  // Placeholder background (default: #d25c2c)
+}
+
+interface ContentBlockSectionProps {
+  data: ContentBlockData
+  imagePosition?: 'left' | 'right'  // Image placement (default: 'left')
+}
+```
+
+## Usage Examples
+
+### Example 1: Using Imported Data (Recommended)
+
+**Data File:** `src/data/homeContentBlock.ts`
+
+```typescript
+import { ContentBlockData } from '@/components/home/ContentBlockSection'
+
+export const homeContentBlock: ContentBlockData = {
+  subtitle: 'Our Mission',
+  heading: 'Bridging the Digital Divide in Kansas City',
+  description: 'We connect community organizations with donors who want to make a real impact through technology.',
+  listItems: [
+    'Direct connection between donors and CBOs',
+    'Transparent request tracking',
+    'Verified organizations',
+    'Real impact measurement'
+  ],
+  imageUrl: '/images/community.jpg',
+  imageAlt: 'Kansas City community members',
+  buttons: [
+    {
+      label: 'Get Started',
+      href: '/auth/signup',
+      variant: 'primary'
+    },
+    {
+      label: 'Learn More',
+      href: '/about',
+      variant: 'secondary'
+    }
+  ],
+  backgroundColor: '#103032',
+  imageBackgroundColor: '#d25c2c'
+}
+```
+
+**Page Usage:**
+
+```typescript
+import { ContentBlockSection } from '@/components/home/ContentBlockSection'
+import { homeContentBlock } from '@/data/homeContentBlock'
+
+export function HomePage() {
+  return (
+    <main>
+      <ContentBlockSection 
+        data={homeContentBlock} 
+        imagePosition="left"
+      />
+    </main>
+  )
+}
+```
+
+### Example 2: Right-Aligned Image
+
+```typescript
+import { ContentBlockSection } from '@/components/home/ContentBlockSection'
+
+export function AboutPage() {
+  const aboutData = {
+    subtitle: 'About Us',
+    heading: 'Making Technology Accessible',
+    description: 'Since 2020, we have helped hundreds of organizations get the technology they need.',
+    imageUrl: '/images/team.jpg',
+    imageAlt: 'Our team',
+    buttons: [
+      {
+        label: 'Contact Us',
+        href: '/contact',
+        variant: 'primary'
+      }
+    ]
+  }
+
+  return (
+    <main>
+      <ContentBlockSection 
+        data={aboutData} 
+        imagePosition="right"
+      />
+    </main>
+  )
+}
+```
+
+### Example 3: No Image (Placeholder Only)
+
+```typescript
+const dataWithoutImage = {
+  heading: 'Quick Start Guide',
+  description: 'Get up and running in just a few simple steps.',
+  listItems: [
+    'Create your account',
+    'Browse available requests',
+    'Select a request to fulfill',
+    'Track your impact'
+  ],
+  buttons: [
+    {
+      label: 'Sign Up Now',
+      onClick: () => console.log('Sign up clicked'),
+      variant: 'primary'
+    }
+  ]
+}
+
+<ContentBlockSection data={dataWithoutImage} />
+```
+
+### Example 4: Custom Colors
+
+```typescript
+const customColorData = {
+  heading: 'Special Announcement',
+  description: 'We have a new feature launching soon!',
+  buttons: [
+    {
+      label: 'Notify Me',
+      href: '/notify',
+      variant: 'primary'
+    }
+  ],
+  backgroundColor: '#1e3a5f',  // Navy blue
+  imageBackgroundColor: '#ff6b6b'  // Coral red
+}
+
+<ContentBlockSection data={customColorData} />
+```
+
+### Example 5: Multiple Sections with Different Layouts
+
+```typescript
+export function FullPage() {
+  return (
+    <main>
+      {/* Left-aligned image */}
+      <ContentBlockSection 
+        data={donorBenefits} 
+        imagePosition="left"
+      />
+
+      {/* Right-aligned image */}
+      <ContentBlockSection 
+        data={cboProcess} 
+        imagePosition="right"
+      />
+
+      {/* Left-aligned again */}
+      <ContentBlockSection 
+        data={impactStories} 
+        imagePosition="left"
+      />
+    </main>
+  )
+}
+```
+
+## Data Organization
+
+### Recommended Structure
+
+```
+src/
+├── components/
+│   └── home/
+│       └── ContentBlockSection.tsx
+├── data/
+│   ├── homeContentBlock.ts
+│   ├── aboutContentBlock.ts
+│   └── donorContentBlock.ts
+└── pages/
+    ├── HomePage.tsx
+    ├── AboutPage.tsx
+    └── DonorPage.tsx
+```
+
+## Features
+
+✅ **Flexible Layout:** Image left or right  
+✅ **Optional Elements:** Subtitle, image, list, buttons  
+✅ **Custom Styling:** Background and accent colors  
+✅ **Button Variants:** Primary and secondary styles  
+✅ **Responsive:** Mobile-friendly layout  
+✅ **Accessible:** Proper ARIA labels and semantic HTML
+
+## Best Practices
+
+1. **Always provide alt text** for images
+2. **Use meaningful headings** for SEO
+3. **Keep descriptions concise** (2-3 sentences)
+4. **Limit list items** to 4-6 for readability
+5. **Use consistent colors** across your site
+
+This component is perfect for landing pages, about sections, and feature highlights! 🎨
 
