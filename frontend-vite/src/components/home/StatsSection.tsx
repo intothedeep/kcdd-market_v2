@@ -2,10 +2,11 @@
  * Stats Section Component
  * Location: src/components/home/StatsSection.tsx
  * 
- * Reusable section for displaying statistics and metrics
+ * Reusable section for displaying statistics and metrics with animated counters
  */
 
 import { Link } from 'react-router-dom'
+import { AnimatedCounter } from './AnimatedCounter'
 
 export interface Stat {
   value: string | number
@@ -40,9 +41,16 @@ export function StatsSection({
           <div className={`flex flex-col md:flex-row gap-6 md:gap-8 ${showContent && content ? 'flex-1' : 'w-full justify-center'}`}>
             {stats.map((stat, index) => (
               <div key={index} className="flex flex-col gap-1.5 flex-1">
-                <div className="text-[46px] font-bold text-white leading-normal" role="text">
-                  {stat.value}
-                </div>
+                {typeof stat.value === 'number' ? (
+                  <AnimatedCounter 
+                    value={stat.value} 
+                    className="text-[46px] font-bold text-white leading-normal"
+                  />
+                ) : (
+                  <div className="text-[46px] font-bold text-white leading-normal" role="text">
+                    {stat.value}
+                  </div>
+                )}
                 <h3 className="text-base font-bold text-white leading-5">
                   {stat.label}
                 </h3>
