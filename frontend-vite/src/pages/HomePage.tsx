@@ -5,7 +5,7 @@
 import { Link } from 'react-router-dom'
 import { routes } from '@/config'
 import { Button } from '@/components/ui/button'
-import { PlusCircle } from 'lucide-react'
+import { FileText, Heart, BarChart3 } from 'lucide-react'
 
 export function HomePage() {
   return (
@@ -151,48 +151,39 @@ export function HomePage() {
           {/* Feature 1 */}
           <div className="flex flex-col gap-4 items-start w-full md:w-[253px]">
             <div className="bg-[hsl(var(--brand-primary))] flex items-center justify-center p-2.5 rounded-[31px] w-11 h-11">
-              <PlusCircle className="w-6 h-6 text-white" />
+              <FileText className="w-6 h-6 text-white" />
             </div>
             <div className="flex flex-col gap-1.5 text-black w-full">
-              <h3 className="font-bold text-base leading-5">Title Label</h3>
+              <h3 className="font-bold text-base leading-5">CBOs Submit Requests</h3>
               <p className="font-medium text-sm leading-[18px]">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+                Community-based organizations submit detailed technology equipment requests, explaining their needs and the impact they'll create.
               </p>
-              <a href="#" className="font-medium text-sm leading-[18px] underline hover:text-[hsl(var(--brand-primary))]">
-                Lorem ipsum dolor
-              </a>
             </div>
           </div>
 
           {/* Feature 2 */}
           <div className="flex flex-col gap-4 items-start w-full md:w-[253px]">
             <div className="bg-[hsl(var(--brand-primary))] flex items-center justify-center p-2.5 rounded-[31px] w-11 h-11">
-              <PlusCircle className="w-6 h-6 text-white" />
+              <Heart className="w-6 h-6 text-white" />
             </div>
             <div className="flex flex-col gap-1.5 text-black w-full">
-              <h3 className="font-bold text-base leading-5">Title Label</h3>
+              <h3 className="font-bold text-base leading-5">Donors Claim Requests</h3>
               <p className="font-medium text-sm leading-[18px]">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+                Generous donors browse through requests and claim the ones that align with their interests and capacity to help.
               </p>
-              <a href="#" className="font-medium text-sm leading-[18px] underline hover:text-[hsl(var(--brand-primary))]">
-                Lorem ipsum dolor
-              </a>
             </div>
           </div>
 
           {/* Feature 3 */}
           <div className="flex flex-col gap-4 items-start w-full md:w-[253px]">
             <div className="bg-[hsl(var(--brand-primary))] flex items-center justify-center p-2.5 rounded-[31px] w-11 h-11">
-              <PlusCircle className="w-6 h-6 text-white" />
+              <BarChart3 className="w-6 h-6 text-white" />
             </div>
             <div className="flex flex-col gap-1.5 text-black w-full">
-              <h3 className="font-bold text-base leading-5">Title Label</h3>
+              <h3 className="font-bold text-base leading-5">Fulfillment Tracking</h3>
               <p className="font-medium text-sm leading-[18px]">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+                We track the entire fulfillment process and measure the real impact on Kansas City communities.
               </p>
-              <a href="#" className="font-medium text-sm leading-[18px] underline hover:text-[hsl(var(--brand-primary))]">
-                Lorem ipsum dolor
-              </a>
             </div>
           </div>
         </div>
