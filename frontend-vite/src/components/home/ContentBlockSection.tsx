@@ -217,13 +217,15 @@ export function ContentBlockSection({
   // Text content component
   const textContent = (
     <article className="w-full lg:flex-1 flex flex-col gap-6">
-      {subtitle && (
-        <p className="text-base text-white">{subtitle}</p>
-      )}
-      
-      <h2 id="content-block-heading" className="text-[30px] font-bold text-white leading-normal">
-        {heading}
-      </h2>
+      <div>
+        {subtitle && (
+          <p className="text-base text-white">{subtitle}</p>
+        )}
+        
+        <h2 id="content-block-heading" className="text-[30px] font-bold text-white leading-normal">
+          {heading}
+        </h2>
+      </div>
       
       <div className="text-base text-white">
         <p className={listItems.length > 0 ? 'mb-4' : ''}>
