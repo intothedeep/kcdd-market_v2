@@ -188,6 +188,51 @@ export function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* Stats Section */}
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="bg-[hsl(var(--brand-primary))] rounded-[10px] p-6 md:p-8 max-w-[1200px] mx-auto">
+          <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
+            {/* Stats Grid */}
+            <div className="flex flex-col md:flex-row gap-6 md:gap-8 flex-1">
+              {/* Stat 1 */}
+              <div className="flex flex-col gap-1.5 flex-1">
+                <div className="text-[46px] font-bold text-white leading-normal">1k.</div>
+                <p className="text-sm font-medium text-white leading-[18px]">
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+                </p>
+              </div>
+
+              {/* Stat 2 */}
+              <div className="flex flex-col gap-1.5 flex-1">
+                <div className="text-[46px] font-bold text-white leading-normal">1k.</div>
+                <p className="text-sm font-medium text-white leading-[18px]">
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+                </p>
+              </div>
+
+              {/* Stat 3 */}
+              <div className="flex flex-col gap-1.5 flex-1">
+                <div className="text-[46px] font-bold text-white leading-normal">1k.</div>
+                <p className="text-sm font-medium text-white leading-[18px]">
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+                </p>
+              </div>
+            </div>
+
+            {/* Right Content Block */}
+            <div className="flex flex-col gap-1.5 w-full lg:w-[387px]">
+              <h3 className="text-base font-bold text-white leading-5">Title Label</h3>
+              <p className="text-sm font-medium text-white leading-[18px]">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+              </p>
+              <a href="#" className="text-sm font-medium text-white leading-[18px] underline hover:opacity-80">
+                Lorem ipsum dolor
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
