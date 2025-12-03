@@ -5,6 +5,7 @@
 import { Link } from 'react-router-dom'
 import { routes } from '@/config'
 import { Button } from '@/components/ui/button'
+import { PlusCircle } from 'lucide-react'
 
 export function HomePage() {
   return (
@@ -139,6 +140,59 @@ export function HomePage() {
               />
               <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_30%,black_100%)] opacity-40 transition-opacity duration-300 group-hover:opacity-0" />
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Features Section */}
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="flex flex-col md:flex-row gap-5 items-center justify-center">
+          {/* Feature 1 */}
+          <div className="flex flex-col gap-4 items-start w-full md:w-[253px]">
+            <div className="bg-[hsl(var(--brand-primary))] flex items-center justify-center p-2.5 rounded-[31px] w-11 h-11">
+              <PlusCircle className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex flex-col gap-1.5 text-black w-full">
+              <h3 className="font-bold text-base leading-5">Title Label</h3>
+              <p className="font-medium text-sm leading-[18px]">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+              </p>
+              <a href="#" className="font-medium text-sm leading-[18px] underline hover:text-[hsl(var(--brand-primary))]">
+                Lorem ipsum dolor
+              </a>
+            </div>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="flex flex-col gap-4 items-start w-full md:w-[253px]">
+            <div className="bg-[hsl(var(--brand-primary))] flex items-center justify-center p-2.5 rounded-[31px] w-11 h-11">
+              <PlusCircle className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex flex-col gap-1.5 text-black w-full">
+              <h3 className="font-bold text-base leading-5">Title Label</h3>
+              <p className="font-medium text-sm leading-[18px]">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+              </p>
+              <a href="#" className="font-medium text-sm leading-[18px] underline hover:text-[hsl(var(--brand-primary))]">
+                Lorem ipsum dolor
+              </a>
+            </div>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="flex flex-col gap-4 items-start w-full md:w-[253px]">
+            <div className="bg-[hsl(var(--brand-primary))] flex items-center justify-center p-2.5 rounded-[31px] w-11 h-11">
+              <PlusCircle className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex flex-col gap-1.5 text-black w-full">
+              <h3 className="font-bold text-base leading-5">Title Label</h3>
+              <p className="font-medium text-sm leading-[18px]">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+              </p>
+              <a href="#" className="font-medium text-sm leading-[18px] underline hover:text-[hsl(var(--brand-primary))]">
+                Lorem ipsum dolor
+              </a>
             </div>
           </div>
         </div>
