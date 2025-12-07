@@ -265,6 +265,7 @@ export const saveOrganizationOnboarding = async (
 
 // Mark onboarding as complete
 export const completeOnboarding = async (userId: string, wantsUpdates: boolean = false) => {
+  // First try to update
   const { data, error } = await supabase
     .from('user_profiles')
     .update({
@@ -276,7 +277,25 @@ export const completeOnboarding = async (userId: string, wantsUpdates: boolean =
     .select()
     .single()
 
-  if (error) throw error
+  // If update failed (no row), try to insert
+  if (error) {
+    if (error.code === 'PGRST116') {
+      const { data: insertData, error: insertError } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: userId,
+          onboarding_complete: true,
+          wants_updates: wantsUpdates,
+          user_type: 'donor'
+        })
+        .select()
+        .single()
+      
+      if (insertError) throw insertError
+      return insertData
+    }
+    throw error
+  }
   return data
 }
 
