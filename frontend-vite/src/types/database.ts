@@ -341,6 +341,26 @@ export type Database = {
           created_at?: string
         }
       }
+      donor_cause_areas: {
+        Row: {
+          id: string
+          user_id: string
+          cause_area_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          cause_area_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          cause_area_id?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

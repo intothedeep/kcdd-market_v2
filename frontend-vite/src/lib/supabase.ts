@@ -292,6 +292,106 @@ export const getOrganizationByUserId = async (userId: string) => {
   return data
 }
 
+// Save donor onboarding data
+export const saveDonorOnboarding = async (
+  userId: string,
+  data: {
+    displayName: string
+    website: string | null
+    phone: string | null
+    bio: string | null
+    email: string
+    logo?: File | null
+    causeAreas?: string[]
+  }
+) => {
+  let profilePictureUrl = null
+
+  // Upload profile picture if provided
+  if (data.logo) {
+    const fileExt = data.logo.name.split('.').pop()
+    const fileName = `${userId}-profile-${Date.now()}.${fileExt}`
+    
+    const { error: uploadError } = await supabase.storage
+      .from('profile-pictures')
+      .upload(fileName, data.logo)
+
+    if (uploadError) {
+      console.error('Profile picture upload error:', uploadError)
+    } else {
+      const { data: urlData } = supabase.storage
+        .from('profile-pictures')
+        .getPublicUrl(fileName)
+      profilePictureUrl = urlData.publicUrl
+    }
+  }
+
+  // Upsert donor profile
+  const { data: profileData, error } = await supabase
+    .from('donor_profiles')
+    .upsert(
+      {
+        user_id: userId,
+        display_name: data.displayName,
+        name: data.displayName,
+        email: data.email,
+        phone: data.phone,
+        bio: data.bio,
+        profile_picture_url: profilePictureUrl,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'user_id' }
+    )
+    .select()
+    .single()
+
+  if (error) throw error
+
+  // Save donor cause area preferences if any
+  if (data.causeAreas && data.causeAreas.length > 0) {
+    await saveDonorCauseAreas(userId, data.causeAreas)
+  }
+
+  return profileData
+}
+
+// Save donor cause area preferences
+export const saveDonorCauseAreas = async (userId: string, causeAreas: string[]) => {
+  // Get cause area IDs from names
+  const { data: causeAreaRecords, error: fetchError } = await supabase
+    .from('cause_areas')
+    .select('id, name')
+    .in('name', causeAreas)
+
+  if (fetchError) throw fetchError
+
+  if (!causeAreaRecords || causeAreaRecords.length === 0) {
+    console.warn('No matching cause areas found in database')
+    return []
+  }
+
+  // Create donor_cause_areas records
+  const records = causeAreaRecords.map(ca => ({
+    user_id: userId,
+    cause_area_id: ca.id
+  }))
+
+  // Delete existing associations first
+  await supabase
+    .from('donor_cause_areas')
+    .delete()
+    .eq('user_id', userId)
+
+  // Insert new associations
+  const { data, error } = await supabase
+    .from('donor_cause_areas')
+    .insert(records)
+    .select()
+
+  if (error) throw error
+  return data
+}
+
 // Save organization cause areas
 export const saveOrganizationCauseAreas = async (organizationId: string, causeAreas: string[]) => {
   // First, get the cause area IDs from names

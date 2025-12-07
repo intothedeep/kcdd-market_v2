@@ -22,7 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { X, Loader2, AlertCircle } from 'lucide-react'
-import { saveOrganizationOnboarding, completeOnboarding, saveOrganizationCauseAreas } from '@/lib/supabase'
+import { saveOrganizationOnboarding, saveDonorOnboarding, completeOnboarding, saveOrganizationCauseAreas } from '@/lib/supabase'
 
 // Available cause areas
 const CAUSE_AREAS = [
@@ -75,7 +75,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, userType }: Onboa
     causeAreas: []
   })
 
-  const totalSteps = userType === 'cbo' ? 2 : 1
+  const totalSteps = 2 // Both user types get 2 steps
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -98,13 +98,13 @@ export function OnboardingModal({ isOpen, onClose, onComplete, userType }: Onboa
   const handleNext = () => {
     setError(null)
     
-    // Validate step 1 for CBO
-    if (currentStep === 1 && userType === 'cbo') {
+    // Validate step 1
+    if (currentStep === 1) {
       if (!formData.name.trim()) {
-        setError('Organization name is required')
+        setError(userType === 'cbo' ? 'Organization name is required' : 'Display name is required')
         return
       }
-      if (!formData.description.trim()) {
+      if (userType === 'cbo' && !formData.description.trim()) {
         setError('Organization description is required')
         return
       }
@@ -149,6 +149,17 @@ export function OnboardingModal({ isOpen, onClose, onComplete, userType }: Onboa
         if (formData.causeAreas.length > 0 && org) {
           await saveOrganizationCauseAreas(org.id, formData.causeAreas)
         }
+      } else {
+        // Save donor profile data
+        await saveDonorOnboarding(user.id, {
+          displayName: formData.name,
+          website: formData.website || null,
+          phone: formData.ein || null, // Reusing ein field for phone for donors
+          bio: formData.description || null,
+          email: user.primaryEmailAddress?.emailAddress || '',
+          logo: formData.logo,
+          causeAreas: formData.causeAreas
+        })
       }
       
       // Mark onboarding as complete
@@ -200,106 +211,102 @@ export function OnboardingModal({ isOpen, onClose, onComplete, userType }: Onboa
             <X className="size-6" />
           </button>
 
-          {/* Step 1: Organization Details */}
+          {/* Step 1: Organization/Profile Details */}
           {currentStep === 1 && (
             <div className="flex flex-col gap-[14px] flex-1">
               <h2 className="text-2xl font-bold text-white mb-2">
                 {userType === 'cbo' ? 'Complete Your Organization Profile' : 'Complete Your Profile'}
               </h2>
 
-              {userType === 'cbo' && (
-                <>
-                  {/* Logo Upload */}
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-white text-sm font-medium">
-                      Organization Logo:
-                    </Label>
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-2 bg-[#183c3f] border border-[#1b5858] rounded-full h-9 px-2 cursor-pointer hover:bg-[#1b5858]/50 transition-colors w-full">
-                        <span className="bg-[#c4e5c1] text-[#1b5858] text-sm font-medium px-2 py-0.5 rounded-full">
-                          Choose file
-                        </span>
-                        <span className="text-white text-sm truncate">
-                          {formData.logo ? formData.logo.name : 'No file chosen'}
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/gif"
-                          onChange={handleLogoChange}
-                          className="hidden"
-                        />
-                      </label>
-                      {logoPreview && (
-                        <img 
-                          src={logoPreview} 
-                          alt="Logo preview" 
-                          className="size-9 rounded-full object-cover shrink-0"
-                        />
-                      )}
-                    </div>
-                    <p className="text-white/70 text-sm">
-                      Upload a profile picture (PNG, JPG, GIF supported). Recommended size: 200x200px or larger.
-                    </p>
-                  </div>
-
-                  {/* Organization Name */}
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="org-name" className="text-white text-sm font-medium">
-                      Organization Name:
-                    </Label>
-                    <Input
-                      id="org-name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter organization name"
-                      className="h-9 bg-[#183c3f] border-[#1b5858] text-white placeholder:text-white/50 rounded-lg"
+              {/* Logo Upload */}
+              <div className="flex flex-col gap-2">
+                <Label className="text-white text-sm font-medium">
+                  {userType === 'cbo' ? 'Organization Logo:' : 'Profile Picture:'}
+                </Label>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 bg-[#183c3f] border border-[#1b5858] rounded-full h-9 px-2 cursor-pointer hover:bg-[#1b5858]/50 transition-colors w-full">
+                    <span className="bg-[#c4e5c1] text-[#1b5858] text-sm font-medium px-2 py-0.5 rounded-full">
+                      Choose file
+                    </span>
+                    <span className="text-white text-sm truncate">
+                      {formData.logo ? formData.logo.name : 'No file chosen'}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/gif"
+                      onChange={handleLogoChange}
+                      className="hidden"
                     />
-                  </div>
-
-                  {/* Website & EIN Row */}
-                  <div className="flex gap-2.5">
-                    <div className="flex-1 flex flex-col gap-2">
-                      <Label htmlFor="website" className="text-white text-sm font-medium">
-                        Website
-                      </Label>
-                      <Input
-                        id="website"
-                        type="url"
-                        value={formData.website}
-                        onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
-                        placeholder="https://example.org"
-                        className="h-9 bg-[#183c3f] border-[#1b5858] text-white placeholder:text-white/50 rounded-lg"
-                      />
-                    </div>
-                    <div className="flex-1 flex flex-col gap-2">
-                      <Label htmlFor="ein" className="text-white text-sm font-medium">
-                        EIN (TAX ID)
-                      </Label>
-                      <Input
-                        id="ein"
-                        value={formData.ein}
-                        onChange={(e) => setFormData(prev => ({ ...prev, ein: e.target.value }))}
-                        placeholder="XX-XXXXXXX"
-                        className="h-9 bg-[#183c3f] border-[#1b5858] text-white placeholder:text-white/50 rounded-lg"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="description" className="text-white text-sm font-medium">
-                      Description of Organization:
-                    </Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Tell us about your organization and its mission..."
-                      className="min-h-[80px] bg-[#183c3f] border-[#1b5858] text-white placeholder:text-white/50 rounded-lg resize-none"
+                  </label>
+                  {logoPreview && (
+                    <img 
+                      src={logoPreview} 
+                      alt="Logo preview" 
+                      className="size-9 rounded-full object-cover shrink-0"
                     />
-                  </div>
-                </>
-              )}
+                  )}
+                </div>
+                <p className="text-white/70 text-sm">
+                  Upload a profile picture (PNG, JPG, GIF supported). Recommended size: 200x200px or larger.
+                </p>
+              </div>
+
+              {/* Organization/Display Name */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="org-name" className="text-white text-sm font-medium">
+                  {userType === 'cbo' ? 'Organization Name:' : 'Display Name:'}
+                </Label>
+                <Input
+                  id="org-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder={userType === 'cbo' ? 'Enter organization name' : 'Enter your display name'}
+                  className="h-9 bg-[#183c3f] border-[#1b5858] text-white placeholder:text-white/50 rounded-lg"
+                />
+              </div>
+
+              {/* Website & EIN Row */}
+              <div className="flex gap-2.5">
+                <div className="flex-1 flex flex-col gap-2">
+                  <Label htmlFor="website" className="text-white text-sm font-medium">
+                    Website
+                  </Label>
+                  <Input
+                    id="website"
+                    type="url"
+                    value={formData.website}
+                    onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                    placeholder="https://example.org"
+                    className="h-9 bg-[#183c3f] border-[#1b5858] text-white placeholder:text-white/50 rounded-lg"
+                  />
+                </div>
+                <div className="flex-1 flex flex-col gap-2">
+                  <Label htmlFor="ein" className="text-white text-sm font-medium">
+                    {userType === 'cbo' ? 'EIN (TAX ID)' : 'Phone (Optional)'}
+                  </Label>
+                  <Input
+                    id="ein"
+                    value={formData.ein}
+                    onChange={(e) => setFormData(prev => ({ ...prev, ein: e.target.value }))}
+                    placeholder={userType === 'cbo' ? 'XX-XXXXXXX' : '(555) 123-4567'}
+                    className="h-9 bg-[#183c3f] border-[#1b5858] text-white placeholder:text-white/50 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              {/* Description/Bio */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="description" className="text-white text-sm font-medium">
+                  {userType === 'cbo' ? 'Description of Organization:' : 'Bio (Optional):'}
+                </Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder={userType === 'cbo' ? 'Tell us about your organization and its mission...' : 'Tell us a bit about yourself...'}
+                  className="min-h-[80px] bg-[#183c3f] border-[#1b5858] text-white placeholder:text-white/50 rounded-lg resize-none"
+                />
+              </div>
 
               {/* Newsletter Checkbox */}
               <div className="flex items-start gap-2">
@@ -340,14 +347,16 @@ export function OnboardingModal({ isOpen, onClose, onComplete, userType }: Onboa
           )}
 
           {/* Step 2: Cause Areas Selection */}
-          {currentStep === 2 && userType === 'cbo' && (
+          {currentStep === 2 && (
             <div className="flex flex-col gap-[10px] flex-1">
               <div className="flex flex-col gap-2.5">
                 <h2 className="text-[30px] font-bold text-white">
                   Preferred Cause Areas
                 </h2>
                 <p className="text-base text-white">
-                  Select the cause areas your organization focuses on
+                  {userType === 'cbo' 
+                    ? 'Select the cause areas your organization focuses on'
+                    : 'Select the cause areas you\'re interested in supporting'}
                 </p>
               </div>
 
