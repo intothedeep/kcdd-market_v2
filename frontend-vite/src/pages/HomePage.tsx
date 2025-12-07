@@ -10,11 +10,17 @@ import { StatsSection } from '@/components/home/StatsSection'
 import { ContentBlockSection } from '@/components/home/ContentBlockSection'
 import { SectionHeader } from '@/components/home/SectionHeader'
 import { BentoGridSection } from '@/components/home/BentoGridSection'
+import { FeatureCardsSection } from '@/components/home/FeatureCardsSection'
+import { FeatureCardsWithImageSection } from '@/components/home/FeatureCardsWithImageSection'
+import { TextWithImageSection } from '@/components/home/TextWithImageSection'
 import { homeFeatures } from '@/data/homeFeatures'
 import { homeContentBlock } from '@/data/homeContentBlock'
 import { homeStats, homeStatsContent } from '@/data/homeStats'
 import { homeSectionHeader } from '@/data/homeSectionHeader'
 import { homeBentoGrid } from '@/data/homeBentoGrid'
+import { homeFeatureCards } from '@/data/homeFeatureCards'
+import { homeFeatureCardsWithImage } from '@/data/homeFeatureCardsWithImage'
+import { homeTextWithImage } from '@/data/homeTextWithImage'
 
 export function HomePage() {
   return (
@@ -30,6 +36,15 @@ export function HomePage() {
 
       {/* Bento Grid Section - Location: src/components/home/BentoGridSection.tsx */}
       <BentoGridSection cards={homeBentoGrid} />
+
+      {/* Feature Cards Section - Location: src/components/home/FeatureCardsSection.tsx */}
+      <FeatureCardsSection data={homeFeatureCards} />
+
+      {/* Feature Cards With Image Section - Location: src/components/home/FeatureCardsWithImageSection.tsx */}
+      <FeatureCardsWithImageSection data={homeFeatureCardsWithImage} />
+
+      {/* Text With Image Section - Location: src/components/home/TextWithImageSection.tsx */}
+      <TextWithImageSection data={homeTextWithImage} />
       
       {/* Features Section - Location: src/components/home/FeaturesSection.tsx */}
       <FeaturesSection features={homeFeatures} />
