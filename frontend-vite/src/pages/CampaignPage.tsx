@@ -984,7 +984,7 @@ export function CampaignPage() {
                           href={campaign.instagram_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#515bd4] rounded-full hover:opacity-80 transition-opacity"
+                          className="p-2 bg-[#E4405F] rounded-full hover:opacity-80 transition-opacity"
                           aria-label="Instagram"
                         >
                           <Instagram className="h-4 w-4 text-white" />
@@ -1737,7 +1737,7 @@ export function CampaignPage() {
                     </div>
                     {/* Instagram */}
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-[#833ab4] via-[#fd1d1d] to-[#fcb045] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 bg-[#E4405F] rounded-lg flex items-center justify-center flex-shrink-0">
                         <Instagram className="h-5 w-5 text-white" />
                       </div>
                       <Input
@@ -1815,7 +1815,7 @@ export function CampaignPage() {
                         href={campaign.instagram_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white rounded-lg hover:opacity-90 transition-opacity"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#E4405F] text-white rounded-lg hover:opacity-90 transition-opacity"
                       >
                         <Instagram className="h-5 w-5" />
                         Instagram
