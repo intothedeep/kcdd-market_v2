@@ -1739,23 +1739,6 @@ export function CBODashboard() {
       {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#fafafa] p-2 flex flex-col transition-all duration-300`}>
         <div className="flex-1 space-y-2">
-          {/* Organization Header */}
-          {organization && sidebarOpen && (
-            <div className="px-2 pb-4 mb-2 border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-[#1b5858] rounded-lg flex items-center justify-center">
-                  <span className="text-white font-semibold">
-                    {organization.name?.[0] || 'O'}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#0a0a0a] truncate">{organization.name}</p>
-                  <p className="text-xs text-[#737373]">Organization</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Main Navigation */}
           <nav className="space-y-1 p-2">
             <button 
