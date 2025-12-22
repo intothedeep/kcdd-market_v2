@@ -2,7 +2,7 @@
  * Donor Tax Documents Page
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -23,55 +23,7 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-
-// Demo documents data
-const DEMO_DOCUMENTS = [
-  {
-    id: '1',
-    name: '2024 Annual Donation Summary',
-    type: 'PDF',
-    size: '245 KB',
-    date: '2024-12-31',
-    year: 2024,
-    status: 'ready'
-  },
-  {
-    id: '2',
-    name: 'Q4 2024 Donation Receipt',
-    type: 'PDF',
-    size: '128 KB',
-    date: '2024-12-31',
-    year: 2024,
-    status: 'ready'
-  },
-  {
-    id: '3',
-    name: 'Q3 2024 Donation Receipt',
-    type: 'PDF',
-    size: '112 KB',
-    date: '2024-09-30',
-    year: 2024,
-    status: 'ready'
-  },
-  {
-    id: '4',
-    name: '2023 Annual Donation Summary',
-    type: 'PDF',
-    size: '198 KB',
-    date: '2023-12-31',
-    year: 2023,
-    status: 'ready'
-  },
-  {
-    id: '5',
-    name: '2023 Tax Deduction Letter',
-    type: 'PDF',
-    size: '85 KB',
-    date: '2024-01-15',
-    year: 2023,
-    status: 'ready'
-  }
-]
+import { fetchDonorDocuments, fetchDonorYearlySummary, type DonorDocument, type DonorYearlySummary } from '@/lib/supabase'
 
 export function DonorDocuments() {
   const { user, isLoaded } = useUser()
@@ -79,19 +31,52 @@ export function DonorDocuments() {
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
+  const [documents, setDocuments] = useState<DonorDocument[]>([])
+  const [yearlySummaries, setYearlySummaries] = useState<DonorYearlySummary[]>([])
+  const [loading, setLoading] = useState(true)
 
   const isActive = (path: string) => location.pathname === path
 
-  const filteredDocuments = selectedYear === 'all' 
-    ? DEMO_DOCUMENTS 
-    : DEMO_DOCUMENTS.filter(d => d.year === selectedYear)
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user?.id) return
+      
+      setLoading(true)
+      try {
+        const [docsData, summaryData] = await Promise.all([
+          fetchDonorDocuments(user.id),
+          fetchDonorYearlySummary(user.id)
+        ])
+        setDocuments(docsData)
+        setYearlySummaries(summaryData)
+      } catch (error) {
+        console.error('Error loading documents:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-  const handleDownload = (docName: string) => {
-    // Simulate download
-    alert(`Downloading ${docName}...`)
+    if (isLoaded && user?.id) {
+      loadData()
+    }
+  }, [isLoaded, user?.id])
+
+  const filteredDocuments = selectedYear === 'all' 
+    ? documents 
+    : documents.filter(d => d.year === selectedYear)
+
+  // Get unique years from documents
+  const availableYears = [...new Set(documents.map(d => d.year))].sort((a, b) => b - a)
+
+  const handleDownload = (doc: DonorDocument) => {
+    if (doc.file_url) {
+      window.open(doc.file_url, '_blank')
+    } else {
+      alert(`Document "${doc.name}" is not available for download yet.`)
+    }
   }
 
-  if (!isLoaded) {
+  if (!isLoaded || loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-gray-600" />
@@ -166,8 +151,8 @@ export function DonorDocuments() {
             </div>
             {sidebarOpen && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user?.firstName || 'Demo User'}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.emailAddresses?.[0]?.emailAddress || 'demo@example.com'}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{user?.firstName || 'User'}</p>
+                <p className="text-xs text-gray-500 truncate">{user?.emailAddresses?.[0]?.emailAddress || ''}</p>
               </div>
             )}
           </div>
@@ -200,8 +185,9 @@ export function DonorDocuments() {
                 onChange={(e) => setSelectedYear(e.target.value === 'all' ? 'all' : Number(e.target.value))}
               >
                 <option value="all">All Years</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
               </select>
               <Button variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
@@ -235,86 +221,80 @@ export function DonorDocuments() {
               <p className="text-sm text-gray-500">Download your donation receipts and tax documents</p>
             </div>
 
-            <div className="divide-y divide-gray-100">
-              {filteredDocuments.map((doc) => (
-                <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <File className="h-6 w-6 text-gray-500" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{doc.name}</p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs text-gray-500">{doc.type}</span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500">{doc.size}</span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500">
-                          <Calendar className="h-3 w-3 inline mr-1" />
-                          {new Date(doc.date).toLocaleDateString()}
-                        </span>
+            {filteredDocuments.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No documents available yet.</p>
+                <p className="text-sm mt-2">Documents will appear here once you make your first donation.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {filteredDocuments.map((doc) => (
+                  <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <File className="h-6 w-6 text-gray-500" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{doc.name}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-gray-500">{doc.type}</span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-500">{doc.size}</span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-500">
+                            <Calendar className="h-3 w-3 inline mr-1" />
+                            {new Date(doc.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        {doc.status === 'ready' ? 'Ready' : doc.status}
+                      </Badge>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDownload(doc)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Ready
-                    </Badge>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDownload(doc.name)}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </Card>
 
-          {/* Summary Card */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="p-6 bg-white border border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-4">2024 Summary</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Total Donations</span>
-                  <span className="font-semibold text-gray-900">$2,847.00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Number of Donations</span>
-                  <span className="font-semibold text-gray-900">12</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Tax Deductible Amount</span>
-                  <span className="font-semibold text-emerald-600">$2,847.00</span>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-6 bg-white border border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-4">2023 Summary</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Total Donations</span>
-                  <span className="font-semibold text-gray-900">$1,520.00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Number of Donations</span>
-                  <span className="font-semibold text-gray-900">8</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Tax Deductible Amount</span>
-                  <span className="font-semibold text-emerald-600">$1,520.00</span>
-                </div>
-              </div>
-            </Card>
-          </div>
+          {/* Summary Cards */}
+          {yearlySummaries.length > 0 && (
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {yearlySummaries.slice(0, 2).map((summary) => (
+                <Card key={summary.year} className="p-6 bg-white border border-gray-200">
+                  <h3 className="font-semibold text-gray-900 mb-4">{summary.year} Summary</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Total Donations</span>
+                      <span className="font-semibold text-gray-900">${summary.total_donations.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Number of Donations</span>
+                      <span className="font-semibold text-gray-900">{summary.donation_count}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Tax Deductible Amount</span>
+                      <span className="font-semibold text-emerald-600">${summary.tax_deductible.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </main>
       </div>
     </div>
   )
 }
-

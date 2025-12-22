@@ -96,76 +96,13 @@ interface Campaign {
   created_at: string
 }
 
-// Demo data
-const DEMO_STATS: CBODashboardStats = {
-  totalReceived: 12450,
-  activeRequests: 5,
-  fulfilledRequests: 28,
-  pendingRequests: 3
+// Default empty states
+const EMPTY_STATS: CBODashboardStats = {
+  totalReceived: 0,
+  activeRequests: 0,
+  fulfilledRequests: 0,
+  pendingRequests: 0
 }
-
-const DEMO_REQUESTS: RequestRecord[] = [
-  {
-    id: '1',
-    description: 'Laptops for after-school program',
-    amount: 2500,
-    status: 'open',
-    urgency: 'high',
-    cause_area_name: 'Education',
-    donor_email: null,
-    created_at: '2024-12-20T10:00:00Z',
-    claimed_at: null,
-    fulfilled_at: null
-  },
-  {
-    id: '2',
-    description: 'Internet hotspots for families',
-    amount: 800,
-    status: 'claimed',
-    urgency: 'medium',
-    cause_area_name: 'Digital Access',
-    donor_email: 'donor@example.com',
-    created_at: '2024-12-18T14:00:00Z',
-    claimed_at: '2024-12-19T09:00:00Z',
-    fulfilled_at: null
-  },
-  {
-    id: '3',
-    description: 'Office supplies for volunteer center',
-    amount: 350,
-    status: 'fulfilled',
-    urgency: 'low',
-    cause_area_name: 'Community',
-    donor_email: 'generous.donor@example.com',
-    created_at: '2024-12-10T08:00:00Z',
-    claimed_at: '2024-12-10T12:00:00Z',
-    fulfilled_at: '2024-12-15T16:00:00Z'
-  },
-  {
-    id: '4',
-    description: 'Tablets for senior outreach program',
-    amount: 1200,
-    status: 'fulfilled',
-    urgency: 'medium',
-    cause_area_name: 'Senior Services',
-    donor_email: 'tech.donor@example.com',
-    created_at: '2024-12-05T11:00:00Z',
-    claimed_at: '2024-12-06T10:00:00Z',
-    fulfilled_at: '2024-12-12T14:00:00Z'
-  },
-  {
-    id: '5',
-    description: 'Printer for job training center',
-    amount: 450,
-    status: 'open',
-    urgency: 'high',
-    cause_area_name: 'Employment',
-    donor_email: null,
-    created_at: '2024-12-21T09:00:00Z',
-    claimed_at: null,
-    fulfilled_at: null
-  }
-]
 
 // Sidebar sections enum
 type SidebarSection = 
@@ -1525,8 +1462,8 @@ export function CBODashboard() {
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
   
   // Data state
-  const [stats, setStats] = useState<CBODashboardStats>(DEMO_STATS)
-  const [requests, setRequests] = useState<RequestRecord[]>(DEMO_REQUESTS)
+  const [stats, setStats] = useState<CBODashboardStats>(EMPTY_STATS)
+  const [requests, setRequests] = useState<RequestRecord[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [questions, setQuestions] = useState<OrganizationQuestion[]>([])
   const [organization, setOrganization] = useState<any>(null)
@@ -1555,23 +1492,19 @@ export function CBODashboard() {
           fetchOrganizationQuestions(org.id)
         ])
 
-        if (requestsData && requestsData.length > 0) {
-          setStats(statsData)
-          setRequests(requestsData)
-        }
-        
-        if (campaignsData) {
-          setCampaigns(campaignsData)
-        }
-        
-        if (questionsData) {
-          setQuestions(questionsData)
-        }
+        setStats(statsData || EMPTY_STATS)
+        setRequests(requestsData || [])
+        setCampaigns(campaignsData || [])
+        setQuestions(questionsData || [])
       } else {
         setHasOrganization(false)
       }
     } catch (err) {
-      console.log('Using demo data')
+      console.error('Error fetching CBO data:', err)
+      setStats(EMPTY_STATS)
+      setRequests([])
+      setCampaigns([])
+      setQuestions([])
     } finally {
       setLoading(false)
     }

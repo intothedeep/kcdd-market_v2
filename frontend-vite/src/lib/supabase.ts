@@ -1009,3 +1009,226 @@ export const dismissQuestion = async (questionId: string) => {
   if (error) throw error
 }
 
+// ============================================
+// DONOR DOCUMENTS
+// ============================================
+
+export interface DonorDocument {
+  id: string
+  user_id: string
+  name: string
+  type: string
+  size: string
+  file_url: string | null
+  year: number
+  quarter: number | null
+  status: string
+  created_at: string
+}
+
+export const fetchDonorDocuments = async (userId: string): Promise<DonorDocument[]> => {
+  const { data, error } = await (supabase
+    .from('donor_documents') as any)
+    .select('*')
+    .eq('user_id', userId)
+    .order('year', { ascending: false })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching donor documents:', error)
+    return []
+  }
+  return data || []
+}
+
+// ============================================
+// DONOR IMPACT DATA
+// ============================================
+
+export interface DonorImpactSummary {
+  total_donated: number
+  lives_impacted: number
+  organizations_helped: number
+  months_active: number
+}
+
+export interface DonorImpactByCause {
+  name: string
+  amount: number
+  percentage: number
+}
+
+export interface DonorMonthlyDonation {
+  month: string
+  amount: number
+}
+
+export interface DonorImpactStory {
+  description: string
+  organization_name: string
+  created_at: string
+}
+
+export interface DonorImpactData {
+  summary: DonorImpactSummary
+  topCauses: DonorImpactByCause[]
+  monthlyData: DonorMonthlyDonation[]
+  recentImpact: DonorImpactStory[]
+}
+
+export const fetchDonorImpactData = async (userId: string): Promise<DonorImpactData | null> => {
+  try {
+    // Fetch summary
+    const { data: summaryData } = await (supabase
+      .from('donor_impact_summary') as any)
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    // Fetch impact by cause with cause area names
+    const { data: causeData } = await (supabase
+      .from('donor_impact_by_cause') as any)
+      .select(`
+        amount,
+        percentage,
+        cause_area:cause_areas(name)
+      `)
+      .eq('user_id', userId)
+      .order('percentage', { ascending: false })
+
+    // Fetch monthly donations
+    const { data: monthlyData } = await (supabase
+      .from('donor_monthly_donations') as any)
+      .select('month, amount')
+      .eq('user_id', userId)
+      .order('year', { ascending: true })
+
+    // Fetch impact stories
+    const { data: storiesData } = await (supabase
+      .from('donor_impact_stories') as any)
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(4)
+
+    return {
+      summary: summaryData || { total_donated: 0, lives_impacted: 0, organizations_helped: 0, months_active: 0 },
+      topCauses: (causeData || []).map((c: any) => ({
+        name: c.cause_area?.name || 'Unknown',
+        amount: c.amount,
+        percentage: c.percentage
+      })),
+      monthlyData: monthlyData || [],
+      recentImpact: storiesData || []
+    }
+  } catch (error) {
+    console.error('Error fetching donor impact data:', error)
+    return null
+  }
+}
+
+// ============================================
+// SUPPORT FAQS AND CONTACT INFO
+// ============================================
+
+export interface SupportFAQ {
+  id: string
+  question: string
+  answer: string
+  category: string
+  user_type: string
+  sort_order: number
+}
+
+export interface SupportContactInfo {
+  id: string
+  type: string
+  label: string
+  value: string
+  description: string | null
+  sort_order: number
+}
+
+export const fetchSupportFAQs = async (userType: 'donor' | 'cbo' | 'all' = 'all'): Promise<SupportFAQ[]> => {
+  let query = (supabase
+    .from('support_faqs') as any)
+    .select('*')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+
+  if (userType !== 'all') {
+    query = query.or(`user_type.eq.${userType},user_type.eq.all`)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error fetching support FAQs:', error)
+    return []
+  }
+  return data || []
+}
+
+export const fetchSupportContactInfo = async (): Promise<SupportContactInfo[]> => {
+  const { data, error } = await (supabase
+    .from('support_contact_info') as any)
+    .select('*')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching support contact info:', error)
+    return []
+  }
+  return data || []
+}
+
+// ============================================
+// DONOR YEARLY SUMMARY (calculated from donations)
+// ============================================
+
+export interface DonorYearlySummary {
+  year: number
+  total_donations: number
+  donation_count: number
+  tax_deductible: number
+}
+
+export const fetchDonorYearlySummary = async (userId: string): Promise<DonorYearlySummary[]> => {
+  // This calculates yearly summaries from the requests table where donor_id matches
+  const { data, error } = await supabase
+    .from('requests')
+    .select('amount, fulfilled_at')
+    .eq('donor_id', userId)
+    .eq('status', 'fulfilled')
+    .not('fulfilled_at', 'is', null)
+
+  if (error) {
+    console.error('Error fetching donor yearly summary:', error)
+    return []
+  }
+
+  // Group by year
+  const yearlyData: Record<number, { total: number; count: number }> = {}
+  
+  for (const req of data || []) {
+    if (req.fulfilled_at) {
+      const year = new Date(req.fulfilled_at).getFullYear()
+      if (!yearlyData[year]) {
+        yearlyData[year] = { total: 0, count: 0 }
+      }
+      yearlyData[year].total += Number(req.amount) || 0
+      yearlyData[year].count += 1
+    }
+  }
+
+  return Object.entries(yearlyData)
+    .map(([year, data]) => ({
+      year: parseInt(year),
+      total_donations: data.total,
+      donation_count: data.count,
+      tax_deductible: data.total // All donations are tax deductible
+    }))
+    .sort((a, b) => b.year - a.year)
+}
+

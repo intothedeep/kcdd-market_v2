@@ -71,94 +71,13 @@ import {
   type DonationRecord
 } from '@/lib/supabase'
 
-// Demo data
-const DEMO_STATS: DonorDashboardStats = {
-  totalDonations: 2847,
-  requestsFulfilled: 12,
-  requestsClaimed: 3,
-  causesSupported: 5
+// Default empty states
+const EMPTY_STATS: DonorDashboardStats = {
+  totalDonations: 0,
+  requestsFulfilled: 0,
+  requestsClaimed: 0,
+  causesSupported: 0
 }
-
-const DEMO_DONATIONS: DonationRecord[] = [
-  {
-    id: '1',
-    description: 'Laptop for remote learning student',
-    amount: 450,
-    status: 'fulfilled',
-    urgency: 'high',
-    organization_name: 'KC Youth Education',
-    organization_logo_emoji: '📚',
-    cause_area_name: 'Education',
-    created_at: '2024-12-15T10:30:00Z',
-    claimed_at: '2024-12-15T14:00:00Z',
-    fulfilled_at: '2024-12-18T09:00:00Z'
-  },
-  {
-    id: '2',
-    description: 'Internet hotspot for family of 4',
-    amount: 120,
-    status: 'fulfilled',
-    urgency: 'medium',
-    organization_name: 'Digital Bridge KC',
-    organization_logo_emoji: '🌐',
-    cause_area_name: 'Digital Access',
-    created_at: '2024-12-10T08:00:00Z',
-    claimed_at: '2024-12-10T12:00:00Z',
-    fulfilled_at: '2024-12-12T16:00:00Z'
-  },
-  {
-    id: '3',
-    description: 'Tablet for senior citizen tech classes',
-    amount: 280,
-    status: 'claimed',
-    urgency: 'low',
-    organization_name: 'Senior Tech Connect',
-    organization_logo_emoji: '👴',
-    cause_area_name: 'Senior Services',
-    created_at: '2024-12-20T11:00:00Z',
-    claimed_at: '2024-12-20T15:00:00Z',
-    fulfilled_at: null
-  },
-  {
-    id: '4',
-    description: 'Computer monitors for nonprofit office',
-    amount: 350,
-    status: 'claimed',
-    urgency: 'medium',
-    organization_name: 'Community Action Network',
-    organization_logo_emoji: '🏢',
-    cause_area_name: 'Nonprofit Support',
-    created_at: '2024-12-19T09:00:00Z',
-    claimed_at: '2024-12-19T13:00:00Z',
-    fulfilled_at: null
-  },
-  {
-    id: '5',
-    description: 'Webcam and headset for job interviews',
-    amount: 85,
-    status: 'fulfilled',
-    urgency: 'high',
-    organization_name: 'Employment First KC',
-    organization_logo_emoji: '💼',
-    cause_area_name: 'Employment',
-    created_at: '2024-12-08T14:00:00Z',
-    claimed_at: '2024-12-08T16:00:00Z',
-    fulfilled_at: '2024-12-09T10:00:00Z'
-  },
-  {
-    id: '6',
-    description: 'Printer for small business startup',
-    amount: 199,
-    status: 'fulfilled',
-    urgency: 'medium',
-    organization_name: 'Entrepreneurship Hub',
-    organization_logo_emoji: '🚀',
-    cause_area_name: 'Small Business',
-    created_at: '2024-12-05T10:00:00Z',
-    claimed_at: '2024-12-05T11:30:00Z',
-    fulfilled_at: '2024-12-07T14:00:00Z'
-  }
-]
 
 // Sidebar sections enum
 type SidebarSection = 
@@ -877,9 +796,9 @@ export function DonorDashboard() {
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
   
   // Data state
-  const [stats, setStats] = useState<DonorDashboardStats>(DEMO_STATS)
-  const [donations, setDonations] = useState<DonationRecord[]>(DEMO_DONATIONS)
-  const [loading, setLoading] = useState(false)
+  const [stats, setStats] = useState<DonorDashboardStats>(EMPTY_STATS)
+  const [donations, setDonations] = useState<DonationRecord[]>([])
+  const [loading, setLoading] = useState(true)
   const [needsOnboarding, setNeedsOnboarding] = useState(true)
 
   // Fetch real data
@@ -896,12 +815,12 @@ export function DonorDashboard() {
         fetchDonorDonations(user.id)
       ])
 
-      if (donationsData && donationsData.length > 0) {
-        setStats(statsData)
-        setDonations(donationsData)
-      }
+      setStats(statsData || EMPTY_STATS)
+      setDonations(donationsData || [])
     } catch (err) {
-      console.log('Using demo data')
+      console.error('Error fetching donor data:', err)
+      setStats(EMPTY_STATS)
+      setDonations([])
     } finally {
       setLoading(false)
     }

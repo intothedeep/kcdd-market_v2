@@ -2,7 +2,7 @@
  * Donor Support Page
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -26,30 +26,7 @@ import {
   Send
 } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-
-// FAQ data
-const FAQ_ITEMS = [
-  {
-    question: 'How do I claim a donation request?',
-    answer: 'Browse the available requests, find one that matches your interests, and click the "Claim" button. You\'ll then be guided through the donation process.'
-  },
-  {
-    question: 'Are my donations tax-deductible?',
-    answer: 'Yes! All donations made through KC Digital Drive are fully tax-deductible. You can download your tax receipts from the Tax Documents page.'
-  },
-  {
-    question: 'How do I know my donation was received?',
-    answer: 'You\'ll receive email notifications when your donation is confirmed and when the organization marks the request as fulfilled. You can also track status on your dashboard.'
-  },
-  {
-    question: 'Can I cancel a claimed donation?',
-    answer: 'Yes, you can cancel a claimed donation within 24 hours. After that, please contact support for assistance.'
-  },
-  {
-    question: 'How do I update my payment information?',
-    answer: 'Go to Settings from your dashboard and update your payment details in the Payment Methods section.'
-  }
-]
+import { fetchSupportFAQs, fetchSupportContactInfo, type SupportFAQ, type SupportContactInfo } from '@/lib/supabase'
 
 export function DonorSupport() {
   const { user, isLoaded } = useUser()
@@ -59,8 +36,31 @@ export function DonorSupport() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
   const [contactForm, setContactForm] = useState({ subject: '', message: '' })
   const [sending, setSending] = useState(false)
+  const [faqs, setFaqs] = useState<SupportFAQ[]>([])
+  const [contactInfo, setContactInfo] = useState<SupportContactInfo[]>([])
+  const [loading, setLoading] = useState(true)
 
   const isActive = (path: string) => location.pathname === path
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        const [faqsData, contactData] = await Promise.all([
+          fetchSupportFAQs('donor'),
+          fetchSupportContactInfo()
+        ])
+        setFaqs(faqsData)
+        setContactInfo(contactData)
+      } catch (error) {
+        console.error('Error loading support data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,7 +71,16 @@ export function DonorSupport() {
     alert('Message sent! We\'ll get back to you within 24 hours.')
   }
 
-  if (!isLoaded) {
+  const getContactIcon = (type: string) => {
+    switch (type) {
+      case 'chat': return <MessageSquare className="h-6 w-6 text-gray-700" />
+      case 'email': return <Mail className="h-6 w-6 text-gray-700" />
+      case 'phone': return <Phone className="h-6 w-6 text-gray-700" />
+      default: return <HelpCircle className="h-6 w-6 text-gray-700" />
+    }
+  }
+
+  if (!isLoaded || loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-gray-600" />
@@ -146,8 +155,8 @@ export function DonorSupport() {
             </div>
             {sidebarOpen && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user?.firstName || 'Demo User'}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.emailAddresses?.[0]?.emailAddress || 'demo@example.com'}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{user?.firstName || 'User'}</p>
+                <p className="text-xs text-gray-500 truncate">{user?.emailAddresses?.[0]?.emailAddress || ''}</p>
               </div>
             )}
           </div>
@@ -179,32 +188,22 @@ export function DonorSupport() {
         <main className="p-6">
           {/* Contact Options */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card className="p-6 bg-white border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                <MessageSquare className="h-6 w-6 text-gray-700" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">Live Chat</h3>
-              <p className="text-sm text-gray-500 mb-3">Chat with our support team</p>
-              <span className="text-sm text-emerald-600 flex items-center">
-                Available now <ExternalLink className="h-3 w-3 ml-1" />
-              </span>
-            </Card>
-            <Card className="p-6 bg-white border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                <Mail className="h-6 w-6 text-gray-700" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">Email Support</h3>
-              <p className="text-sm text-gray-500 mb-3">Get help via email</p>
-              <span className="text-sm text-gray-600">support@kcdigitaldrive.org</span>
-            </Card>
-            <Card className="p-6 bg-white border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                <Phone className="h-6 w-6 text-gray-700" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">Phone Support</h3>
-              <p className="text-sm text-gray-500 mb-3">Call us directly</p>
-              <span className="text-sm text-gray-600">(816) 555-0123</span>
-            </Card>
+            {contactInfo.map((contact) => (
+              <Card key={contact.id} className="p-6 bg-white border border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+                  {getContactIcon(contact.type)}
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">{contact.label}</h3>
+                <p className="text-sm text-gray-500 mb-3">{contact.description}</p>
+                {contact.type === 'chat' ? (
+                  <span className="text-sm text-emerald-600 flex items-center">
+                    {contact.value === 'available' ? 'Available now' : contact.value} <ExternalLink className="h-3 w-3 ml-1" />
+                  </span>
+                ) : (
+                  <span className="text-sm text-gray-600">{contact.value}</span>
+                )}
+              </Card>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -213,29 +212,36 @@ export function DonorSupport() {
               <div className="p-4 border-b border-gray-100">
                 <h2 className="text-lg font-semibold text-gray-900">Frequently Asked Questions</h2>
               </div>
-              <div className="divide-y divide-gray-100">
-                {FAQ_ITEMS.map((item, i) => (
-                  <div key={i} className="p-4">
-                    <button 
-                      className="w-full flex items-center justify-between text-left"
-                      onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
-                    >
-                      <span className="font-medium text-gray-900">{item.question}</span>
-                      <ChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${expandedFaq === i ? 'rotate-90' : ''}`} />
-                    </button>
-                    {expandedFaq === i && (
-                      <p className="mt-2 text-sm text-gray-600">{item.answer}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+              {faqs.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {faqs.map((item, i) => (
+                    <div key={item.id} className="p-4">
+                      <button 
+                        className="w-full flex items-center justify-between text-left"
+                        onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
+                      >
+                        <span className="font-medium text-gray-900">{item.question}</span>
+                        <ChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${expandedFaq === i ? 'rotate-90' : ''}`} />
+                      </button>
+                      {expandedFaq === i && (
+                        <p className="mt-2 text-sm text-gray-600">{item.answer}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  <HelpCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No FAQs available yet.</p>
+                </div>
+              )}
             </Card>
 
             {/* Contact Form */}
             <Card className="bg-white border border-gray-200">
               <div className="p-4 border-b border-gray-100">
                 <h2 className="text-lg font-semibold text-gray-900">Send us a Message</h2>
-                <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
+                <p className="text-sm text-gray-500">We&apos;ll respond within 24 hours</p>
               </div>
               <form onSubmit={handleSubmit} className="p-4 space-y-4">
                 <div className="space-y-2">
@@ -275,4 +281,3 @@ export function DonorSupport() {
     </div>
   )
 }
-
