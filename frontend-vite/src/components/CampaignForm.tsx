@@ -23,6 +23,9 @@ import {
   Upload,
   Image,
   AlertCircle,
+  Plus,
+  Trash2,
+  HelpCircle,
 } from 'lucide-react'
 import { createCampaign, supabase } from '@/lib/supabase'
 
@@ -30,6 +33,11 @@ interface CampaignFormProps {
   organizationId?: string
   onCancel: () => void
   onComplete: () => void
+}
+
+interface FAQ {
+  question: string
+  answer: string
 }
 
 interface CampaignFormData {
@@ -44,9 +52,10 @@ interface CampaignFormData {
   storyTitle: string
   campaignStory: string
   contactEmail: string
+  faqs: FAQ[]
 }
 
-type FormDataValue = string | string[] | boolean | File | null
+type FormDataValue = string | string[] | boolean | File | null | FAQ[]
 
 const CAUSE_AREAS = [
   'Health & Medicine',
@@ -67,7 +76,7 @@ const CAUSE_AREAS = [
   'Senior Services',
 ]
 
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = 6
 
 export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignFormProps) {
   const { user } = useUser()
@@ -89,6 +98,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
     storyTitle: '',
     campaignStory: '',
     contactEmail: user?.primaryEmailAddress?.emailAddress || '',
+    faqs: [{ question: '', answer: '' }],
   })
 
   const updateFormData = (field: keyof CampaignFormData, value: FormDataValue) => {
@@ -102,6 +112,29 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
       causeAreas: prev.causeAreas.includes(area)
         ? prev.causeAreas.filter(a => a !== area)
         : [...prev.causeAreas, area]
+    }))
+  }
+
+  const addFaq = () => {
+    setFormData(prev => ({
+      ...prev,
+      faqs: [...prev.faqs, { question: '', answer: '' }]
+    }))
+  }
+
+  const removeFaq = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      faqs: prev.faqs.filter((_, i) => i !== index)
+    }))
+  }
+
+  const updateFaq = (index: number, field: 'question' | 'answer', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      faqs: prev.faqs.map((faq, i) => 
+        i === index ? { ...faq, [field]: value } : faq
+      )
     }))
   }
 
@@ -209,6 +242,20 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
         logo_url: logoUrl,
       })
 
+      // Save FAQs
+      const validFaqs = formData.faqs.filter(faq => faq.question.trim() && faq.answer.trim())
+      if (validFaqs.length > 0 && campaign) {
+        const campaignId = (campaign as { id: string }).id
+        const faqsToInsert = validFaqs.map((faq, index) => ({
+          campaign_id: campaignId,
+          question: faq.question,
+          answer: faq.answer,
+          sort_order: index,
+        }))
+        
+        await supabase.from('campaign_faqs').insert(faqsToInsert)
+      }
+
       onComplete()
       
       // Navigate to the campaign page
@@ -232,7 +279,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
   }
 
   // Step titles for progress indicator
-  const stepTitles = ['Basic Info', 'Cause Areas', 'Funding', 'Your Story', 'Review']
+  const stepTitles = ['Basic Info', 'Cause Areas', 'Funding', 'Your Story', 'FAQs', 'Review']
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -517,8 +564,82 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
           </div>
         )}
 
-        {/* Step 5: Review */}
+        {/* Step 5: FAQs */}
         {currentStep === 5 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-[#0a0a0a] mb-1">Frequently Asked Questions</h2>
+              <p className="text-[#737373]">Add FAQs to help potential donors understand your campaign better</p>
+            </div>
+
+            <div className="space-y-4">
+              {formData.faqs.map((faq, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 text-[#1b5858]">
+                      <HelpCircle className="h-5 w-5" />
+                      <span className="font-medium">FAQ #{index + 1}</span>
+                    </div>
+                    {formData.faqs.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeFaq(index)}
+                        className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                        aria-label={`Remove FAQ #${index + 1}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor={`faq-question-${index}`} className="text-sm font-medium text-[#0a0a0a]">
+                      Question
+                    </label>
+                    <Input
+                      id={`faq-question-${index}`}
+                      value={faq.question}
+                      onChange={(e) => updateFaq(index, 'question', e.target.value)}
+                      placeholder="e.g., How will my donation be used?"
+                      className="h-11"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor={`faq-answer-${index}`} className="text-sm font-medium text-[#0a0a0a]">
+                      Answer
+                    </label>
+                    <Textarea
+                      id={`faq-answer-${index}`}
+                      value={faq.answer}
+                      onChange={(e) => updateFaq(index, 'answer', e.target.value)}
+                      placeholder="Provide a clear, helpful answer..."
+                      rows={3}
+                      className="resize-none"
+                    />
+                  </div>
+                </div>
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addFaq}
+                className="w-full border-dashed"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Another FAQ
+              </Button>
+            </div>
+
+            <p className="text-xs text-[#737373]">
+              Tip: Common FAQs include questions about how funds will be used, your organization&apos;s mission, and how donors can stay updated.
+            </p>
+          </div>
+        )}
+
+        {/* Step 6: Review */}
+        {currentStep === 6 && (
           <div className="space-y-6">
             <div>
               <h2 className="text-xl font-semibold text-[#0a0a0a] mb-1">Review & Launch</h2>
@@ -552,7 +673,8 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                   { label: 'Funding Goal', value: formData.fundingGoal ? `$${parseFloat(formData.fundingGoal).toLocaleString()}` : 'Not set', editStep: 3 },
                   { label: 'Cause Areas', value: formData.causeAreas.length > 0 ? formData.causeAreas.join(', ') : 'None selected', editStep: 2 },
                   { label: 'Story Title', value: formData.storyTitle || 'Not set', editStep: 4 },
-                  { label: 'Contact Email', value: formData.contactEmail, editStep: 5 },
+                  { label: 'FAQs', value: `${formData.faqs.filter(f => f.question.trim()).length} question(s)`, editStep: 5 },
+                  { label: 'Contact Email', value: formData.contactEmail, editStep: 6 },
                 ].map((item) => (
                   <div 
                     key={item.label}
@@ -563,7 +685,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                       <span className="text-sm font-medium text-[#0a0a0a]">
                         {item.value}
                       </span>
-                      {item.editStep !== 5 && (
+                      {item.editStep !== 6 && (
                         <button
                           onClick={() => goToStep(item.editStep)}
                           className="p-1 text-[#737373] hover:text-[#1b5858] transition-colors flex-shrink-0"

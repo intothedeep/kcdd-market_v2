@@ -31,7 +31,13 @@ import {
   Save,
   X,
   Tag,
-  Plus
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  MessageSquarePlus,
+  HelpCircle,
+  Clock,
+  Send,
 } from 'lucide-react'
 import { supabase, updateCampaign, fetchCauseAreas } from '@/lib/supabase'
 
@@ -68,16 +74,47 @@ interface CauseArea {
   name: string
 }
 
+interface FAQ {
+  id: string
+  question: string
+  answer: string
+  sort_order: number
+}
+
+interface CampaignUpdate {
+  id: string
+  title: string
+  content: string
+  created_by: string
+  created_at: string
+}
+
+interface OutlineItem {
+  id: string
+  text: string
+  level: number
+}
+
 export function CampaignPage() {
   const { slug } = useParams<{ slug: string }>()
   const { user, isSignedIn } = useUser()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [causeAreas, setCauseAreas] = useState<CauseArea[]>([])
   const [allCauseAreas, setAllCauseAreas] = useState<CauseArea[]>([])
+  const [faqs, setFaqs] = useState<FAQ[]>([])
+  const [updates, setUpdates] = useState<CampaignUpdate[]>([])
+  const [outline, setOutline] = useState<OutlineItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('campaign')
   const [showTagSelector, setShowTagSelector] = useState(false)
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null)
+  
+  // Update posting state
+  const [showUpdateForm, setShowUpdateForm] = useState(false)
+  const [newUpdateTitle, setNewUpdateTitle] = useState('')
+  const [newUpdateContent, setNewUpdateContent] = useState('')
+  const [postingUpdate, setPostingUpdate] = useState(false)
   
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false)
@@ -108,6 +145,118 @@ export function CampaignPage() {
       setAllCauseAreas(areas)
     } catch (err) {
       console.error('Error loading cause areas:', err)
+    }
+  }
+
+  // Build outline from story content headings
+  const buildOutline = (htmlContent: string): OutlineItem[] => {
+    if (!htmlContent) return []
+    
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(htmlContent, 'text/html')
+    const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6')
+    
+    const items: OutlineItem[] = []
+    headings.forEach((heading, index) => {
+      const level = parseInt(heading.tagName.charAt(1))
+      const text = heading.textContent?.trim() || ''
+      if (text) {
+        items.push({
+          id: `heading-${index}`,
+          text,
+          level
+        })
+      }
+    })
+    
+    return items
+  }
+
+  // Update outline when story content changes
+  useEffect(() => {
+    if (campaign?.story_content) {
+      const outlineItems = buildOutline(campaign.story_content)
+      setOutline(outlineItems)
+    }
+  }, [campaign?.story_content])
+
+  // Fetch FAQs and updates when campaign loads
+  useEffect(() => {
+    if (campaign?.id) {
+      loadFaqs()
+      loadUpdates()
+    }
+  }, [campaign?.id])
+
+  const loadFaqs = async () => {
+    if (!campaign?.id) return
+    try {
+      const { data, error } = await supabase
+        .from('campaign_faqs')
+        .select('*')
+        .eq('campaign_id', campaign.id)
+        .order('sort_order', { ascending: true })
+      
+      if (!error && data) {
+        setFaqs(data)
+      }
+    } catch (err) {
+      console.error('Error loading FAQs:', err)
+    }
+  }
+
+  const loadUpdates = async () => {
+    if (!campaign?.id) return
+    try {
+      const { data, error } = await supabase
+        .from('campaign_updates')
+        .select('*')
+        .eq('campaign_id', campaign.id)
+        .order('created_at', { ascending: false })
+      
+      if (!error && data) {
+        setUpdates(data)
+      }
+    } catch (err) {
+      console.error('Error loading updates:', err)
+    }
+  }
+
+  const handlePostUpdate = async () => {
+    if (!campaign?.id || !user?.id || !newUpdateTitle.trim() || !newUpdateContent.trim()) return
+    
+    setPostingUpdate(true)
+    try {
+      const { error } = await supabase
+        .from('campaign_updates')
+        .insert({
+          campaign_id: campaign.id,
+          title: newUpdateTitle,
+          content: newUpdateContent,
+          created_by: user.id
+        })
+      
+      if (!error) {
+        setNewUpdateTitle('')
+        setNewUpdateContent('')
+        setShowUpdateForm(false)
+        loadUpdates()
+      }
+    } catch (err) {
+      console.error('Error posting update:', err)
+    } finally {
+      setPostingUpdate(false)
+    }
+  }
+
+  const scrollToHeading = (index: number) => {
+    // Find the heading in the rendered content and scroll to it
+    const contentEl = document.querySelector('.prose')
+    if (!contentEl) return
+    
+    const headings = contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6')
+    if (headings[index]) {
+      headings[index].scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
 
@@ -580,9 +729,11 @@ export function CampaignPage() {
                 className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
               >
                 FAQs
-                <Badge className="ml-1.5 bg-[#171717] text-white text-xs px-1.5 py-0 min-w-[20px] h-5 rounded-full">
-                  8
-                </Badge>
+                {faqs.length > 0 && (
+                  <Badge className="ml-1.5 bg-[#171717] text-white text-xs px-1.5 py-0 min-w-[20px] h-5 rounded-full">
+                    {faqs.length}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger 
                 value="updates"
@@ -609,20 +760,49 @@ export function CampaignPage() {
           <TabsContent value="campaign" className="mt-0">
             <div className="flex gap-2.5">
               {/* Outline Sidebar */}
-              <div className="w-[323px] flex-shrink-0 space-y-6">
+              <div className="w-[323px] flex-shrink-0 space-y-4">
                 <h2 className="text-2xl font-semibold text-[#0a0a0a]">Outline</h2>
-                {isEditing ? (
-                  <Textarea
-                    value={editForm.short_description}
-                    onChange={(e) => setEditForm({ ...editForm, short_description: e.target.value })}
-                    className="min-h-[100px] border-dashed"
-                    placeholder="Short description of your campaign..."
-                  />
+                
+                {/* Dynamic outline from headings */}
+                {outline.length > 0 ? (
+                  <nav className="space-y-1">
+                    {outline.map((item, index) => (
+                      <button
+                        key={item.id}
+                        onClick={() => scrollToHeading(index)}
+                        className={`block text-left w-full px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors ${
+                          item.level === 1 ? 'font-semibold text-[#0a0a0a]' :
+                          item.level === 2 ? 'pl-5 text-[#0a0a0a]' :
+                          item.level === 3 ? 'pl-7 text-[#737373] text-sm' :
+                          'pl-9 text-[#737373] text-sm'
+                        }`}
+                      >
+                        {item.text}
+                      </button>
+                    ))}
+                  </nav>
                 ) : (
-                  <p className="text-base text-[#0a0a0a] leading-relaxed">
-                    {campaign.short_description}
+                  <p className="text-sm text-[#737373] italic">
+                    Add headings (H1-H6) to your story to generate an outline
                   </p>
                 )}
+
+                {/* Short description */}
+                <div className="pt-4 border-t border-gray-200">
+                  <h3 className="text-sm font-medium text-[#737373] mb-2">Summary</h3>
+                  {isEditing ? (
+                    <Textarea
+                      value={editForm.short_description}
+                      onChange={(e) => setEditForm({ ...editForm, short_description: e.target.value })}
+                      className="min-h-[100px] border-dashed"
+                      placeholder="Short description of your campaign..."
+                    />
+                  ) : (
+                    <p className="text-base text-[#0a0a0a] leading-relaxed">
+                      {campaign.short_description}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Main Content */}
@@ -670,17 +850,167 @@ export function CampaignPage() {
 
           {/* FAQs Tab */}
           <TabsContent value="faqs" className="mt-0">
-            <div className="py-12 text-center text-[#737373]">
-              <p className="text-lg">No FAQs have been added yet.</p>
-              <p className="text-sm mt-2">Check back later for updates.</p>
+            <div className="max-w-3xl">
+              <h2 className="text-2xl font-semibold text-[#0a0a0a] mb-6">Frequently Asked Questions</h2>
+              
+              {faqs.length > 0 ? (
+                <div className="space-y-3">
+                  {faqs.map((faq) => (
+                    <div 
+                      key={faq.id}
+                      className="border border-gray-200 rounded-lg overflow-hidden"
+                    >
+                      <button
+                        onClick={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
+                        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <HelpCircle className="h-5 w-5 text-[#1b5858] flex-shrink-0" />
+                          <span className="font-medium text-[#0a0a0a]">{faq.question}</span>
+                        </div>
+                        {expandedFaq === faq.id ? (
+                          <ChevronUp className="h-5 w-5 text-[#737373] flex-shrink-0" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-[#737373] flex-shrink-0" />
+                        )}
+                      </button>
+                      {expandedFaq === faq.id && (
+                        <div className="px-4 pb-4 pl-12">
+                          <p className="text-[#737373] leading-relaxed">{faq.answer}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center text-[#737373] bg-gray-50 rounded-lg">
+                  <HelpCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">No FAQs have been added yet.</p>
+                  <p className="text-sm mt-2">Check back later for updates.</p>
+                </div>
+              )}
             </div>
           </TabsContent>
 
           {/* Updates Tab */}
           <TabsContent value="updates" className="mt-0">
-            <div className="py-12 text-center text-[#737373]">
-              <p className="text-lg">No updates have been posted yet.</p>
-              <p className="text-sm mt-2">Check back later for campaign updates.</p>
+            <div className="max-w-3xl">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold text-[#0a0a0a]">Campaign Updates</h2>
+                
+                {/* Post Update Button (only for owner) */}
+                {isOwner && !showUpdateForm && (
+                  <Button
+                    onClick={() => setShowUpdateForm(true)}
+                    className="bg-[#1b5858] hover:bg-[#164444]"
+                  >
+                    <MessageSquarePlus className="h-4 w-4 mr-2" />
+                    Post Update
+                  </Button>
+                )}
+              </div>
+
+              {/* Update Form (for owner) */}
+              {isOwner && showUpdateForm && (
+                <Card className="p-6 mb-6 border-[#1b5858]">
+                  <h3 className="font-semibold text-[#0a0a0a] mb-4">Share an Update with Supporters</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="update-title" className="text-sm font-medium text-[#0a0a0a]">
+                        Update Title
+                      </label>
+                      <Input
+                        id="update-title"
+                        value={newUpdateTitle}
+                        onChange={(e) => setNewUpdateTitle(e.target.value)}
+                        placeholder="e.g., We reached 50% of our goal!"
+                        className="h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="update-content" className="text-sm font-medium text-[#0a0a0a]">
+                        Content
+                      </label>
+                      <Textarea
+                        id="update-content"
+                        value={newUpdateContent}
+                        onChange={(e) => setNewUpdateContent(e.target.value)}
+                        placeholder="Share news, progress, or thank your supporters..."
+                        rows={4}
+                        className="resize-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 justify-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowUpdateForm(false)
+                          setNewUpdateTitle('')
+                          setNewUpdateContent('')
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handlePostUpdate}
+                        disabled={postingUpdate || !newUpdateTitle.trim() || !newUpdateContent.trim()}
+                        className="bg-[#1b5858] hover:bg-[#164444]"
+                      >
+                        {postingUpdate ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Posting...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            Post Update
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Updates List */}
+              {updates.length > 0 ? (
+                <div className="space-y-4">
+                  {updates.map((update) => (
+                    <Card key={update.id} className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="h-10 w-10 bg-[#1b5858] rounded-full flex items-center justify-center flex-shrink-0">
+                          <MessageSquarePlus className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-[#0a0a0a]">{update.title}</h3>
+                          </div>
+                          <p className="text-[#737373] leading-relaxed mb-3">{update.content}</p>
+                          <div className="flex items-center gap-2 text-sm text-[#737373]">
+                            <Clock className="h-4 w-4" />
+                            <span>{new Date(update.created_at).toLocaleDateString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center text-[#737373] bg-gray-50 rounded-lg">
+                  <MessageSquarePlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">No updates have been posted yet.</p>
+                  <p className="text-sm mt-2">
+                    {isOwner 
+                      ? 'Share news and progress with your supporters!' 
+                      : 'Check back later for campaign updates.'}
+                  </p>
+                </div>
+              )}
             </div>
           </TabsContent>
 
