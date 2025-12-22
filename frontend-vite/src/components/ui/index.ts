@@ -35,4 +35,5 @@ export * from './dropdown-menu'
 export * from './tabs'
 export * from './accordion'
 export * from './command'
+export * from './sidebar'
 
