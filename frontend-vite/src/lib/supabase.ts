@@ -761,3 +761,114 @@ export const updateRequestStatus = async (
   return data
 }
 
+// ============================================
+// CAMPAIGN FUNCTIONS
+// ============================================
+
+export interface CampaignData {
+  organization_id: string
+  created_by: string
+  title: string
+  creator_name?: string
+  creator_role?: string
+  cause_area_ids?: string[]
+  funding_goal: number
+  short_description?: string
+  story_title?: string
+  story_content?: string
+  contact_email: string
+  image_url?: string
+  logo_url?: string
+}
+
+// Create a new campaign
+export const createCampaign = async (campaignData: CampaignData) => {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .insert({
+      ...campaignData,
+      status: 'pending',
+      amount_raised: 0,
+      supporters_count: 0
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Get campaign by slug or id
+export const getCampaignBySlug = async (slugOrId: string) => {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select(`
+      *,
+      organization:organizations(id, name, mission, logo)
+    `)
+    .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Get campaigns by organization
+export const getCampaignsByOrganization = async (organizationId: string) => {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+// Update campaign
+export const updateCampaign = async (campaignId: string, updates: Partial<CampaignData> & { status?: string }) => {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .update(updates)
+    .eq('id', campaignId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// Get active campaigns (for public listing)
+export const getActiveCampaigns = async (limit: number = 10) => {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select(`
+      *,
+      organization:organizations(id, name, logo)
+    `)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return data || []
+}
+
+// Upload campaign image
+export const uploadCampaignImage = async (file: File, campaignId: string) => {
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${campaignId}-${Date.now()}.${fileExt}`
+  
+  const { error: uploadError } = await supabase.storage
+    .from('campaign-images')
+    .upload(fileName, file)
+
+  if (uploadError) throw uploadError
+
+  const { data: urlData } = supabase.storage
+    .from('campaign-images')
+    .getPublicUrl(fileName)
+
+  return urlData.publicUrl
+}
+

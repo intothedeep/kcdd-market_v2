@@ -28,6 +28,7 @@ import { CBORequests } from '@/pages/cbo/RequestsPage'
 import { NewRequestPage } from '@/pages/cbo/NewRequestPage'
 import { CheckoutPage } from '@/pages/CheckoutPage'
 import { PaymentSuccessPage } from '@/pages/PaymentSuccessPage'
+import { CampaignPage } from '@/pages/CampaignPage'
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -146,6 +147,12 @@ export function AppRoutes() {
           }
         />
         <Route path={routes.paymentSuccess} element={<PaymentSuccessPage />} />
+      </Route>
+
+      {/* Campaign routes (public) */}
+      <Route element={<MainLayout />}>
+        <Route path="/campaign/:slug" element={<CampaignPage />} />
+        <Route path="/user/campaign/:slug" element={<CampaignPage />} />
       </Route>
     </Routes>
   )

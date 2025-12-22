@@ -29,6 +29,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { OnboardingModal } from '@/components/OnboardingModal'
+import { CampaignFormModal } from '@/components/CampaignFormModal'
 import {
   ChevronDown,
   ChevronLeft,
@@ -473,117 +474,31 @@ function DashboardContent({
   )
 }
 
-// Manage Requests Content (with Create form)
+// Manage Requests Content
 function RequestsContent({ onCreateRequest }: { onCreateRequest: () => void }) {
-  const [showCreateForm, setShowCreateForm] = useState(false)
-
-  if (showCreateForm) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-[#0a0a0a]">Create New Request</h2>
-            <p className="text-sm text-[#737373]">Submit a new donation request</p>
-          </div>
-          <Button variant="outline" onClick={() => setShowCreateForm(false)}>
-            Cancel
-          </Button>
-        </div>
-
-        <Card className="p-6">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Textarea placeholder="Describe what you need and why..." rows={4} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Amount Needed ($)</label>
-                <Input type="number" placeholder="0.00" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Urgency</label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                      Select urgency
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    <DropdownMenuItem>Low</DropdownMenuItem>
-                    <DropdownMenuItem>Medium</DropdownMenuItem>
-                    <DropdownMenuItem>High</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Cause Area</label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
-                    Select cause area
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-full">
-                  <DropdownMenuItem>Education</DropdownMenuItem>
-                  <DropdownMenuItem>Digital Access</DropdownMenuItem>
-                  <DropdownMenuItem>Employment</DropdownMenuItem>
-                  <DropdownMenuItem>Senior Services</DropdownMenuItem>
-                  <DropdownMenuItem>Community</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Supporting Images (optional)</label>
-              <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
-                <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                <p className="text-sm text-[#737373]">Drop images here or click to upload</p>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowCreateForm(false)}>
-                Cancel
-              </Button>
-              <Button className="bg-[#1b5858] hover:bg-[#164444]">
-                Submit Request
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-[#0a0a0a]">Manage Requests</h2>
-          <p className="text-sm text-[#737373]">Create and manage your donation requests</p>
+          <h2 className="text-xl font-semibold text-[#0a0a0a]">Manage Campaigns</h2>
+          <p className="text-sm text-[#737373]">Create and manage your donation campaigns</p>
         </div>
         <Button 
           className="bg-[#1b5858] hover:bg-[#164444]"
-          onClick={() => setShowCreateForm(true)}
+          onClick={onCreateRequest}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Create Request
+          Create Campaign
         </Button>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <Card className="p-5 text-center hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowCreateForm(true)}>
+        <Card className="p-5 text-center hover:shadow-md transition-shadow cursor-pointer" onClick={onCreateRequest}>
           <div className="h-12 w-12 bg-[#1b5858] rounded-lg flex items-center justify-center mx-auto mb-3">
             <Plus className="h-6 w-6 text-white" />
           </div>
-          <h3 className="font-medium">New Request</h3>
-          <p className="text-sm text-[#737373]">Create a donation request</p>
+          <h3 className="font-medium">New Campaign</h3>
+          <p className="text-sm text-[#737373]">Create a donation campaign</p>
         </Card>
         <Card className="p-5 text-center hover:shadow-md transition-shadow cursor-pointer">
           <div className="h-12 w-12 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -894,6 +809,7 @@ export function CBODashboard() {
   const [activeTab, setActiveTab] = useState('all')
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
+  const [showCampaignModal, setShowCampaignModal] = useState(false)
   
   // Data state
   const [stats, setStats] = useState<CBODashboardStats>(DEMO_STATS)
@@ -966,7 +882,7 @@ export function CBODashboard() {
   }
 
   const handleCreateRequest = () => {
-    setActiveSection('requests')
+    setShowCampaignModal(true)
   }
 
   // Get header title based on active section
@@ -1059,6 +975,17 @@ export function CBODashboard() {
           fetchData()
         }}
         userType="cbo"
+      />
+
+      {/* Campaign Creation Modal */}
+      <CampaignFormModal
+        isOpen={showCampaignModal}
+        onClose={() => setShowCampaignModal(false)}
+        onComplete={() => {
+          setShowCampaignModal(false)
+          fetchData()
+        }}
+        organizationId={organization?.id}
       />
 
       {/* Sidebar */}
