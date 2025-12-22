@@ -5,7 +5,7 @@
 -- INSTRUCTIONS:
 -- 1. Get your Clerk User ID from the Clerk Dashboard or from your app
 --    (It looks like: user_2abc123def456...)
--- 2. Replace 'YOUR_CLERK_USER_ID_HERE' below with your actual ID
+-- 2. Replace 'user_36GywD2buLf2HpGSfhl9etUzCFK' below with your actual ID
 -- 3. Run this script in Supabase SQL Editor
 --
 -- =============================================
@@ -13,7 +13,7 @@
 -- Set your Clerk User ID here
 DO $$
 DECLARE
-    my_user_id TEXT := 'YOUR_CLERK_USER_ID_HERE';  -- <-- REPLACE THIS
+    my_user_id TEXT := 'user_36GywD2buLf2HpGSfhl9etUzCFK';  -- <-- REPLACE THIS
 BEGIN
     RAISE NOTICE 'Using user ID: %', my_user_id;
 END $$;
@@ -62,10 +62,10 @@ ON CONFLICT (id) DO NOTHING;
 
 -- =============================================
 -- 4. USER PROFILE (for you - the donor)
--- Replace YOUR_CLERK_USER_ID_HERE with your actual Clerk user ID
+-- Replace user_36GywD2buLf2HpGSfhl9etUzCFK with your actual Clerk user ID
 -- =============================================
 INSERT INTO user_profiles (id, user_type, phone, is_vetted, onboarding_complete, wants_updates)
-VALUES ('YOUR_CLERK_USER_ID_HERE', 'donor', '(816) 555-0100', true, true, true)
+VALUES ('user_36GywD2buLf2HpGSfhl9etUzCFK', 'donor', '(816) 555-0100', true, true, true)
 ON CONFLICT (id) DO UPDATE SET
     is_vetted = true,
     onboarding_complete = true;
@@ -76,7 +76,7 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO donor_profiles (id, user_id, display_name, name, email, bio, max_per_request, service_area_zipcode)
 VALUES (
     gen_random_uuid(),
-    'YOUR_CLERK_USER_ID_HERE',
+    'user_36GywD2buLf2HpGSfhl9etUzCFK',
     'Joshua',
     'Joshua Madrid',
     'joshua@example.com',
@@ -298,14 +298,14 @@ ON CONFLICT (id) DO NOTHING;
 
 -- =============================================
 -- 10. REQUESTS - Claimed by you (in progress)
--- Replace YOUR_CLERK_USER_ID_HERE with your actual Clerk user ID
+-- Replace user_36GywD2buLf2HpGSfhl9etUzCFK with your actual Clerk user ID
 -- =============================================
 INSERT INTO requests (id, organization_id, cause_area_id, donor_id, description, amount, urgency, zipcode, status, created_at, claimed_at, donor_note) VALUES
     (
         'req-claimed-1',
         'org-senior-tech-connect',
         'ca-senior-services',
-        'YOUR_CLERK_USER_ID_HERE',
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
         'Tablet for senior citizen attending virtual doctor appointments',
         280.00,
         'high',
@@ -319,7 +319,7 @@ INSERT INTO requests (id, organization_id, cause_area_id, donor_id, description,
         'req-claimed-2',
         'org-employment-first-kc',
         'ca-employment',
-        'YOUR_CLERK_USER_ID_HERE',
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
         'Laptop for single mother starting coding bootcamp',
         550.00,
         'high',
@@ -333,7 +333,7 @@ INSERT INTO requests (id, organization_id, cause_area_id, donor_id, description,
         'req-claimed-3',
         'org-community-action-network',
         'ca-nonprofit-support',
-        'YOUR_CLERK_USER_ID_HERE',
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
         'Computer monitors for nonprofit office expansion',
         350.00,
         'medium',
@@ -347,14 +347,14 @@ ON CONFLICT (id) DO NOTHING;
 
 -- =============================================
 -- 11. REQUESTS - Fulfilled by you (completed)
--- Replace YOUR_CLERK_USER_ID_HERE with your actual Clerk user ID
+-- Replace user_36GywD2buLf2HpGSfhl9etUzCFK with your actual Clerk user ID
 -- =============================================
 INSERT INTO requests (id, organization_id, cause_area_id, donor_id, description, amount, urgency, zipcode, status, created_at, claimed_at, fulfilled_at, donor_note) VALUES
     (
         'req-fulfilled-1',
         'org-kc-youth-education',
         'ca-education',
-        'YOUR_CLERK_USER_ID_HERE',
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
         'Laptop for remote learning student in 10th grade',
         450.00,
         'high',
@@ -369,7 +369,7 @@ INSERT INTO requests (id, organization_id, cause_area_id, donor_id, description,
         'req-fulfilled-2',
         'org-digital-bridge-kc',
         'ca-digital-access',
-        'YOUR_CLERK_USER_ID_HERE',
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
         'Internet hotspot for family of 4 with school-age children',
         120.00,
         'medium',
@@ -384,7 +384,7 @@ INSERT INTO requests (id, organization_id, cause_area_id, donor_id, description,
         'req-fulfilled-3',
         'org-employment-first-kc',
         'ca-employment',
-        'YOUR_CLERK_USER_ID_HERE',
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
         'Webcam and headset kit for job interviews',
         85.00,
         'high',
@@ -399,7 +399,7 @@ INSERT INTO requests (id, organization_id, cause_area_id, donor_id, description,
         'req-fulfilled-4',
         'org-entrepreneurship-hub',
         'ca-small-business',
-        'YOUR_CLERK_USER_ID_HERE',
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
         'Printer for small business owner starting bakery',
         199.00,
         'medium',
@@ -414,7 +414,7 @@ INSERT INTO requests (id, organization_id, cause_area_id, donor_id, description,
         'req-fulfilled-5',
         'org-kc-youth-education',
         'ca-education',
-        'YOUR_CLERK_USER_ID_HERE',
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
         'Chromebook for 8th grader with online classes',
         280.00,
         'medium',
@@ -429,7 +429,7 @@ INSERT INTO requests (id, organization_id, cause_area_id, donor_id, description,
         'req-fulfilled-6',
         'org-senior-tech-connect',
         'ca-senior-services',
-        'YOUR_CLERK_USER_ID_HERE',
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
         'iPad for senior learning to video call grandchildren',
         350.00,
         'low',
@@ -444,14 +444,14 @@ ON CONFLICT (id) DO NOTHING;
 
 -- =============================================
 -- 12. DONOR CAUSE AREA PREFERENCES
--- Replace YOUR_CLERK_USER_ID_HERE with your actual Clerk user ID
+-- Replace user_36GywD2buLf2HpGSfhl9etUzCFK with your actual Clerk user ID
 -- =============================================
 INSERT INTO donor_cause_areas (user_id, cause_area_id) VALUES
-    ('YOUR_CLERK_USER_ID_HERE', 'ca-education'),
-    ('YOUR_CLERK_USER_ID_HERE', 'ca-digital-access'),
-    ('YOUR_CLERK_USER_ID_HERE', 'ca-employment'),
-    ('YOUR_CLERK_USER_ID_HERE', 'ca-senior-services'),
-    ('YOUR_CLERK_USER_ID_HERE', 'ca-small-business')
+    ('user_36GywD2buLf2HpGSfhl9etUzCFK', 'ca-education'),
+    ('user_36GywD2buLf2HpGSfhl9etUzCFK', 'ca-digital-access'),
+    ('user_36GywD2buLf2HpGSfhl9etUzCFK', 'ca-employment'),
+    ('user_36GywD2buLf2HpGSfhl9etUzCFK', 'ca-senior-services'),
+    ('user_36GywD2buLf2HpGSfhl9etUzCFK', 'ca-small-business')
 ON CONFLICT DO NOTHING;
 
 -- =============================================
@@ -472,7 +472,7 @@ ON CONFLICT DO NOTHING;
 -- SELECT r.description, r.amount, r.status, o.name as organization
 -- FROM requests r
 -- JOIN organizations o ON r.organization_id = o.id
--- WHERE r.donor_id = 'YOUR_CLERK_USER_ID_HERE';
+-- WHERE r.donor_id = 'user_36GywD2buLf2HpGSfhl9etUzCFK';
 
 -- =============================================
 -- SUCCESS MESSAGE
@@ -481,6 +481,6 @@ DO $$
 BEGIN
     RAISE NOTICE '✅ Seed data inserted successfully!';
     RAISE NOTICE '📊 Created: 8 cause areas, 6 organizations, 17 requests';
-    RAISE NOTICE '💡 Remember to replace YOUR_CLERK_USER_ID_HERE with your actual Clerk user ID';
+    RAISE NOTICE '💡 Remember to replace user_36GywD2buLf2HpGSfhl9etUzCFK with your actual Clerk user ID';
 END $$;
 

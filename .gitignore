@@ -97,6 +97,9 @@ coverage/
 backend/volumes/db/data/
 *.sql.backup
 
+# Generated seed file (contains user-specific data)
+backend/supabase/seed_data.sql
+
 # ============================================
 # MISC
 # ============================================
@@ -105,3 +108,9 @@ backend/volumes/db/data/
 .firebase/
 .expo/
 .expo-shared/
+backend/supabase/seed_data.sql
+backend/supabase/seed_data.sql
+backend/supabase/seed_data.template.sql
+backend/supabase/generate-seed.js
+backend/supabase/seed_data.sql
+backend/supabase/seed_data.sql
