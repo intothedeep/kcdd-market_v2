@@ -65,6 +65,9 @@ import {
   DollarSign,
   Calendar,
   Download,
+  MessageCircleQuestion,
+  Send,
+  X,
 } from 'lucide-react'
 import { 
   fetchCBODashboardStats,
@@ -72,8 +75,12 @@ import {
   checkOnboardingStatus,
   getOrganizationByUserId,
   getCampaignsByOrganization,
+  fetchOrganizationQuestions,
+  answerQuestion,
+  dismissQuestion,
   type CBODashboardStats,
-  type RequestRecord
+  type RequestRecord,
+  type OrganizationQuestion
 } from '@/lib/supabase'
 import { Link } from 'react-router-dom'
 
@@ -165,6 +172,7 @@ type SidebarSection =
   | 'dashboard' 
   | 'campaigns' 
   | 'create-campaign'
+  | 'questions'
   | 'analytics' 
   | 'documents' 
   | 'settings' 
@@ -636,6 +644,237 @@ function CampaignsContent({ campaigns, onCreateCampaign }: { campaigns: Campaign
             </li>
           </ul>
         </Card>
+      )}
+    </div>
+  )
+}
+
+// Questions Content
+function QuestionsContent({ 
+  questions, 
+  onRefresh,
+  userId 
+}: { 
+  questions: OrganizationQuestion[]
+  onRefresh: () => void
+  userId: string
+}) {
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'answered' | 'rejected'>('all')
+  const [answeringId, setAnsweringId] = useState<string | null>(null)
+  const [answerText, setAnswerText] = useState('')
+  const [makePublic, setMakePublic] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const filteredQuestions = filterStatus === 'all' 
+    ? questions 
+    : questions.filter(q => q.status === filterStatus)
+
+  const pendingCount = questions.filter(q => q.status === 'pending').length
+  const answeredCount = questions.filter(q => q.status === 'answered').length
+  const rejectedCount = questions.filter(q => q.status === 'rejected').length
+
+  const handleAnswer = async (questionId: string) => {
+    if (!answerText.trim()) return
+    setIsSubmitting(true)
+    try {
+      await answerQuestion(questionId, answerText, makePublic, userId)
+      setAnsweringId(null)
+      setAnswerText('')
+      setMakePublic(true)
+      onRefresh()
+    } catch (err) {
+      console.error('Error answering question:', err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDismiss = async (questionId: string) => {
+    try {
+      await dismissQuestion(questionId)
+      onRefresh()
+    } catch (err) {
+      console.error('Error dismissing question:', err)
+    }
+  }
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-[#0a0a0a]">Questions</h2>
+          <p className="text-sm text-[#737373]">Manage questions from potential donors and supporters</p>
+        </div>
+        {pendingCount > 0 && (
+          <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+            {pendingCount} pending
+          </Badge>
+        )}
+      </div>
+
+      {/* Filter Tabs */}
+      <Tabs value={filterStatus} onValueChange={(v) => setFilterStatus(v as typeof filterStatus)}>
+        <TabsList className="bg-[#f5f5f5]">
+          <TabsTrigger value="all" className="data-[state=active]:bg-white">
+            All ({questions.length})
+          </TabsTrigger>
+          <TabsTrigger value="pending" className="data-[state=active]:bg-white">
+            Pending ({pendingCount})
+          </TabsTrigger>
+          <TabsTrigger value="answered" className="data-[state=active]:bg-white">
+            Answered ({answeredCount})
+          </TabsTrigger>
+          <TabsTrigger value="rejected" className="data-[state=active]:bg-white">
+            Dismissed ({rejectedCount})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Questions List */}
+      {filteredQuestions.length === 0 ? (
+        <Card className="p-8 text-center">
+          <MessageCircleQuestion className="h-12 w-12 mx-auto text-[#737373] mb-4" />
+          <h3 className="font-medium text-[#0a0a0a] mb-2">
+            {filterStatus === 'all' ? 'No questions yet' : `No ${filterStatus} questions`}
+          </h3>
+          <p className="text-sm text-[#737373]">
+            {filterStatus === 'all' 
+              ? 'Questions from potential donors will appear here'
+              : `You don't have any ${filterStatus} questions`
+            }
+          </p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredQuestions.map((question) => (
+            <Card 
+              key={question.id} 
+              className={`p-4 ${
+                question.status === 'pending' 
+                  ? 'border-amber-200 bg-amber-50/50' 
+                  : question.status === 'answered'
+                    ? 'border-green-200 bg-green-50/30'
+                    : 'border-gray-200 bg-gray-50/30'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  {/* Campaign Badge */}
+                  <Badge className="bg-[#1b5858] text-white hover:bg-[#1b5858] mb-2">
+                    {question.campaign_title}
+                  </Badge>
+                  
+                  {/* Question */}
+                  <p className="font-medium text-[#0a0a0a] mb-2">{question.question}</p>
+                  
+                  {/* Submitter Info */}
+                  <div className="flex items-center gap-4 text-xs text-[#737373]">
+                    {question.submitter_name && (
+                      <span>From: {question.submitter_name}</span>
+                    )}
+                    {question.submitter_email && (
+                      <span>{question.submitter_email}</span>
+                    )}
+                    <span>{formatDate(question.created_at)}</span>
+                  </div>
+
+                  {/* Answer Display (if answered) */}
+                  {question.status === 'answered' && question.answer && (
+                    <div className="mt-3 p-3 bg-white rounded-lg border border-green-200">
+                      <p className="text-sm text-[#737373] mb-1">Your answer:</p>
+                      <p className="text-sm text-[#0a0a0a]">{question.answer}</p>
+                      {question.is_public && (
+                        <Badge className="mt-2 bg-green-100 text-green-700 hover:bg-green-100 text-xs">
+                          Public
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Answer Form (if answering) */}
+                  {answeringId === question.id && (
+                    <div className="mt-4 space-y-3">
+                      <Textarea
+                        value={answerText}
+                        onChange={(e) => setAnswerText(e.target.value)}
+                        placeholder="Write your answer..."
+                        className="min-h-[100px]"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`public-${question.id}`}
+                          checked={makePublic}
+                          onCheckedChange={(checked) => setMakePublic(checked as boolean)}
+                        />
+                        <label htmlFor={`public-${question.id}`} className="text-sm text-[#737373]">
+                          Make this answer public (will show in FAQs)
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-[#1b5858] hover:bg-[#164444]"
+                          onClick={() => handleAnswer(question.id)}
+                          disabled={isSubmitting || !answerText.trim()}
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4 mr-1" />
+                              Submit Answer
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setAnsweringId(null)
+                            setAnswerText('')
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                {question.status === 'pending' && answeringId !== question.id && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-[#1b5858] hover:bg-[#164444]"
+                      onClick={() => setAnsweringId(question.id)}
+                    >
+                      Answer
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDismiss(question.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   )
@@ -1289,6 +1528,7 @@ export function CBODashboard() {
   const [stats, setStats] = useState<CBODashboardStats>(DEMO_STATS)
   const [requests, setRequests] = useState<RequestRecord[]>(DEMO_REQUESTS)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [questions, setQuestions] = useState<OrganizationQuestion[]>([])
   const [organization, setOrganization] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [needsOnboarding, setNeedsOnboarding] = useState(true)
@@ -1308,10 +1548,11 @@ export function CBODashboard() {
         setOrganization(org)
         setHasOrganization(true)
 
-        const [statsData, requestsData, campaignsData] = await Promise.all([
+        const [statsData, requestsData, campaignsData, questionsData] = await Promise.all([
           fetchCBODashboardStats(user.id),
           fetchCBORequests(user.id),
-          getCampaignsByOrganization(org.id)
+          getCampaignsByOrganization(org.id),
+          fetchOrganizationQuestions(org.id)
         ])
 
         if (requestsData && requestsData.length > 0) {
@@ -1321,6 +1562,10 @@ export function CBODashboard() {
         
         if (campaignsData) {
           setCampaigns(campaignsData)
+        }
+        
+        if (questionsData) {
+          setQuestions(questionsData)
         }
       } else {
         setHasOrganization(false)
@@ -1365,12 +1610,25 @@ export function CBODashboard() {
     setActiveSection('create-campaign')
   }
 
+  const fetchQuestions = useCallback(async () => {
+    if (!organization?.id) return
+    try {
+      const questionsData = await fetchOrganizationQuestions(organization.id)
+      if (questionsData) {
+        setQuestions(questionsData)
+      }
+    } catch (err) {
+      console.error('Error fetching questions:', err)
+    }
+  }, [organization?.id])
+
   // Get header title based on active section
   const getHeaderTitle = () => {
     switch (activeSection) {
       case 'dashboard': return 'Dashboard'
       case 'campaigns': return 'My Campaigns'
       case 'create-campaign': return 'Create Campaign'
+      case 'questions': return 'Questions'
       case 'analytics': return 'Analytics'
       case 'documents': return 'Documents'
       case 'settings': return 'Settings'
@@ -1408,6 +1666,14 @@ export function CBODashboard() {
               setActiveSection('campaigns')
               fetchData()
             }}
+          />
+        )
+      case 'questions':
+        return (
+          <QuestionsContent 
+            questions={questions} 
+            onRefresh={fetchQuestions}
+            userId={user?.id || ''}
           />
         )
       case 'analytics':
@@ -1547,6 +1813,27 @@ export function CBODashboard() {
                 )}
               </div>
             )}
+
+            <button 
+              onClick={() => setActiveSection('questions')}
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+                activeSection === 'questions'
+                  ? 'bg-[#1b5858] text-white' 
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <MessageCircleQuestion className="w-4 h-4" />
+              {sidebarOpen && (
+                <span className="text-sm flex-1 flex items-center justify-between">
+                  Questions
+                  {questions.filter(q => q.status === 'pending').length > 0 && (
+                    <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-xs">
+                      {questions.filter(q => q.status === 'pending').length}
+                    </span>
+                  )}
+                </span>
+              )}
+            </button>
 
             <button 
               onClick={() => setActiveSection('analytics')}

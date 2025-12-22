@@ -926,3 +926,86 @@ export const uploadCampaignImage = async (file: File, campaignId: string) => {
   return urlData.publicUrl
 }
 
+// Question type for dashboard
+export interface OrganizationQuestion {
+  id: string
+  campaign_id: string
+  campaign_title: string
+  question: string
+  submitter_name: string | null
+  submitter_email: string | null
+  status: 'pending' | 'answered' | 'rejected'
+  answer: string | null
+  is_public: boolean
+  created_at: string
+  answered_at: string | null
+  answered_by: string | null
+}
+
+// Fetch all questions for an organization's campaigns
+export const fetchOrganizationQuestions = async (organizationId: string): Promise<OrganizationQuestion[]> => {
+  // Get all campaigns for this org
+  const { data: campaigns, error: campaignsError } = await supabase
+    .from('campaigns')
+    .select('id, title')
+    .eq('organization_id', organizationId)
+  
+  if (campaignsError) {
+    console.error('Error fetching campaigns:', campaignsError)
+    return []
+  }
+  
+  if (!campaigns?.length) return []
+  
+  const campaignIds = campaigns.map(c => c.id)
+  
+  // Get all questions for these campaigns
+  const { data: questions, error: questionsError } = await (supabase
+    .from('campaign_questions') as any)
+    .select('*')
+    .in('campaign_id', campaignIds)
+    .order('created_at', { ascending: false })
+  
+  if (questionsError) {
+    console.error('Error fetching questions:', questionsError)
+    return []
+  }
+  
+  // Join campaign titles to questions
+  return (questions || []).map((q: any) => ({
+    ...q,
+    campaign_title: campaigns.find(c => c.id === q.campaign_id)?.title || 'Unknown Campaign'
+  }))
+}
+
+// Answer a question
+export const answerQuestion = async (
+  questionId: string, 
+  answer: string, 
+  isPublic: boolean,
+  userId: string
+) => {
+  const { error } = await (supabase
+    .from('campaign_questions') as any)
+    .update({
+      answer: answer.trim(),
+      status: 'answered',
+      is_public: isPublic,
+      answered_at: new Date().toISOString(),
+      answered_by: userId
+    })
+    .eq('id', questionId)
+  
+  if (error) throw error
+}
+
+// Dismiss/reject a question
+export const dismissQuestion = async (questionId: string) => {
+  const { error } = await (supabase
+    .from('campaign_questions') as any)
+    .update({ status: 'rejected' })
+    .eq('id', questionId)
+  
+  if (error) throw error
+}
+
