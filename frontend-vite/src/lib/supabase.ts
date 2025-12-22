@@ -839,14 +839,24 @@ export const updateCampaign = async (campaignId: string, updates: Partial<Campai
 }
 
 // Get active campaigns (for public listing)
-export const getActiveCampaigns = async (limit: number = 10) => {
-  const { data, error } = await supabase
+// includesPending: also show pending campaigns (for testing/preview)
+export const getActiveCampaigns = async (limit: number = 10, includePending: boolean = true) => {
+  let query = supabase
     .from('campaigns')
     .select(`
       *,
       organization:organizations(id, name, logo)
     `)
-    .eq('status', 'active')
+  
+  if (includePending) {
+    // Show both active and pending campaigns
+    query = query.in('status', ['active', 'pending'])
+  } else {
+    // Only show active campaigns
+    query = query.eq('status', 'active')
+  }
+  
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(limit)
 
