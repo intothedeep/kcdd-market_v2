@@ -9,6 +9,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
 import { useEffect } from 'react'
 import {
   Bold,
@@ -30,6 +31,7 @@ import {
   Undo,
   Redo,
   ChevronDown,
+  ImageIcon,
 } from 'lucide-react'
 import { useState, useRef, useEffect as useEffectRef } from 'react'
 import { cn } from '@/lib/utils'
@@ -196,6 +198,13 @@ function MenuBar({ editor, darkMode }: { editor: Editor | null; darkMode?: boole
     }
   }
 
+  const addImage = () => {
+    const url = window.prompt('Enter image URL:')
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run()
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -284,7 +293,7 @@ function MenuBar({ editor, darkMode }: { editor: Editor | null; darkMode?: boole
 
       <div className={cn('w-px h-5 mx-1', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
 
-      {/* Block Quote & Link */}
+      {/* Block Quote, Link & Image */}
       <MenuButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         isActive={editor.isActive('blockquote')}
@@ -300,6 +309,14 @@ function MenuBar({ editor, darkMode }: { editor: Editor | null; darkMode?: boole
         darkMode={darkMode}
       >
         <LinkIcon className="h-4 w-4" />
+      </MenuButton>
+      <MenuButton
+        onClick={addImage}
+        isActive={editor.isActive('image')}
+        title="Add Image"
+        darkMode={darkMode}
+      >
+        <ImageIcon className="h-4 w-4" />
       </MenuButton>
 
       <div className={cn('w-px h-5 mx-1', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
@@ -341,6 +358,13 @@ export function RichTextEditor({
         openOnClick: false,
         HTMLAttributes: {
           class: darkMode ? 'text-[#dbf938] underline' : 'text-blue-600 underline',
+        },
+      }),
+      Image.configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-lg my-4',
         },
       }),
       Placeholder.configure({
