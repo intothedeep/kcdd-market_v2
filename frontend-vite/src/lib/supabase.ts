@@ -1245,6 +1245,8 @@ export interface OrganizationProfile {
   email: string
   phone: string | null
   address: string | null
+  city: string | null
+  state: string | null
   zipcode: string
   ein: string | null
   logo_url: string | null

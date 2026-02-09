@@ -105,15 +105,16 @@ const EMPTY_STATS: CBODashboardStats = {
 }
 
 // Sidebar sections enum
-type SidebarSection = 
-  | 'dashboard' 
-  | 'campaigns' 
+type SidebarSection =
+  | 'dashboard'
+  | 'profile'
+  | 'campaigns'
   | 'create-campaign'
   | 'questions'
-  | 'analytics' 
-  | 'documents' 
-  | 'settings' 
-  | 'support' 
+  | 'analytics'
+  | 'documents'
+  | 'settings'
+  | 'support'
   | 'search'
 
 // Stats data config
@@ -582,6 +583,200 @@ function CampaignsContent({ campaigns, onCreateCampaign }: { campaigns: Campaign
           </ul>
         </Card>
       )}
+    </div>
+  )
+}
+
+// Organization Profile Content
+function ProfileContent({
+  organization,
+  onEditProfile
+}: {
+  organization: any
+  onEditProfile: () => void
+}) {
+  // Calculate profile completeness
+  const profileFields = [
+    organization?.name,
+    organization?.mission,
+    organization?.email,
+    organization?.tagline,
+    organization?.program_description,
+    organization?.logo_url,
+    organization?.cover_image_url,
+    organization?.website,
+    organization?.phone,
+  ]
+  const filledFields = profileFields.filter(Boolean).length
+  const completeness = Math.round((filledFields / profileFields.length) * 100)
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-[#0a0a0a]">Organization Profile</h2>
+          <p className="text-sm text-[#737373]">Manage how your organization appears to donors</p>
+        </div>
+      </div>
+
+      {/* Profile Card */}
+      <Card className="overflow-hidden">
+        {/* Cover Image */}
+        <div className="h-32 bg-gradient-to-br from-[#1b5858]/20 to-[#ea580c]/10 relative">
+          {organization?.cover_image_url && (
+            <img
+              src={organization.cover_image_url}
+              alt="Cover"
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
+
+        <div className="p-6 -mt-12 relative">
+          {/* Logo */}
+          <div className="flex items-end gap-4 mb-4">
+            <div className="h-20 w-20 bg-white rounded-xl shadow-lg flex items-center justify-center border-4 border-white overflow-hidden">
+              {organization?.logo_url ? (
+                <img
+                  src={organization.logo_url}
+                  alt={organization.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : organization?.logo_emoji ? (
+                <span className="text-3xl">{organization.logo_emoji}</span>
+              ) : (
+                <Building2 className="h-8 w-8 text-[#1b5858]" />
+              )}
+            </div>
+            <div className="flex-1 pb-1">
+              <h3 className="text-xl font-semibold text-[#0a0a0a]">
+                {organization?.name || 'Your Organization'}
+              </h3>
+              {organization?.tagline && (
+                <p className="text-sm text-[#737373]">{organization.tagline}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="text-center p-3 bg-[#f5f5f5] rounded-lg">
+              <p className="text-2xl font-semibold text-[#1b5858]">{completeness}%</p>
+              <p className="text-xs text-[#737373]">Profile Complete</p>
+            </div>
+            <div className="text-center p-3 bg-[#f5f5f5] rounded-lg">
+              <p className="text-2xl font-semibold text-[#1b5858]">
+                {organization?.year_founded || '—'}
+              </p>
+              <p className="text-xs text-[#737373]">Founded</p>
+            </div>
+            <div className="text-center p-3 bg-[#f5f5f5] rounded-lg">
+              <p className="text-2xl font-semibold text-[#1b5858]">
+                {organization?.organization_size || '—'}
+              </p>
+              <p className="text-xs text-[#737373]">Team Size</p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3">
+            {organization?.slug && (
+              <Link to={`/organization/${organization.slug}`}>
+                <Button variant="outline" className="flex-1">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  View Public Profile
+                </Button>
+              </Link>
+            )}
+            <Button
+              className="flex-1 bg-[#1b5858] hover:bg-[#164444]"
+              onClick={onEditProfile}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Edit Profile
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Profile Completeness Tips */}
+      {completeness < 100 && (
+        <Card className="p-6">
+          <h3 className="font-medium mb-4 flex items-center gap-2">
+            <Target className="h-5 w-5 text-[#1b5858]" />
+            Complete Your Profile
+          </h3>
+          <p className="text-sm text-[#737373] mb-4">
+            A complete profile helps donors understand your mission and increases trust.
+          </p>
+          <div className="space-y-3">
+            {!organization?.logo_url && (
+              <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <Image className="h-5 w-5 text-amber-600" />
+                <span className="text-sm text-amber-800">Add a logo to make your profile stand out</span>
+              </div>
+            )}
+            {!organization?.cover_image_url && (
+              <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <Image className="h-5 w-5 text-amber-600" />
+                <span className="text-sm text-amber-800">Add a cover image to showcase your work</span>
+              </div>
+            )}
+            {!organization?.tagline && (
+              <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <FileText className="h-5 w-5 text-amber-600" />
+                <span className="text-sm text-amber-800">Add a tagline to summarize your mission</span>
+              </div>
+            )}
+            {!organization?.program_description && (
+              <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <FileText className="h-5 w-5 text-amber-600" />
+                <span className="text-sm text-amber-800">Describe your programs and services</span>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Quick Info Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="p-5">
+          <h4 className="font-medium mb-3 flex items-center gap-2">
+            <Mail className="h-4 w-4 text-[#737373]" />
+            Contact Info
+          </h4>
+          <div className="space-y-2 text-sm">
+            <p className="text-[#0a0a0a]">{organization?.email || 'No email set'}</p>
+            <p className="text-[#737373]">{organization?.phone || 'No phone set'}</p>
+            {organization?.website && (
+              <a
+                href={organization.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#1b5858] hover:underline"
+              >
+                {organization.website}
+              </a>
+            )}
+          </div>
+        </Card>
+        <Card className="p-5">
+          <h4 className="font-medium mb-3 flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-[#737373]" />
+            Location
+          </h4>
+          <div className="space-y-1 text-sm">
+            {organization?.address && (
+              <p className="text-[#0a0a0a]">{organization.address}</p>
+            )}
+            <p className="text-[#737373]">
+              {[organization?.city, organization?.state, organization?.zipcode]
+                .filter(Boolean)
+                .join(', ') || 'No address set'}
+            </p>
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }
@@ -1559,6 +1754,7 @@ export function CBODashboard() {
   const getHeaderTitle = () => {
     switch (activeSection) {
       case 'dashboard': return 'Dashboard'
+      case 'profile': return 'Organization Profile'
       case 'campaigns': return 'My Campaigns'
       case 'create-campaign': return 'Create Campaign'
       case 'questions': return 'Questions'
@@ -1588,6 +1784,8 @@ export function CBODashboard() {
             onCreateRequest={handleCreateCampaign}
           />
         )
+      case 'profile':
+        return <ProfileContent organization={organization} onEditProfile={() => setActiveSection('settings')} />
       case 'campaigns':
         return <CampaignsContent campaigns={campaigns} onCreateCampaign={handleCreateCampaign} />
       case 'create-campaign':
@@ -1674,11 +1872,11 @@ export function CBODashboard() {
         <div className="flex-1 space-y-2">
           {/* Main Navigation */}
           <nav className="space-y-1 p-2">
-            <button 
+            <button
               onClick={() => setActiveSection('dashboard')}
               className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
                 activeSection === 'dashboard'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
@@ -1686,7 +1884,19 @@ export function CBODashboard() {
               {sidebarOpen && <span className="text-sm">Dashboard</span>}
             </button>
 
-            <button 
+            <button
+              onClick={() => setActiveSection('profile')}
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+                activeSection === 'profile'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              {sidebarOpen && <span className="text-sm">Organization Profile</span>}
+            </button>
+
+            <button
               onClick={() => setActiveSection('campaigns')}
               className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
                 activeSection === 'campaigns'

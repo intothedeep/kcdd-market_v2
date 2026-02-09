@@ -116,3 +116,6 @@ backend/supabase/seed_data.sql
 backend/supabase/seed_data.sql
 frontend-vite/.mcp.json
 backend/supabase/seed_organization_profile.sql
+
+# Database backups (may contain personal data)
+backend/supabase/backups/
