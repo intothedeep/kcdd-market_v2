@@ -905,7 +905,7 @@ function ProfileContent({
         </div>
         <div className="flex items-center gap-2">
           {organization?.slug && !isEditing && (
-            <Link to={`/organization/${organization.slug}`}>
+            <Link to={`/organizations/${organization.slug}`}>
               <Button variant="outline" size="sm">
                 <Building2 className="h-4 w-4 mr-1" />
                 View Public Profile
