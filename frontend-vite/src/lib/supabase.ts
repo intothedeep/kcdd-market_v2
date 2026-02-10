@@ -848,7 +848,7 @@ export const getCampaignBySlug = async (slugOrId: string) => {
     .from('campaigns')
     .select(`
       *,
-      organization:organizations(id, name, mission, logo)
+      organization:organizations(id, name, slug, mission, logo_url)
     `)
     .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
     .single()
@@ -889,7 +889,7 @@ export const getActiveCampaigns = async (limit: number = 10, includePending: boo
     .from('campaigns')
     .select(`
       *,
-      organization:organizations(id, name, logo)
+      organization:organizations(id, name, slug, logo_url)
     `)
   
   if (includePending) {

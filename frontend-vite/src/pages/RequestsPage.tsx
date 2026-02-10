@@ -30,7 +30,8 @@ interface Campaign {
   organization: {
     id: string
     name: string
-    logo: string | null
+    slug: string
+    logo_url: string | null
   }
 }
 
@@ -275,7 +276,13 @@ export function RequestsPage() {
 
                       <CardHeader className="pb-2">
                         <CardDescription className="text-[#ea580c] font-medium">
-                          {campaign.organization?.name}
+                          <Link
+                            to={`/organizations/${campaign.organization?.slug || campaign.organization?.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:underline"
+                          >
+                            {campaign.organization?.name}
+                          </Link>
                         </CardDescription>
                         <CardTitle className="line-clamp-2 text-lg group-hover:text-[#ea580c] transition-colors">
                           {campaign.title}

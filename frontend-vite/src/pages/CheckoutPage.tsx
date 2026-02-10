@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
@@ -148,7 +148,12 @@ export function CheckoutPage() {
           <CardContent className="space-y-2">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Organization:</span>
-              <span className="font-semibold">{request.organization?.name}</span>
+              <Link
+                to={`/organizations/${request.organization?.slug || request.organization?.id}`}
+                className="font-semibold text-[#ea580c] hover:underline"
+              >
+                {request.organization?.name}
+              </Link>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Request:</span>

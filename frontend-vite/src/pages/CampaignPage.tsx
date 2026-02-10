@@ -86,8 +86,9 @@ interface Campaign {
   organization: {
     id: string
     name: string
+    slug: string
     mission: string
-    logo: string | null
+    logo_url: string | null
   }
 }
 
@@ -887,22 +888,25 @@ export function CampaignPage() {
             <div className="flex flex-col gap-5 h-full">
               {/* Creator Info */}
               <div className="space-y-2.5">
-                <div className="flex items-center gap-2.5">
+                <Link
+                  to={`/organizations/${campaign.organization?.slug || campaign.organization?.id || campaign.organization_id}`}
+                  className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+                >
                   <Avatar className="h-[42px] w-[42px]">
-                    <AvatarImage src={campaign.logo_url || campaign.organization?.logo || undefined} />
+                    <AvatarImage src={campaign.logo_url || campaign.organization?.logo_url || undefined} />
                     <AvatarFallback className="bg-[#f5f5f5]">
                       {campaign.creator_name?.charAt(0) || campaign.organization?.name?.charAt(0) || 'C'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <p className="font-bold text-lg text-[#0a0a0a]">
+                    <p className="font-bold text-lg text-[#0a0a0a] hover:text-[#ea580c] transition-colors">
                       {campaign.creator_name || campaign.organization?.name}
                     </p>
                     <p className="text-sm text-[#737373]">
                       {campaign.creator_role || 'Campaign Creator'}
                     </p>
                   </div>
-                </div>
+                </Link>
                 
                 {campaign.status === 'pending' && (
                   <Badge className="bg-[#f5cdb8] text-[#ea580c] hover:bg-[#f5cdb8]">
@@ -1573,11 +1577,23 @@ export function CampaignPage() {
           <TabsContent value="about" className="mt-0">
             <div className="max-w-2xl">
               <h2 className="text-2xl font-semibold text-[#0a0a0a] mb-4">
-                About {campaign.organization?.name}
+                About{' '}
+                <Link
+                  to={`/organizations/${campaign.organization?.slug || campaign.organization?.id || campaign.organization_id}`}
+                  className="text-[#ea580c] hover:underline"
+                >
+                  {campaign.organization?.name}
+                </Link>
               </h2>
-              <p className="text-base text-[#0a0a0a] leading-relaxed">
+              <p className="text-base text-[#0a0a0a] leading-relaxed mb-4">
                 {campaign.organization?.mission || 'No organization description available.'}
               </p>
+              <Link
+                to={`/organizations/${campaign.organization?.slug || campaign.organization?.id || campaign.organization_id}`}
+                className="inline-flex items-center text-[#ea580c] hover:underline font-medium"
+              >
+                View Organization Profile →
+              </Link>
             </div>
           </TabsContent>
 
