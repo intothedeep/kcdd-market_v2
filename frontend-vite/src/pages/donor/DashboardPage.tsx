@@ -24,6 +24,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -56,20 +61,31 @@ import {
   Mail,
   Phone,
   MessageCircle,
-  Clock,
   Calendar,
   DollarSign,
   Users,
   Target,
   Award,
+  LayoutGrid,
+  List,
+  ArrowUpDown,
+  X,
+  RefreshCw,
+  Check,
+  CircleDot,
 } from 'lucide-react'
-import { 
-  fetchDonorDashboardStats, 
+import {
+  fetchDonorDashboardStats,
   fetchDonorDonations,
+  fetchOpenRequests,
+  fetchDonorDocuments,
   checkOnboardingStatus,
   type DonorDashboardStats,
-  type DonationRecord
+  type DonationRecord,
+  type DonorDocument
 } from '@/lib/supabase'
+import { useNavigate } from 'react-router-dom'
+import { useToast } from '@/components/ui/use-toast'
 
 // Default empty states
 const EMPTY_STATS: DonorDashboardStats = {
@@ -375,63 +391,608 @@ function CampaignContent({
   )
 }
 
+// Open request type for browse section
+interface OpenRequest {
+  id: string
+  description: string
+  amount: number
+  urgency: 'low' | 'medium' | 'high'
+  organization: { name: string; logo_emoji?: string } | null
+  cause_area: { name: string; id?: string } | null
+  created_at: string
+}
+
+// Sort options
+type SortOption = 'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'urgency'
+
+// Amount range options
+const AMOUNT_RANGES = [
+  { label: 'Any amount', min: 0, max: Infinity },
+  { label: 'Under $100', min: 0, max: 100 },
+  { label: '$100 - $500', min: 100, max: 500 },
+  { label: '$500 - $1,000', min: 500, max: 1000 },
+  { label: '$1,000 - $5,000', min: 1000, max: 5000 },
+  { label: 'Over $5,000', min: 5000, max: Infinity },
+]
+
 // Browse Requests Content
-function BrowseRequestsContent() {
-  const openRequests = [
-    { id: '1', org: 'KC Youth Center', description: 'Laptops for coding class', amount: 1200, urgency: 'high', cause: 'Education' },
-    { id: '2', org: 'Digital Bridge', description: 'Internet hotspots for families', amount: 450, urgency: 'medium', cause: 'Digital Access' },
-    { id: '3', org: 'Senior Connect', description: 'Tablets for seniors', amount: 800, urgency: 'low', cause: 'Senior Services' },
-    { id: '4', org: 'Job Ready KC', description: 'Interview equipment', amount: 350, urgency: 'high', cause: 'Employment' },
-  ]
+function BrowseRequestsContent({
+  requests,
+  loading,
+  onClaimRequest,
+  claimingId,
+  onRefresh
+}: {
+  requests: OpenRequest[]
+  loading: boolean
+  onClaimRequest: (requestId: string) => void
+  claimingId: string | null
+  onRefresh: () => void
+}) {
+  const navigate = useNavigate()
+
+  // View state
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
+
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedUrgency, setSelectedUrgency] = useState<string[]>([])
+  const [selectedCauseAreas, setSelectedCauseAreas] = useState<string[]>([])
+  const [selectedAmountRange, setSelectedAmountRange] = useState(0) // index into AMOUNT_RANGES
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
+
+  // Get unique cause areas from requests
+  const causeAreas = Array.from(
+    new Set(requests.map(r => r.cause_area?.name).filter(Boolean))
+  ) as string[]
+
+  // Filter and sort logic
+  const filteredRequests = requests
+    .filter(request => {
+      // Search filter
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase()
+        const matches =
+          request.description?.toLowerCase().includes(searchLower) ||
+          request.organization?.name?.toLowerCase().includes(searchLower) ||
+          request.cause_area?.name?.toLowerCase().includes(searchLower)
+        if (!matches) return false
+      }
+
+      // Urgency filter
+      if (selectedUrgency.length > 0 && !selectedUrgency.includes(request.urgency)) {
+        return false
+      }
+
+      // Cause area filter
+      if (selectedCauseAreas.length > 0 && !selectedCauseAreas.includes(request.cause_area?.name || '')) {
+        return false
+      }
+
+      // Amount range filter
+      const range = AMOUNT_RANGES[selectedAmountRange]
+      const amount = Number(request.amount)
+      if (amount < range.min || amount > range.max) {
+        return false
+      }
+
+      return true
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        case 'amount_high':
+          return Number(b.amount) - Number(a.amount)
+        case 'amount_low':
+          return Number(a.amount) - Number(b.amount)
+        case 'urgency':
+          const urgencyOrder = { high: 0, medium: 1, low: 2 }
+          return urgencyOrder[a.urgency] - urgencyOrder[b.urgency]
+        default:
+          return 0
+      }
+    })
+
+  // Check if any filters are active
+  const hasActiveFilters =
+    selectedUrgency.length > 0 ||
+    selectedCauseAreas.length > 0 ||
+    selectedAmountRange !== 0
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchQuery('')
+    setSelectedUrgency([])
+    setSelectedCauseAreas([])
+    setSelectedAmountRange(0)
+  }
+
+  // Toggle urgency filter
+  const toggleUrgency = (urgency: string) => {
+    setSelectedUrgency(prev =>
+      prev.includes(urgency)
+        ? prev.filter(u => u !== urgency)
+        : [...prev, urgency]
+    )
+  }
+
+  // Toggle cause area filter
+  const toggleCauseArea = (causeArea: string) => {
+    setSelectedCauseAreas(prev =>
+      prev.includes(causeArea)
+        ? prev.filter(c => c !== causeArea)
+        : [...prev, causeArea]
+    )
+  }
+
+  // Urgency badge component
+  const UrgencyBadge = ({ urgency }: { urgency: string }) => (
+    <Badge variant="outline" className={
+      urgency === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
+      urgency === 'medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+      'bg-green-50 text-green-700 border-green-200'
+    }>
+      {urgency}
+    </Badge>
+  )
+
+  // Sort label helper
+  const getSortLabel = () => {
+    switch (sortBy) {
+      case 'newest': return 'Newest'
+      case 'oldest': return 'Oldest'
+      case 'amount_high': return 'Highest $'
+      case 'amount_low': return 'Lowest $'
+      case 'urgency': return 'Urgent'
+      default: return 'Sort'
+    }
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-[#0a0a0a]">Browse Open Requests</h2>
-          <p className="text-sm text-[#737373]">Find donation opportunities that match your interests</p>
+          <p className="text-sm text-[#737373]">
+            {loading ? 'Loading...' : `${filteredRequests.length} donation opportunities available`}
+          </p>
         </div>
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Search requests..." className="pl-9" />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/requests')}
+          >
+            <ExternalLink className="h-4 w-4 mr-1" />
+            Full Page
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {openRequests.map((request) => (
-          <Card key={request.id} className="p-5 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="font-medium text-[#0a0a0a]">{request.org}</h3>
-                <p className="text-sm text-[#737373]">{request.description}</p>
-              </div>
-              <Badge variant="outline" className={
-                request.urgency === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
-                request.urgency === 'medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                'bg-green-50 text-green-700 border-green-200'
-              }>
-                {request.urgency}
-              </Badge>
+      {/* Toolbar - Clean inline filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Search */}
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search requests..."
+            className="pl-9 h-9 bg-white"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="h-6 w-px bg-gray-200" />
+
+        {/* Urgency Filter Popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`h-9 ${selectedUrgency.length > 0 ? 'border-[#1b5858] bg-[#1b5858]/5' : ''}`}
+            >
+              Urgency
+              {selectedUrgency.length > 0 && (
+                <span className="ml-1.5 flex items-center justify-center h-5 w-5 rounded-full bg-[#1b5858] text-white text-xs">
+                  {selectedUrgency.length}
+                </span>
+              )}
+              <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-2" align="start">
+            <div className="space-y-1">
+              {['high', 'medium', 'low'].map(urgency => (
+                <button
+                  key={urgency}
+                  onClick={() => toggleUrgency(urgency)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                    selectedUrgency.includes(urgency)
+                      ? 'bg-gray-100'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className={`h-4 w-4 rounded border flex items-center justify-center ${
+                    selectedUrgency.includes(urgency)
+                      ? 'bg-[#1b5858] border-[#1b5858]'
+                      : 'border-gray-300'
+                  }`}>
+                    {selectedUrgency.includes(urgency) && (
+                      <Check className="h-3 w-3 text-white" />
+                    )}
+                  </div>
+                  <span className="flex-1 text-left capitalize">{urgency}</span>
+                  <CircleDot className={`h-3 w-3 ${
+                    urgency === 'high' ? 'text-red-500' :
+                    urgency === 'medium' ? 'text-amber-500' :
+                    'text-green-500'
+                  }`} />
+                </button>
+              ))}
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">{request.cause}</Badge>
-                <span className="font-semibold">${request.amount}</span>
-              </div>
-              <Button size="sm" className="bg-[#1b5858] hover:bg-[#164444]">
-                Claim Request
-              </Button>
+            {selectedUrgency.length > 0 && (
+              <button
+                onClick={() => setSelectedUrgency([])}
+                className="w-full mt-2 pt-2 border-t text-xs text-gray-500 hover:text-gray-700"
+              >
+                Clear selection
+              </button>
+            )}
+          </PopoverContent>
+        </Popover>
+
+        {/* Cause Area Filter Popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`h-9 ${selectedCauseAreas.length > 0 ? 'border-[#1b5858] bg-[#1b5858]/5' : ''}`}
+            >
+              Cause Area
+              {selectedCauseAreas.length > 0 && (
+                <span className="ml-1.5 flex items-center justify-center h-5 w-5 rounded-full bg-[#1b5858] text-white text-xs">
+                  {selectedCauseAreas.length}
+                </span>
+              )}
+              <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            {causeAreas.length > 0 ? (
+              <>
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {causeAreas.map(cause => (
+                    <button
+                      key={cause}
+                      onClick={() => toggleCauseArea(cause)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                        selectedCauseAreas.includes(cause)
+                          ? 'bg-gray-100'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className={`h-4 w-4 rounded border flex items-center justify-center ${
+                        selectedCauseAreas.includes(cause)
+                          ? 'bg-[#1b5858] border-[#1b5858]'
+                          : 'border-gray-300'
+                      }`}>
+                        {selectedCauseAreas.includes(cause) && (
+                          <Check className="h-3 w-3 text-white" />
+                        )}
+                      </div>
+                      <span className="flex-1 text-left">{cause}</span>
+                    </button>
+                  ))}
+                </div>
+                {selectedCauseAreas.length > 0 && (
+                  <button
+                    onClick={() => setSelectedCauseAreas([])}
+                    className="w-full mt-2 pt-2 border-t text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Clear selection
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="px-3 py-2 text-sm text-gray-500">No cause areas available</p>
+            )}
+          </PopoverContent>
+        </Popover>
+
+        {/* Amount Range Filter Popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`h-9 ${selectedAmountRange !== 0 ? 'border-[#1b5858] bg-[#1b5858]/5' : ''}`}
+            >
+              {selectedAmountRange !== 0 ? AMOUNT_RANGES[selectedAmountRange].label : 'Amount'}
+              <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-44 p-2" align="start">
+            <div className="space-y-1">
+              {AMOUNT_RANGES.map((range, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedAmountRange(index)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                    selectedAmountRange === index
+                      ? 'bg-[#1b5858] text-white'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
             </div>
-          </Card>
-        ))}
+          </PopoverContent>
+        </Popover>
+
+        {/* Sort Popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9">
+              <ArrowUpDown className="h-4 w-4 mr-1" />
+              {getSortLabel()}
+              <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-44 p-2" align="start">
+            <div className="space-y-1">
+              {[
+                { value: 'newest', label: 'Newest First' },
+                { value: 'oldest', label: 'Oldest First' },
+                { value: 'amount_high', label: 'Amount: High to Low' },
+                { value: 'amount_low', label: 'Amount: Low to High' },
+                { value: 'urgency', label: 'Most Urgent First' },
+              ].map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => setSortBy(option.value as SortOption)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                    sortBy === option.value
+                      ? 'bg-[#1b5858] text-white'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <div className="flex-1" />
+
+        {/* Clear filters button - only show when filters active */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearAllFilters}
+            className="h-9 text-gray-500 hover:text-gray-700"
+          >
+            <X className="h-4 w-4 mr-1" />
+            Clear filters
+          </Button>
+        )}
+
+        {/* View toggle */}
+        <div className="flex items-center border rounded-lg overflow-hidden">
+          <button
+            onClick={() => setViewMode('cards')}
+            className={`p-2 ${viewMode === 'cards' ? 'bg-[#1b5858] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-2 ${viewMode === 'table' ? 'bg-[#1b5858] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+          >
+            <List className="h-4 w-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Active filters chips - shown below toolbar */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2">
+          {selectedUrgency.map(u => (
+            <Badge
+              key={u}
+              className={`gap-1 pr-1 cursor-pointer ${
+                u === 'high' ? 'bg-red-100 text-red-700 hover:bg-red-200' :
+                u === 'medium' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' :
+                'bg-green-100 text-green-700 hover:bg-green-200'
+              }`}
+              onClick={() => toggleUrgency(u)}
+            >
+              {u}
+              <X className="h-3 w-3 ml-0.5" />
+            </Badge>
+          ))}
+          {selectedCauseAreas.map(c => (
+            <Badge
+              key={c}
+              className="gap-1 pr-1 cursor-pointer bg-[#1b5858]/10 text-[#1b5858] hover:bg-[#1b5858]/20"
+              onClick={() => toggleCauseArea(c)}
+            >
+              {c}
+              <X className="h-3 w-3 ml-0.5" />
+            </Badge>
+          ))}
+          {selectedAmountRange !== 0 && (
+            <Badge
+              className="gap-1 pr-1 cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200"
+              onClick={() => setSelectedAmountRange(0)}
+            >
+              {AMOUNT_RANGES[selectedAmountRange].label}
+              <X className="h-3 w-3 ml-0.5" />
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      ) : filteredRequests.length === 0 ? (
+        <div className="text-center py-12">
+          <Heart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <h3 className="text-lg font-medium text-[#0a0a0a] mb-1">
+            {hasActiveFilters ? 'No matching requests' : 'No open requests'}
+          </h3>
+          <p className="text-sm text-[#737373] mb-4">
+            {hasActiveFilters
+              ? 'Try adjusting your filters or search terms'
+              : 'Check back later for new donation opportunities'}
+          </p>
+          {hasActiveFilters && (
+            <Button variant="outline" size="sm" onClick={clearAllFilters}>
+              Clear Filters
+            </Button>
+          )}
+        </div>
+      ) : viewMode === 'cards' ? (
+        /* Card View */
+        <div className="grid grid-cols-2 gap-4">
+          {filteredRequests.map((request) => (
+            <Card key={request.id} className="p-5 hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{request.organization?.logo_emoji || '🏢'}</span>
+                    <h3 className="font-medium text-[#0a0a0a] truncate">
+                      {request.organization?.name || 'Unknown Organization'}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-[#737373] mt-1 line-clamp-2">{request.description}</p>
+                </div>
+                <UrgencyBadge urgency={request.urgency} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{request.cause_area?.name || 'General'}</Badge>
+                  <span className="font-semibold">${Number(request.amount).toLocaleString()}</span>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-[#1b5858] hover:bg-[#164444]"
+                  onClick={() => onClaimRequest(request.id)}
+                  disabled={claimingId === request.id}
+                >
+                  {claimingId === request.id ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ...
+                    </>
+                  ) : (
+                    'Donate'
+                  )}
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        /* Table View */
+        <div className="border border-[#e5e5e5] rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Organization</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Cause Area</TableHead>
+                <TableHead>Urgency</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="w-24"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRequests.map((request) => (
+                <TableRow key={request.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span>{request.organization?.logo_emoji || '🏢'}</span>
+                      <span className="font-medium">{request.organization?.name || 'Unknown'}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-[200px]">
+                    <span className="truncate block">{request.description}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{request.cause_area?.name || 'General'}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <UrgencyBadge urgency={request.urgency} />
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">
+                    ${Number(request.amount).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-500">
+                    {new Date(request.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      className="bg-[#1b5858] hover:bg-[#164444]"
+                      onClick={() => onClaimRequest(request.id)}
+                      disabled={claimingId === request.id}
+                    >
+                      {claimingId === request.id ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Donate'}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Results count */}
+      {!loading && filteredRequests.length > 0 && (
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <span>
+            Showing {filteredRequests.length} of {requests.length} requests
+          </span>
+          <Button variant="outline" size="sm" onClick={() => navigate('/requests')}>
+            View All Requests
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
 
 // Updates & Proof Content
-function UpdatesContent({ donations }: { donations: DonationRecord[] }) {
+function UpdatesContent({ donations, stats }: { donations: DonationRecord[]; stats: DonorDashboardStats }) {
   const fulfilledDonations = donations.filter(d => d.status === 'fulfilled')
+
+  // Calculate estimated people helped (assume avg 2 people per donation)
+  const estimatedPeopleHelped = fulfilledDonations.length * 2
 
   return (
     <div className="space-y-6">
@@ -443,64 +1004,81 @@ function UpdatesContent({ donations }: { donations: DonationRecord[] }) {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <Card className="p-5 text-center">
           <Users className="h-8 w-8 mx-auto mb-2 text-[#1b5858]" />
-          <p className="text-2xl font-semibold">127</p>
+          <p className="text-2xl font-semibold">{estimatedPeopleHelped}</p>
           <p className="text-sm text-[#737373]">People Helped</p>
         </Card>
         <Card className="p-5 text-center">
           <Target className="h-8 w-8 mx-auto mb-2 text-[#1b5858]" />
-          <p className="text-2xl font-semibold">5</p>
+          <p className="text-2xl font-semibold">{stats.causesSupported}</p>
           <p className="text-sm text-[#737373]">Causes Supported</p>
         </Card>
         <Card className="p-5 text-center">
           <Award className="h-8 w-8 mx-auto mb-2 text-[#1b5858]" />
-          <p className="text-2xl font-semibold">12</p>
+          <p className="text-2xl font-semibold">{stats.requestsFulfilled}</p>
           <p className="text-sm text-[#737373]">Requests Fulfilled</p>
         </Card>
       </div>
 
       <div className="space-y-4">
         <h3 className="font-medium">Recent Impact Updates</h3>
-        {fulfilledDonations.slice(0, 4).map((donation) => (
-          <Card key={donation.id} className="p-4">
-            <div className="flex items-start gap-4">
-              <div className="h-10 w-10 bg-[#1b5858] rounded-lg flex items-center justify-center text-white font-semibold">
-                {donation.organization_name[0]}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">{donation.organization_name}</h4>
-                  <span className="text-sm text-[#737373]">
-                    {donation.fulfilled_at && new Date(donation.fulfilled_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="text-sm text-[#737373]">{donation.description}</p>
-                <p className="text-sm mt-2">
-                  <span className="text-green-600 font-medium">✓ Fulfilled</span>
-                  <span className="text-[#737373]"> · ${donation.amount} donation complete</span>
-                </p>
-              </div>
-            </div>
+        {fulfilledDonations.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-gray-500">No fulfilled donations yet.</p>
+            <p className="text-sm text-gray-400 mt-1">Your impact stories will appear here once donations are completed.</p>
           </Card>
-        ))}
+        ) : (
+          fulfilledDonations.slice(0, 4).map((donation) => (
+            <Card key={donation.id} className="p-4">
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 bg-[#1b5858] rounded-lg flex items-center justify-center text-white font-semibold">
+                  {donation.organization_logo_emoji || donation.organization_name[0]}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">{donation.organization_name}</h4>
+                    <span className="text-sm text-[#737373]">
+                      {donation.fulfilled_at && new Date(donation.fulfilled_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-[#737373]">{donation.description}</p>
+                  <p className="text-sm mt-2">
+                    <span className="text-green-600 font-medium">✓ Fulfilled</span>
+                    <span className="text-[#737373]"> · ${donation.amount} donation complete</span>
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   )
 }
 
-// Transfers Content
-function TransfersContent() {
-  const transfers = [
-    { id: '1', date: '2024-12-15', amount: 450, method: 'Bank Transfer', status: 'completed' },
-    { id: '2', date: '2024-12-10', amount: 120, method: 'Credit Card', status: 'completed' },
-    { id: '3', date: '2024-12-05', amount: 280, method: 'Bank Transfer', status: 'completed' },
-  ]
+// Transfers Content - Shows donor's payment history from fulfilled donations
+function TransfersContent({ donations, stats }: { donations: DonationRecord[]; stats: DonorDashboardStats }) {
+  // Get fulfilled and claimed donations (actual transactions)
+  const transfers = donations
+    .filter(d => d.status === 'fulfilled' || d.status === 'claimed')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  // Calculate this month's total
+  const now = new Date()
+  const thisMonth = donations
+    .filter(d => {
+      if (d.status !== 'fulfilled' && d.status !== 'claimed') return false
+      const date = new Date(d.fulfilled_at || d.claimed_at || d.created_at)
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+    })
+    .reduce((sum, d) => sum + d.amount, 0)
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-[#0a0a0a]">Payouts / Transfers</h2>
-          <p className="text-sm text-[#737373]">Track your payment history and manage payment methods</p>
+          <h2 className="text-xl font-semibold text-[#0a0a0a]">Payment History</h2>
+          <p className="text-sm text-[#737373]">Track your donation payments and transactions</p>
         </div>
         <Button variant="outline" size="sm">
           <Plus className="h-4 w-4 mr-2" />
@@ -515,8 +1093,8 @@ function TransfersContent() {
               <DollarSign className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-[#737373]">Total Transferred</p>
-              <p className="text-xl font-semibold">$2,847</p>
+              <p className="text-sm text-[#737373]">Total Donated</p>
+              <p className="text-xl font-semibold">${stats.totalDonations.toLocaleString()}</p>
             </div>
           </div>
         </Card>
@@ -527,44 +1105,63 @@ function TransfersContent() {
             </div>
             <div>
               <p className="text-sm text-[#737373]">This Month</p>
-              <p className="text-xl font-semibold">$850</p>
+              <p className="text-xl font-semibold">${thisMonth.toLocaleString()}</p>
             </div>
           </div>
         </Card>
       </div>
 
-      <div className="border border-[#e5e5e5] rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Method</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transfers.map((transfer) => (
-              <TableRow key={transfer.id}>
-                <TableCell>{new Date(transfer.date).toLocaleDateString()}</TableCell>
-                <TableCell className="font-medium">${transfer.amount}</TableCell>
-                <TableCell>{transfer.method}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    {transfer.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+      {transfers.length === 0 ? (
+        <Card className="p-8 text-center">
+          <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <p className="text-gray-500">No payment history yet.</p>
+          <p className="text-sm text-gray-400 mt-1">Your transactions will appear here once you make donations.</p>
+        </Card>
+      ) : (
+        <div className="border border-[#e5e5e5] rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Organization</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {transfers.map((transfer) => (
+                <TableRow key={transfer.id}>
+                  <TableCell>
+                    {new Date(transfer.fulfilled_at || transfer.claimed_at || transfer.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span>{transfer.organization_logo_emoji || '🏢'}</span>
+                      <span>{transfer.organization_name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">${transfer.amount.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={
+                      transfer.status === 'fulfilled'
+                        ? 'bg-green-50 text-green-700 border-green-200'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                    }>
+                      {transfer.status === 'fulfilled' ? 'Completed' : 'Processing'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   )
 }
@@ -618,12 +1215,14 @@ function VerificationContent() {
 }
 
 // Tax Documents Content
-function DocumentsContent() {
-  const documents = [
-    { id: '1', name: 'Tax Receipt 2024', date: '2024-12-20', type: 'PDF' },
-    { id: '2', name: 'Donation Summary Q4', date: '2024-12-01', type: 'PDF' },
-    { id: '3', name: 'Annual Giving Statement', date: '2024-01-15', type: 'PDF' },
-  ]
+function DocumentsContent({ documents, loading }: { documents: DonorDocument[]; loading: boolean }) {
+  const handleDownload = (doc: DonorDocument) => {
+    if (doc.file_url) {
+      window.open(doc.file_url, '_blank')
+    } else {
+      alert(`Document "${doc.name}" is not available for download yet.`)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -632,33 +1231,61 @@ function DocumentsContent() {
           <h2 className="text-xl font-semibold text-[#0a0a0a]">Tax Documents</h2>
           <p className="text-sm text-[#737373]">Download your tax receipts and donation statements</p>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" disabled={documents.length === 0}>
           <Download className="h-4 w-4 mr-2" />
           Download All
         </Button>
       </div>
 
-      <div className="space-y-3">
-        {documents.map((doc) => (
-          <Card key={doc.id} className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-red-100 rounded-lg flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-red-600" />
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      ) : documents.length === 0 ? (
+        <Card className="p-8 text-center">
+          <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <p className="text-gray-500">No documents available yet.</p>
+          <p className="text-sm text-gray-400 mt-1">Documents will appear here once you make your first donation.</p>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {documents.map((doc) => (
+            <Card key={doc.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-red-100 rounded-lg flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">{doc.name}</h4>
+                    <p className="text-sm text-[#737373]">
+                      {doc.type} · {doc.size || 'PDF'} · {new Date(doc.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-medium">{doc.name}</h4>
-                  <p className="text-sm text-[#737373]">{doc.type} · {new Date(doc.date).toLocaleDateString()}</p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className={
+                    doc.status === 'ready'
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }>
+                    {doc.status === 'ready' ? 'Ready' : 'Processing'}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownload(doc)}
+                    disabled={doc.status !== 'ready'}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
                 </div>
               </div>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -787,50 +1414,91 @@ function SearchContent() {
 
 export function DonorDashboard() {
   const { user, isLoaded } = useUser()
-  
+  const navigate = useNavigate()
+  const { toast } = useToast()
+
   // State
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeSection, setActiveSection] = useState<SidebarSection>('campaign')
   const [activeTab, setActiveTab] = useState('all')
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
-  
+
   // Data state
   const [stats, setStats] = useState<DonorDashboardStats>(EMPTY_STATS)
   const [donations, setDonations] = useState<DonationRecord[]>([])
+  const [documents, setDocuments] = useState<DonorDocument[]>([])
+  const [openRequests, setOpenRequests] = useState<OpenRequest[]>([])
   const [loading, setLoading] = useState(true)
+  const [documentsLoading, setDocumentsLoading] = useState(true)
+  const [openRequestsLoading, setOpenRequestsLoading] = useState(true)
   const [needsOnboarding, setNeedsOnboarding] = useState(true)
+
+  // Fetch open requests
+  const fetchOpenRequestsData = useCallback(async () => {
+    setOpenRequestsLoading(true)
+    try {
+      const data = await fetchOpenRequests()
+      setOpenRequests(data || [])
+    } catch (err) {
+      console.error('Error fetching open requests:', err)
+      setOpenRequests([])
+    } finally {
+      setOpenRequestsLoading(false)
+    }
+  }, [])
 
   // Fetch real data
   const fetchData = useCallback(async () => {
     if (!user?.id) return
 
     setLoading(true)
+    setDocumentsLoading(true)
     try {
       const onboardingStatus = await checkOnboardingStatus(user.id, 'donor')
       setNeedsOnboarding(!onboardingStatus.onboarding_complete)
 
-      const [statsData, donationsData] = await Promise.all([
+      const [statsData, donationsData, documentsData] = await Promise.all([
         fetchDonorDashboardStats(user.id),
-        fetchDonorDonations(user.id)
+        fetchDonorDonations(user.id),
+        fetchDonorDocuments(user.id)
       ])
 
       setStats(statsData || EMPTY_STATS)
       setDonations(donationsData || [])
+      setDocuments(documentsData || [])
     } catch (err) {
       console.error('Error fetching donor data:', err)
       setStats(EMPTY_STATS)
       setDonations([])
+      setDocuments([])
     } finally {
       setLoading(false)
+      setDocumentsLoading(false)
     }
   }, [user?.id])
 
   useEffect(() => {
     if (isLoaded && user?.id) {
       fetchData()
+      fetchOpenRequestsData()
     }
-  }, [isLoaded, user?.id, fetchData])
+  }, [isLoaded, user?.id, fetchData, fetchOpenRequestsData])
+
+  // Handle claiming a request - navigates to checkout
+  const handleClaimRequest = async (requestId: string) => {
+    if (!user?.id) {
+      toast({
+        title: 'Please sign in',
+        description: 'You need to be signed in to donate.',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    // Navigate to checkout page for this request
+    navigate(`/checkout/${requestId}`)
+  }
 
   const toggleRowSelection = (id: string) => {
     const newSelected = new Set(selectedRows)
@@ -884,15 +1552,23 @@ export function DonorDashboard() {
           />
         )
       case 'browse':
-        return <BrowseRequestsContent />
+        return (
+          <BrowseRequestsContent
+            requests={openRequests}
+            loading={openRequestsLoading}
+            onClaimRequest={handleClaimRequest}
+            claimingId={null}
+            onRefresh={fetchOpenRequestsData}
+          />
+        )
       case 'updates':
-        return <UpdatesContent donations={donations} />
+        return <UpdatesContent donations={donations} stats={stats} />
       case 'transfers':
-        return <TransfersContent />
+        return <TransfersContent donations={donations} stats={stats} />
       case 'verification':
         return <VerificationContent />
       case 'documents':
-        return <DocumentsContent />
+        return <DocumentsContent documents={documents} loading={documentsLoading} />
       case 'settings':
         return <SettingsContent onOpenModal={() => setShowOnboardingModal(true)} />
       case 'support':
@@ -928,67 +1604,67 @@ export function DonorDashboard() {
       />
 
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#fafafa] p-2 flex flex-col transition-all duration-300`}>
-        <div className="flex-1 space-y-2">
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#fafafa] p-2 flex flex-col transition-all duration-300 overflow-hidden`}>
+        <div className="flex-1 space-y-2 overflow-hidden">
           {/* Main Navigation */}
           <nav className="space-y-1 p-2">
-            <button 
+            <button
               onClick={() => setActiveSection('campaign')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'campaign'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" />
+              <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && <span className="text-sm">My Campaign</span>}
             </button>
 
-            <button 
+            <button
               onClick={() => setActiveSection('browse')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'browse'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <Heart className="w-4 h-4" />
+              <Heart className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && <span className="text-sm">Browse Requests</span>}
             </button>
 
-            <button 
+            <button
               onClick={() => setActiveSection('updates')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'updates'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <BarChart3 className="w-4 h-4" />
+              <BarChart3 className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && <span className="text-sm">Updates & Proof</span>}
             </button>
 
-            <button 
+            <button
               onClick={() => setActiveSection('transfers')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'transfers'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && <span className="text-sm">Payouts / Transfers</span>}
             </button>
 
-            <button 
+            <button
               onClick={() => setActiveSection('verification')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'verification'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <ShieldCheck className="w-4 h-4" />
+              <ShieldCheck className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && <span className="text-sm">Verification Status</span>}
             </button>
           </nav>
@@ -996,59 +1672,59 @@ export function DonorDashboard() {
           {/* Documents Section */}
           <div className="p-2">
             {sidebarOpen && (
-              <h3 className="px-2 mb-2 text-xs font-medium text-[#0a0a0a] opacity-70">
+              <h3 className="px-2 mb-2 text-xs font-medium text-[#0a0a0a] opacity-70 whitespace-nowrap">
                 Documents
               </h3>
             )}
-            <button 
+            <button
               onClick={() => setActiveSection('documents')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'documents'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && <span className="text-sm">Tax Documents</span>}
             </button>
           </div>
         </div>
 
         {/* Footer Navigation */}
-        <div className="p-2 space-y-1 border-t border-gray-200 pt-2">
-          <button 
+        <div className="p-2 space-y-1 border-t border-gray-200 pt-2 overflow-hidden">
+          <button
             onClick={() => setActiveSection('settings')}
-            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
               activeSection === 'settings'
-                ? 'bg-[#1b5858] text-white' 
+                ? 'bg-[#1b5858] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-4 h-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Account Information</span>}
           </button>
 
-          <button 
+          <button
             onClick={() => setActiveSection('support')}
-            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
               activeSection === 'support'
-                ? 'bg-[#1b5858] text-white' 
+                ? 'bg-[#1b5858] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <HelpCircle className="w-4 h-4" />
+            <HelpCircle className="w-4 h-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Support</span>}
           </button>
 
-          <button 
+          <button
             onClick={() => setActiveSection('search')}
-            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
               activeSection === 'search'
-                ? 'bg-[#1b5858] text-white' 
+                ? 'bg-[#1b5858] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <Search className="w-4 h-4" />
+            <Search className="w-4 h-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Search</span>}
           </button>
         </div>

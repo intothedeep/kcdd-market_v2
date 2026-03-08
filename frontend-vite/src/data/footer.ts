@@ -46,12 +46,12 @@ export const footerData: FooterData = {
     { icon: 'linkedin', href: '#', label: 'LinkedIn' }
   ],
   legalLinks: [
-    { label: 'Privacy Statement', href: '/privacy' },
-    { label: 'Do Not Sell My Personal Information', href: '/do-not-sell' },
-    { label: 'Accessibility Statement', href: '/accessibility' },
-    { label: 'Terms and Conditions', href: '/terms' },
-    { label: 'GCC-CPSIA Compliance', href: '/compliance' },
-    { label: 'Site Map', href: '/sitemap' }
+    { label: 'Privacy Statement', href: '/legal/privacy' },
+    { label: 'Do Not Sell My Personal Information', href: '/legal/do-not-sell' },
+    { label: 'Accessibility Statement', href: '/legal/accessibility' },
+    { label: 'Terms and Conditions', href: '/legal/terms' },
+    { label: 'GCC-CPSIA Compliance', href: '/legal/cpsia-compliance' },
+    { label: 'Site Map', href: '/legal/sitemap' }
   ],
   bottomSocialLinks: [
     { icon: 'facebook', href: '#', label: 'Facebook' },

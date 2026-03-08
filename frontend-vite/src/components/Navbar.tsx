@@ -3,17 +3,46 @@
  * Themed with CSS variables - update colors in globals.css
  */
 
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { UserButton, useUser, SignInButton } from '@clerk/clerk-react'
 import { routes } from '@/config'
 import { Button } from '@/components/ui/button'
-import { Circle } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Circle, ChevronDown, LayoutDashboard, Heart, Building2, Shield } from 'lucide-react'
+import { useUserType } from '@/hooks/useClerkSupabase'
 
 export function Navbar() {
   const { isSignedIn } = useUser()
+  const { userType, loading: userTypeLoading } = useUserType()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const isActive = (path: string) => location.pathname === path
+
+  // Determine which dashboards the user has access to
+  const getDashboardOptions = () => {
+    if (userType === 'admin') {
+      return [
+        { label: 'Admin Dashboard', path: routes.admin.dashboard, icon: Shield },
+        { label: 'Donor Dashboard', path: routes.donor.dashboard, icon: Heart },
+        { label: 'CBO Dashboard', path: routes.cbo.dashboard, icon: Building2 },
+      ]
+    }
+    if (userType === 'cbo') {
+      return [{ label: 'Dashboard', path: routes.cbo.dashboard, icon: LayoutDashboard }]
+    }
+    // Default to donor
+    return [{ label: 'Dashboard', path: routes.donor.dashboard, icon: LayoutDashboard }]
+  }
+
+  const dashboardOptions = getDashboardOptions()
+  const hasMultipleDashboards = dashboardOptions.length > 1
+  const defaultDashboard = dashboardOptions[0]?.path || routes.donor.dashboard
 
   return (
     <header className="w-full border-b bg-white">
@@ -78,15 +107,51 @@ export function Navbar() {
         <div className="flex items-center gap-[15px] justify-end flex-1">
           {isSignedIn ? (
             <>
-              <Link to={routes.donor.dashboard}>
+              {userTypeLoading ? (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-full border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
+                  className="rounded-full border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] opacity-50"
+                  disabled
                 >
                   Dashboard
                 </Button>
-              </Link>
+              ) : hasMultipleDashboards ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white gap-1"
+                    >
+                      Dashboard
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    {dashboardOptions.map((option) => (
+                      <DropdownMenuItem
+                        key={option.path}
+                        onClick={() => navigate(option.path)}
+                        className="cursor-pointer gap-2"
+                      >
+                        <option.icon className="h-4 w-4" />
+                        {option.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link to={defaultDashboard}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
+                  >
+                    Dashboard
+                  </Button>
+                </Link>
+              )}
               <UserButton afterSignOutUrl={routes.home} />
             </>
           ) : (

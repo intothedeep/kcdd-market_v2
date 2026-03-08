@@ -475,12 +475,235 @@ ON CONFLICT DO NOTHING;
 -- WHERE r.donor_id = 'user_36GywD2buLf2HpGSfhl9etUzCFK';
 
 -- =============================================
+-- 13. SUPPORT FAQS
+-- =============================================
+INSERT INTO support_faqs (question, answer, category, user_type, sort_order, is_active) VALUES
+    (
+        'How do I claim a donation request?',
+        'To claim a request, browse the open requests on your dashboard or the Browse Requests page. When you find one you''d like to fulfill, click the "Donate" button and complete the checkout process. Once claimed, you''ll receive instructions on how to fulfill the donation.',
+        'donations',
+        'donor',
+        1,
+        true
+    ),
+    (
+        'Where can I find my tax receipts?',
+        'All your tax documents are available in the Tax Documents section of your dashboard. You can download individual receipts or a comprehensive annual summary for your tax records. Documents are typically generated within 24 hours of a completed donation.',
+        'documents',
+        'donor',
+        2,
+        true
+    ),
+    (
+        'How do I update my payment method?',
+        'Navigate to Account Information in your dashboard sidebar. Under Connected Accounts, you can add, remove, or update your payment methods. We use secure payment processing through Stripe for all transactions.',
+        'payments',
+        'donor',
+        3,
+        true
+    ),
+    (
+        'What types of donations can I make?',
+        'You can donate money to fulfill specific requests from vetted community organizations. Each request describes exactly what is needed, the amount required, and the urgency level. Your donation goes directly to fulfilling that specific need.',
+        'donations',
+        'donor',
+        4,
+        true
+    ),
+    (
+        'How do I know my donation was received?',
+        'After completing a donation, you''ll receive an email confirmation. You can also track the status of your donations in the My Campaign section of your dashboard. Once the organization confirms receipt, the request will be marked as "Fulfilled".',
+        'donations',
+        'donor',
+        5,
+        true
+    ),
+    (
+        'How do I create a donation request?',
+        'Navigate to your organization dashboard and click "Create Request". Fill in the details about what you need, the amount required, and the urgency level. Once submitted, your request will be visible to potential donors.',
+        'requests',
+        'cbo',
+        1,
+        true
+    ),
+    (
+        'How long does it take to get vetted?',
+        'The vetting process typically takes 3-5 business days. We verify your organization''s 501(c)(3) status, mission alignment, and operational capacity. You''ll receive email updates throughout the process.',
+        'verification',
+        'cbo',
+        2,
+        true
+    ),
+    (
+        'Can I edit a request after posting?',
+        'Yes, you can edit pending requests that haven''t been claimed yet. Navigate to the request in your dashboard and click "Edit". Once a request has been claimed by a donor, you''ll need to contact support for any changes.',
+        'requests',
+        'cbo',
+        3,
+        true
+    ),
+    (
+        'Are my donations tax-deductible?',
+        'Yes! All donations made through KC Digital Drive are tax-deductible. We''re a registered 501(c)(3) nonprofit organization. You''ll receive a receipt for each donation, and we provide annual summaries for your tax records.',
+        'documents',
+        'all',
+        6,
+        true
+    ),
+    (
+        'How can I contact KC Digital Drive support?',
+        'You can reach us via email at support@kcdigitaldrive.org, by phone at (816) 555-0123 during business hours, or through our live chat available Monday-Friday 9am-5pm CT. We typically respond within 24 hours.',
+        'general',
+        'all',
+        7,
+        true
+    )
+ON CONFLICT DO NOTHING;
+
+-- =============================================
+-- 14. SUPPORT CONTACT INFO
+-- =============================================
+INSERT INTO support_contact_info (type, label, value, description, sort_order, is_active) VALUES
+    (
+        'chat',
+        'Live Chat',
+        'available',
+        'Chat with our support team in real-time',
+        1,
+        true
+    ),
+    (
+        'email',
+        'Email Support',
+        'support@kcdigitaldrive.org',
+        'Get a response within 24 hours',
+        2,
+        true
+    ),
+    (
+        'phone',
+        'Phone Support',
+        '(816) 555-0123',
+        'Mon-Fri, 9am-5pm CT',
+        3,
+        true
+    )
+ON CONFLICT DO NOTHING;
+
+-- =============================================
+-- 15. DONOR DOCUMENTS (Sample for testing)
+-- Replace user_36GywD2buLf2HpGSfhl9etUzCFK with your actual Clerk user ID
+-- =============================================
+INSERT INTO donor_documents (user_id, name, type, size, file_url, year, quarter, status) VALUES
+    (
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
+        'Annual Giving Statement 2024',
+        'Annual Summary',
+        '245 KB',
+        NULL,
+        2024,
+        NULL,
+        'ready'
+    ),
+    (
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
+        'Q4 2024 Tax Receipt',
+        'Quarterly Receipt',
+        '128 KB',
+        NULL,
+        2024,
+        4,
+        'ready'
+    ),
+    (
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
+        'Q3 2024 Tax Receipt',
+        'Quarterly Receipt',
+        '98 KB',
+        NULL,
+        2024,
+        3,
+        'ready'
+    ),
+    (
+        'user_36GywD2buLf2HpGSfhl9etUzCFK',
+        'Annual Giving Statement 2023',
+        'Annual Summary',
+        '312 KB',
+        NULL,
+        2023,
+        NULL,
+        'ready'
+    )
+ON CONFLICT DO NOTHING;
+
+-- =============================================
+-- 16. SAMPLE CAMPAIGN (for testing)
+-- =============================================
+INSERT INTO campaigns (
+    id,
+    organization_id,
+    created_by,
+    title,
+    slug,
+    creator_name,
+    creator_role,
+    funding_goal,
+    amount_raised,
+    supporters_count,
+    short_description,
+    story_title,
+    story_content,
+    contact_email,
+    phone,
+    status
+) VALUES
+    (
+        'campaign-001',
+        'org-kc-youth-education',
+        'cbo-user-1',
+        'Laptops for Learning 2024',
+        'laptops-for-learning-2024',
+        'Sarah Johnson',
+        'Program Director',
+        5000.00,
+        1850.00,
+        12,
+        'Help us provide laptops to students who need them for remote learning and homework.',
+        'Every Student Deserves a Laptop',
+        'In today''s digital world, having access to a computer isn''t a luxury - it''s a necessity. Many students in our community lack the basic technology they need to succeed in school. Our program identifies students in need and provides them with refurbished laptops, along with digital literacy training and ongoing support.',
+        'sarah@kcyoutheducation.org',
+        '(816) 555-0201',
+        'active'
+    ),
+    (
+        'campaign-002',
+        'org-digital-bridge-kc',
+        'cbo-user-2',
+        'Connect KC Families',
+        'connect-kc-families',
+        'Marcus Williams',
+        'Executive Director',
+        10000.00,
+        3200.00,
+        28,
+        'Bridging the digital divide by providing internet access to underserved families.',
+        'Internet Access is a Right, Not a Privilege',
+        'Over 50,000 Kansas City families lack reliable internet access at home. This campaign will provide WiFi hotspots and connectivity solutions to families who need them most. With your help, we can ensure every family has the connectivity they need for education, employment, and essential services.',
+        'marcus@digitalbridgekc.org',
+        '(816) 555-0202',
+        'active'
+    )
+ON CONFLICT (id) DO NOTHING;
+
+-- =============================================
 -- SUCCESS MESSAGE
 -- =============================================
 DO $$
 BEGIN
     RAISE NOTICE '✅ Seed data inserted successfully!';
     RAISE NOTICE '📊 Created: 8 cause areas, 6 organizations, 17 requests';
+    RAISE NOTICE '📊 Added: 10 FAQs, 3 contact methods, 4 sample documents, 2 campaigns';
     RAISE NOTICE '💡 Remember to replace user_36GywD2buLf2HpGSfhl9etUzCFK with your actual Clerk user ID';
 END $$;
 

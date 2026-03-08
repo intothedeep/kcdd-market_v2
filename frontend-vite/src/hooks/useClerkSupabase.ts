@@ -1,9 +1,9 @@
 /**
  * Clerk + Supabase Integration Hook
- * 
+ *
  * This hook syncs Clerk authentication with Supabase.
- * It automatically creates a user profile in Supabase when a new user signs in.
- * 
+ * It checks if a user profile exists and sets a flag if role selection is needed.
+ *
  * Documentation:
  * - Clerk useAuth: https://clerk.com/docs/references/react/use-auth
  * - Clerk useUser: https://clerk.com/docs/references/react/use-user
@@ -14,19 +14,21 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export const useClerkSupabase = () => {
-  const { getToken, isLoaded: authLoaded, userId } = useAuth()
+  const { isLoaded: authLoaded, userId } = useAuth()
   const { user, isLoaded: userLoaded } = useUser()
   const [isProfileSynced, setIsProfileSynced] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [needsRoleSelection, setNeedsRoleSelection] = useState(false)
 
   useEffect(() => {
     const syncUserToSupabase = async () => {
       // Wait for both auth and user to be loaded
       if (!authLoaded || !userLoaded) return
-      
+
       // No user signed in
       if (!userId || !user) {
         setIsProfileSynced(false)
+        setNeedsRoleSelection(false)
         return
       }
 
@@ -50,46 +52,13 @@ export const useClerkSupabase = () => {
           return
         }
 
-        // If profile doesn't exist, create it
+        // If profile doesn't exist, show role selection modal
         if (!existingProfile) {
-          console.log('Creating new user profile for:', userId)
-          
-          const { error: insertError } = await supabase
-            .from('user_profiles')
-            .insert({
-              id: userId,
-              user_type: 'donor', // Default to donor, can be changed later
-              is_vetted: false,
-              onboarding_complete: false,
-              wants_updates: false
-            })
-
-          if (insertError) {
-            console.error('Error creating user profile:', insertError)
-          } else {
-            console.log('✅ User profile created successfully')
-            
-            // Also create a donor profile with basic info from Clerk
-            const { error: donorError } = await supabase
-              .from('donor_profiles')
-              .insert({
-                user_id: userId,
-                display_name: user.firstName || user.username || 'Anonymous',
-                name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Anonymous',
-                email: user.primaryEmailAddress?.emailAddress || '',
-                phone: user.primaryPhoneNumber?.phoneNumber || null,
-                bio: null,
-                max_per_request: 500,
-                service_area_zipcode: null
-              })
-
-            if (donorError && donorError.code !== '23505') {
-              // 23505 = unique constraint violation (profile already exists)
-              console.error('Error creating donor profile:', donorError)
-            }
-          }
+          console.log('New user detected, needs role selection:', userId)
+          setNeedsRoleSelection(true)
         } else {
-          console.log('User profile already exists:', existingProfile.id)
+          console.log('User profile exists:', existingProfile.id)
+          setNeedsRoleSelection(false)
         }
 
         setIsProfileSynced(true)
@@ -106,14 +75,22 @@ export const useClerkSupabase = () => {
   // Reset sync state when user changes
   useEffect(() => {
     setIsProfileSynced(false)
+    setNeedsRoleSelection(false)
   }, [userId])
+
+  // Function to dismiss the role selection modal (after completion)
+  const dismissRoleSelection = () => {
+    setNeedsRoleSelection(false)
+  }
 
   return {
     isReady: authLoaded && userLoaded && (isProfileSynced || !userId),
     userId,
     user,
     isProfileSynced,
-    isSyncing
+    isSyncing,
+    needsRoleSelection,
+    dismissRoleSelection
   }
 }
 

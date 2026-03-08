@@ -88,6 +88,8 @@ import {
   type OrganizationQuestion
 } from '@/lib/supabase'
 import { Link } from 'react-router-dom'
+import { StripeConnectCard } from '@/components/StripeConnectButton'
+import { useStripeConnect } from '@/hooks/useStripeConnect'
 
 // Campaign type
 interface Campaign {
@@ -1784,7 +1786,7 @@ function AnalyticsContent({ stats, requests }: { stats: CBODashboardStats, reque
       <div className="grid grid-cols-3 gap-4 mb-6">
         <Card className="p-5 text-center">
           <Users className="h-8 w-8 mx-auto mb-2 text-[#1b5858]" />
-          <p className="text-2xl font-semibold">342</p>
+          <p className="text-2xl font-semibold">{stats.fulfilledRequests}</p>
           <p className="text-sm text-[#737373]">People Helped</p>
         </Card>
         <Card className="p-5 text-center">
@@ -1878,6 +1880,9 @@ function SettingsContent({ organization, onOpenModal, onRefresh }: { organizatio
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+
+  // Stripe Connect status
+  const { status: stripeStatus, loading: stripeLoading, refetch: refetchStripe } = useStripeConnect(organization?.id)
   const [formData, setFormData] = useState({
     name: organization?.name || '',
     mission: organization?.mission || '',
@@ -2277,6 +2282,18 @@ function SettingsContent({ organization, onOpenModal, onRefresh }: { organizatio
         </div>
       </Card>
 
+      {/* Stripe Connect Payment Settings */}
+      {organization?.id && (
+        <StripeConnectCard
+          organizationId={organization.id}
+          stripeAccountId={stripeStatus?.accountId || null}
+          chargesEnabled={stripeStatus?.chargesEnabled || false}
+          payoutsEnabled={stripeStatus?.payoutsEnabled || false}
+          onboardingComplete={stripeStatus?.onboardingComplete || false}
+          onStatusChange={refetchStripe}
+        />
+      )}
+
       {/* Quick Settings Card */}
       <Card className="p-6">
         <h3 className="font-medium mb-4">Account Settings</h3>
@@ -2294,13 +2311,6 @@ function SettingsContent({ organization, onOpenModal, onRefresh }: { organizatio
               <p className="text-sm text-[#737373]">Configure email and push notifications</p>
             </div>
             <Button variant="outline" size="sm">Configure</Button>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Banking Information</p>
-              <p className="text-sm text-[#737373]">Manage payout settings</p>
-            </div>
-            <Button variant="outline" size="sm">Update</Button>
           </div>
         </div>
       </Card>
@@ -2626,43 +2636,43 @@ export function CBODashboard() {
 
 
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#fafafa] p-2 flex flex-col transition-all duration-300`}>
-        <div className="flex-1 space-y-2">
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#fafafa] p-2 flex flex-col transition-all duration-300 overflow-hidden`}>
+        <div className="flex-1 space-y-2 overflow-hidden">
           {/* Main Navigation */}
           <nav className="space-y-1 p-2">
             <button
               onClick={() => setActiveSection('dashboard')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'dashboard'
                   ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" />
+              <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && <span className="text-sm">Dashboard</span>}
             </button>
 
             <button
               onClick={() => setActiveSection('profile')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'profile'
                   ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <Building2 className="w-4 h-4" />
+              <Building2 className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && <span className="text-sm">Organization Profile</span>}
             </button>
 
             <button
               onClick={() => setActiveSection('campaigns')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'campaigns'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <List className="w-4 h-4" />
+              <List className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && (
                 <span className="text-sm flex-1 flex items-center justify-between">
                   My Campaigns
@@ -2698,15 +2708,15 @@ export function CBODashboard() {
               </div>
             )}
 
-            <button 
+            <button
               onClick={() => setActiveSection('questions')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'questions'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <MessageCircleQuestion className="w-4 h-4" />
+              <MessageCircleQuestion className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && (
                 <span className="text-sm flex-1 flex items-center justify-between">
                   Questions
@@ -2719,27 +2729,27 @@ export function CBODashboard() {
               )}
             </button>
 
-            <button 
+            <button
               onClick={() => setActiveSection('analytics')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'analytics'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <BarChart3 className="w-4 h-4" />
+              <BarChart3 className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && <span className="text-sm">Analytics</span>}
             </button>
 
-            <button 
+            <button
               onClick={() => setActiveSection('documents')}
-              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeSection === 'documents'
-                  ? 'bg-[#1b5858] text-white' 
+                  ? 'bg-[#1b5858] text-white'
                   : 'text-[#0a0a0a] hover:bg-gray-100'
               }`}
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-4 h-4 flex-shrink-0" />
               {sidebarOpen && <span className="text-sm">Documents</span>}
             </button>
           </nav>
@@ -2747,57 +2757,57 @@ export function CBODashboard() {
           {/* Quick Actions */}
           <div className="p-2">
             {sidebarOpen && (
-              <h3 className="px-2 mb-2 text-xs font-medium text-[#0a0a0a] opacity-70">
+              <h3 className="px-2 mb-2 text-xs font-medium text-[#0a0a0a] opacity-70 whitespace-nowrap">
                 Quick Actions
               </h3>
             )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full justify-start"
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start whitespace-nowrap"
               onClick={handleCreateCampaign}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2 flex-shrink-0" />
               {sidebarOpen && 'New Campaign'}
             </Button>
           </div>
         </div>
 
         {/* Footer Navigation */}
-        <div className="p-2 space-y-1 border-t border-gray-200 pt-2">
-          <button 
+        <div className="p-2 space-y-1 border-t border-gray-200 pt-2 overflow-hidden">
+          <button
             onClick={() => setActiveSection('settings')}
-            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
               activeSection === 'settings'
-                ? 'bg-[#1b5858] text-white' 
+                ? 'bg-[#1b5858] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-4 h-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Settings</span>}
           </button>
 
-          <button 
+          <button
             onClick={() => setActiveSection('support')}
-            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
               activeSection === 'support'
-                ? 'bg-[#1b5858] text-white' 
+                ? 'bg-[#1b5858] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <HelpCircle className="w-4 h-4" />
+            <HelpCircle className="w-4 h-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Support</span>}
           </button>
 
-          <button 
+          <button
             onClick={() => setActiveSection('search')}
-            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${
+            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors whitespace-nowrap ${
               activeSection === 'search'
-                ? 'bg-[#1b5858] text-white' 
+                ? 'bg-[#1b5858] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <Search className="w-4 h-4" />
+            <Search className="w-4 h-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Search</span>}
           </button>
         </div>

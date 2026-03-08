@@ -32,6 +32,21 @@ import { OrganizationProfilePage } from '@/pages/organizations/OrganizationProfi
 import { CheckoutPage } from '@/pages/CheckoutPage'
 import { PaymentSuccessPage } from '@/pages/PaymentSuccessPage'
 import { CampaignPage } from '@/pages/CampaignPage'
+import { CampaignDonatePage } from '@/pages/CampaignDonatePage'
+// RoleSelectionPage removed - now using RoleSelectionModal in App.tsx
+import { AdminDashboard } from '@/pages/admin/DashboardPage'
+import { AdminUsersPage } from '@/pages/admin/UsersPage'
+import { useUserType } from '@/hooks/useClerkSupabase'
+
+// Legal Pages
+import {
+  PrivacyStatementPage,
+  DoNotSellPage,
+  AccessibilityStatementPage,
+  TermsAndConditionsPage,
+  CPSIACompliancePage,
+  SiteMapPage,
+} from '@/pages/legal'
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -45,6 +60,32 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Admin-Only Route Component
+function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
+  const { userType, loading } = useUserType()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ea580c]" />
+      </div>
+    )
+  }
+
+  if (userType !== 'admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-[#0a0a0a] mb-2">Access Denied</h1>
+          <p className="text-[#737373]">You don't have permission to view this page.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return <>{children}</>
+}
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -55,9 +96,21 @@ export function AppRoutes() {
         <Route path={routes.requests} element={<RequestsPage />} />
       </Route>
 
+      {/* Legal routes (public) */}
+      <Route element={<MainLayout />}>
+        <Route path={routes.legal.privacy} element={<PrivacyStatementPage />} />
+        <Route path={routes.legal.doNotSell} element={<DoNotSellPage />} />
+        <Route path={routes.legal.accessibility} element={<AccessibilityStatementPage />} />
+        <Route path={routes.legal.terms} element={<TermsAndConditionsPage />} />
+        <Route path={routes.legal.cpsia} element={<CPSIACompliancePage />} />
+        <Route path={routes.legal.sitemap} element={<SiteMapPage />} />
+      </Route>
+
       {/* Auth routes */}
       <Route path={routes.signIn} element={<SignIn routing="path" path={routes.signIn} />} />
       <Route path={routes.signUp} element={<SignUp routing="path" path={routes.signUp} />} />
+
+      {/* Role Selection is now a modal in App.tsx, not a separate route */}
 
       {/* Donor routes (protected) */}
       <Route element={<MainLayout />}>
@@ -177,6 +230,38 @@ export function AppRoutes() {
       <Route element={<MainLayout />}>
         <Route path="/campaign/:slug" element={<CampaignPage />} />
         <Route path="/user/campaign/:slug" element={<CampaignPage />} />
+        <Route
+          path="/campaign/:slug/donate"
+          element={
+            <ProtectedRoute>
+              <CampaignDonatePage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
+
+      {/* Admin routes (protected, admin-only) */}
+      <Route element={<MainLayout />}>
+        <Route
+          path={routes.admin.dashboard}
+          element={
+            <ProtectedRoute>
+              <ProtectedAdminRoute>
+                <AdminDashboard />
+              </ProtectedAdminRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={routes.admin.users}
+          element={
+            <ProtectedRoute>
+              <ProtectedAdminRoute>
+                <AdminUsersPage />
+              </ProtectedAdminRoute>
+            </ProtectedRoute>
+          }
+        />
       </Route>
     </Routes>
   )

@@ -106,6 +106,7 @@ export const routes = {
   // Authentication
   signIn: '/sign-in',
   signUp: '/sign-up',
+  roleSelection: '/get-started',
 
   // Organization routes (public)
   organizations: {
@@ -129,10 +130,32 @@ export const routes = {
     profileEdit: '/cbo/profile/edit',
   },
 
+  // Admin routes
+  admin: {
+    dashboard: '/admin',
+    users: '/admin/users',
+    organizations: '/admin/organizations',
+    campaigns: '/admin/campaigns',
+  },
+
+  // Campaign routes
+  campaign: (slug: string) => `/campaign/${slug}`,
+  campaignDonate: (slug: string) => `/campaign/${slug}/donate`,
+
   // Payment routes
   checkout: (requestId: string) => `/checkout/${requestId}`,
   paymentSuccess: '/payment/success',
   paymentCancel: '/payment/cancel',
+
+  // Legal routes
+  legal: {
+    privacy: '/legal/privacy',
+    doNotSell: '/legal/do-not-sell',
+    accessibility: '/legal/accessibility',
+    terms: '/legal/terms',
+    cpsia: '/legal/cpsia-compliance',
+    sitemap: '/legal/sitemap',
+  },
 }
 
 // ============================================

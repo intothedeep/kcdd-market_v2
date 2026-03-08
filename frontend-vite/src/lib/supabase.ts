@@ -39,11 +39,12 @@ export const setSupabaseAuth = async (clerkToken: string | null) => {
 }
 
 /**
- * Helper to check if user is authenticated with Supabase
+ * @deprecated Not used - Clerk handles all authentication
+ * This function exists for potential future use but currently
+ * always returns true since Clerk manages auth state.
  */
 export const isSupabaseAuthenticated = (): boolean => {
-  // Check if there's an active session
-  return true // Placeholder - Clerk handles auth
+  return true // Clerk handles auth - this is intentionally always true
 }
 
 /**
@@ -251,7 +252,7 @@ export const saveOrganizationOnboarding = async (
         mission: data.mission,
         email: data.email,
         logo_url: logoUrl,
-        zipcode: '00000', // Default, can be updated later
+        zipcode: data.zipcode || null, // Use provided zipcode or null
         updated_at: new Date().toISOString()
       },
       { onConflict: 'user_id' }
@@ -1560,6 +1561,351 @@ export const fetchIdentityCategories = async () => {
 
   if (error) {
     console.error('Error fetching identity categories:', error)
+    return []
+  }
+
+  return data || []
+}
+
+// ============================================
+// CAMPAIGN REPORTS
+// ============================================
+
+export type CampaignReportReason = 'fraud' | 'inappropriate' | 'spam' | 'misleading' | 'other'
+
+export interface CampaignReportData {
+  campaign_id: string
+  reporter_id?: string | null
+  reporter_email?: string | null
+  reason: CampaignReportReason
+  description?: string | null
+}
+
+export interface CampaignReport extends CampaignReportData {
+  id: string
+  status: 'pending' | 'reviewing' | 'resolved' | 'dismissed'
+  admin_notes?: string | null
+  resolved_by?: string | null
+  resolved_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Submit a campaign report
+export const submitCampaignReport = async (reportData: CampaignReportData): Promise<CampaignReport> => {
+  const { data, error } = await (supabase
+    .from('campaign_reports') as any)
+    .insert({
+      campaign_id: reportData.campaign_id,
+      reporter_id: reportData.reporter_id || null,
+      reporter_email: reportData.reporter_email || null,
+      reason: reportData.reason,
+      description: reportData.description || null,
+      status: 'pending'
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error submitting campaign report:', error)
+    throw error
+  }
+
+  return data
+}
+
+// Fetch campaign reports (for admin)
+export const fetchCampaignReports = async (status?: string): Promise<CampaignReport[]> => {
+  let query = (supabase
+    .from('campaign_reports') as any)
+    .select(`
+      *,
+      campaign:campaigns(id, title, slug, organization_id)
+    `)
+    .order('created_at', { ascending: false })
+
+  if (status) {
+    query = query.eq('status', status)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error fetching campaign reports:', error)
+    return []
+  }
+
+  return data || []
+}
+
+// Update campaign report status (for admin)
+export const updateCampaignReportStatus = async (
+  reportId: string,
+  status: 'pending' | 'reviewing' | 'resolved' | 'dismissed',
+  adminId?: string,
+  adminNotes?: string
+): Promise<CampaignReport | null> => {
+  const updates: Record<string, unknown> = {
+    status,
+    updated_at: new Date().toISOString()
+  }
+
+  if (status === 'resolved' || status === 'dismissed') {
+    updates.resolved_by = adminId
+    updates.resolved_at = new Date().toISOString()
+  }
+
+  if (adminNotes) {
+    updates.admin_notes = adminNotes
+  }
+
+  const { data, error } = await (supabase
+    .from('campaign_reports') as any)
+    .update(updates)
+    .eq('id', reportId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating campaign report:', error)
+    throw error
+  }
+
+  return data
+}
+
+// ============================================
+// PLATFORM SETTINGS
+// ============================================
+
+export interface PlatformSetting {
+  id: string
+  key: string
+  value: string
+  value_type: 'string' | 'boolean' | 'number' | 'json'
+  description: string | null
+  updated_by: string | null
+  updated_at: string
+}
+
+// Fetch all platform settings
+export const fetchPlatformSettings = async (): Promise<Record<string, any>> => {
+  const { data, error } = await (supabase
+    .from('platform_settings') as any)
+    .select('*')
+
+  if (error) {
+    console.error('Error fetching platform settings:', error)
+    return {}
+  }
+
+  // Convert to key-value object with proper types
+  const settings: Record<string, any> = {}
+  for (const setting of data || []) {
+    let value: any = setting.value
+    if (setting.value_type === 'boolean') {
+      value = setting.value === 'true'
+    } else if (setting.value_type === 'number') {
+      value = Number(setting.value)
+    } else if (setting.value_type === 'json') {
+      try {
+        value = JSON.parse(setting.value)
+      } catch {
+        value = setting.value
+      }
+    }
+    settings[setting.key] = value
+  }
+
+  return settings
+}
+
+// Update a platform setting
+export const updatePlatformSetting = async (
+  key: string,
+  value: any,
+  adminId?: string
+): Promise<void> => {
+  const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value)
+
+  const { error } = await (supabase
+    .from('platform_settings') as any)
+    .update({
+      value: stringValue,
+      updated_by: adminId,
+      updated_at: new Date().toISOString()
+    })
+    .eq('key', key)
+
+  if (error) {
+    console.error('Error updating platform setting:', error)
+    throw error
+  }
+}
+
+// Update multiple platform settings at once
+export const updatePlatformSettings = async (
+  settings: Record<string, any>,
+  adminId?: string
+): Promise<void> => {
+  for (const [key, value] of Object.entries(settings)) {
+    await updatePlatformSetting(key, value, adminId)
+  }
+}
+
+// ============================================
+// HISTORICAL DATA FOR ANALYTICS
+// ============================================
+
+export interface MonthlyDataPoint {
+  month: string
+  year: number
+  count: number
+  amount?: number
+}
+
+// Fetch user growth data (users created per month)
+export const fetchUserGrowthData = async (months: number = 6): Promise<MonthlyDataPoint[]> => {
+  const { data, error } = await (supabase
+    .from('user_profiles') as any)
+    .select('created_at')
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching user growth data:', error)
+    return []
+  }
+
+  // Group by month
+  const monthCounts: Record<string, number> = {}
+  const now = new Date()
+
+  // Initialize last N months with 0
+  for (let i = months - 1; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    monthCounts[key] = 0
+  }
+
+  // Count users per month
+  for (const user of data || []) {
+    const date = new Date(user.created_at)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    if (key in monthCounts) {
+      monthCounts[key]++
+    }
+  }
+
+  // Convert to array format
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return Object.entries(monthCounts).map(([key, count]) => {
+    const [year, month] = key.split('-').map(Number)
+    return {
+      month: monthNames[month - 1],
+      year,
+      count
+    }
+  })
+}
+
+// Fetch donation trends data (fulfilled requests per month with amounts)
+export const fetchDonationTrendsData = async (months: number = 6): Promise<MonthlyDataPoint[]> => {
+  const { data, error } = await (supabase
+    .from('requests') as any)
+    .select('fulfilled_at, amount, status')
+    .eq('status', 'fulfilled')
+    .not('fulfilled_at', 'is', null)
+    .order('fulfilled_at', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching donation trends:', error)
+    return []
+  }
+
+  // Group by month
+  const monthData: Record<string, { count: number; amount: number }> = {}
+  const now = new Date()
+
+  // Initialize last N months with 0
+  for (let i = months - 1; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    monthData[key] = { count: 0, amount: 0 }
+  }
+
+  // Sum donations per month
+  for (const request of data || []) {
+    if (request.fulfilled_at) {
+      const date = new Date(request.fulfilled_at)
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      if (key in monthData) {
+        monthData[key].count++
+        monthData[key].amount += Number(request.amount || 0)
+      }
+    }
+  }
+
+  // Convert to array format
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return Object.entries(monthData).map(([key, data]) => {
+    const [year, month] = key.split('-').map(Number)
+    return {
+      month: monthNames[month - 1],
+      year,
+      count: data.count,
+      amount: data.amount
+    }
+  })
+}
+
+// ============================================
+// ADMIN ACTIVITY LOG
+// ============================================
+
+export interface AdminActivity {
+  id: string
+  admin_id: string
+  action: string
+  entity_type: string | null
+  entity_id: string | null
+  details: Record<string, any> | null
+  created_at: string
+}
+
+// Log admin activity
+export const logAdminActivity = async (
+  adminId: string,
+  action: string,
+  entityType?: string,
+  entityId?: string,
+  details?: Record<string, any>
+): Promise<void> => {
+  const { error } = await (supabase
+    .from('admin_activity_log') as any)
+    .insert({
+      admin_id: adminId,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      details
+    })
+
+  if (error) {
+    console.error('Error logging admin activity:', error)
+    // Don't throw - activity logging shouldn't break the main operation
+  }
+}
+
+// Fetch recent admin activity
+export const fetchAdminActivity = async (limit: number = 20): Promise<AdminActivity[]> => {
+  const { data, error } = await (supabase
+    .from('admin_activity_log') as any)
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error('Error fetching admin activity:', error)
     return []
   }
 

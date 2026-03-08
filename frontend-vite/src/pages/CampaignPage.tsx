@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -52,7 +52,15 @@ import {
   Globe,
   Phone,
 } from 'lucide-react'
-import { supabase, updateCampaign, fetchCauseAreas } from '@/lib/supabase'
+import { supabase, updateCampaign, fetchCauseAreas, submitCampaignReport, type CampaignReportReason } from '@/lib/supabase'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Flag } from 'lucide-react'
 
 interface Campaign {
   id: string
@@ -139,6 +147,7 @@ interface SubmittedQuestion {
 
 export function CampaignPage() {
   const { slug } = useParams<{ slug: string }>()
+  const navigate = useNavigate()
   const { user, isSignedIn } = useUser()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [causeAreas, setCauseAreas] = useState<CauseArea[]>([])
@@ -174,6 +183,14 @@ export function CampaignPage() {
   const [newUpdateContent, setNewUpdateContent] = useState('')
   const [postingUpdate, setPostingUpdate] = useState(false)
   
+  // Report campaign state
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportReason, setReportReason] = useState<CampaignReportReason | ''>('')
+  const [reportDescription, setReportDescription] = useState('')
+  const [reportEmail, setReportEmail] = useState('')
+  const [submittingReport, setSubmittingReport] = useState(false)
+  const [reportSubmitted, setReportSubmitted] = useState(false)
+
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -634,8 +651,37 @@ export function CampaignPage() {
   }
 
   const handleSupport = () => {
-    // TODO: Implement support flow (redirect to checkout)
-    console.log('Support campaign:', campaign?.id)
+    if (campaign?.slug) {
+      navigate(`/campaign/${campaign.slug}/donate`)
+    }
+  }
+
+  const handleReportCampaign = async () => {
+    if (!campaign?.id || !reportReason) return
+
+    setSubmittingReport(true)
+    try {
+      await submitCampaignReport({
+        campaign_id: campaign.id,
+        reporter_id: user?.id || null,
+        reporter_email: reportEmail || user?.emailAddresses?.[0]?.emailAddress || null,
+        reason: reportReason,
+        description: reportDescription || null
+      })
+
+      setReportSubmitted(true)
+      setTimeout(() => {
+        setShowReportModal(false)
+        setReportSubmitted(false)
+        setReportReason('')
+        setReportDescription('')
+        setReportEmail('')
+      }, 3000)
+    } catch (err) {
+      console.error('Error submitting report:', err)
+    } finally {
+      setSubmittingReport(false)
+    }
   }
 
   const handleShare = (platform: string) => {
@@ -949,12 +995,27 @@ export function CampaignPage() {
 
               {/* Action Buttons */}
               <div className="flex-1 flex flex-col justify-between py-2.5">
-                <Button 
-                  onClick={handleSupport}
-                  className="w-full bg-[#ea580c] hover:bg-[#dc4c06] text-white rounded-full h-9"
-                >
-                  Support Campaign
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    onClick={handleSupport}
+                    className="w-full bg-[#ea580c] hover:bg-[#dc4c06] text-white rounded-full h-9"
+                  >
+                    Support Campaign
+                  </Button>
+
+                  {/* Report Button - only show if not owner */}
+                  {!isOwner && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowReportModal(true)}
+                      className="w-full text-[#737373] hover:text-red-600 hover:bg-red-50 h-8"
+                    >
+                      <Flag className="h-3.5 w-3.5 mr-1.5" />
+                      Report Campaign
+                    </Button>
+                  )}
+                </div>
 
                 {/* Social Links - Only show if campaign has social links */}
                 {hasSocialLinks && (
@@ -1855,6 +1916,129 @@ export function CampaignPage() {
       {/* Bottom Padding */}
       <div className="h-20" />
       </div>
+
+      {/* Report Campaign Modal */}
+      <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Flag className="h-5 w-5 text-red-500" />
+              Report Campaign
+            </DialogTitle>
+            <DialogDescription>
+              Help us keep our community safe. Reports are reviewed by our team.
+            </DialogDescription>
+          </DialogHeader>
+
+          {reportSubmitted ? (
+            <div className="py-8 text-center">
+              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
+              <h3 className="font-semibold text-[#0a0a0a] mb-1">Report Submitted</h3>
+              <p className="text-sm text-[#737373]">
+                Thank you for helping keep our community safe. We'll review your report shortly.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              {/* Reason Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[#0a0a0a]">
+                  Why are you reporting this campaign? *
+                </label>
+                <div className="grid gap-2">
+                  {[
+                    { value: 'fraud', label: 'Suspected fraud or scam', icon: '🚨' },
+                    { value: 'misleading', label: 'Misleading information', icon: '⚠️' },
+                    { value: 'inappropriate', label: 'Inappropriate content', icon: '🚫' },
+                    { value: 'spam', label: 'Spam or fake campaign', icon: '📧' },
+                    { value: 'other', label: 'Other concern', icon: '❓' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setReportReason(option.value as CampaignReportReason)}
+                      className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-colors ${
+                        reportReason === option.value
+                          ? 'border-red-500 bg-red-50 text-red-700'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-lg">{option.icon}</span>
+                      <span className="text-sm font-medium">{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <label htmlFor="report-description" className="text-sm font-medium text-[#0a0a0a]">
+                  Additional details (optional)
+                </label>
+                <Textarea
+                  id="report-description"
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  placeholder="Please provide any additional information that might help us investigate..."
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Email (if not signed in) */}
+              {!isSignedIn && (
+                <div className="space-y-2">
+                  <label htmlFor="report-email" className="text-sm font-medium text-[#0a0a0a]">
+                    Your email (optional)
+                  </label>
+                  <Input
+                    id="report-email"
+                    type="email"
+                    value={reportEmail}
+                    onChange={(e) => setReportEmail(e.target.value)}
+                    placeholder="email@example.com"
+                  />
+                  <p className="text-xs text-[#737373]">
+                    We may contact you if we need more information
+                  </p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowReportModal(false)
+                    setReportReason('')
+                    setReportDescription('')
+                    setReportEmail('')
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleReportCampaign}
+                  disabled={submittingReport || !reportReason}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {submittingReport ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Flag className="h-4 w-4 mr-2" />
+                      Submit Report
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

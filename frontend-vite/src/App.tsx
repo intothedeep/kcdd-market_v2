@@ -1,6 +1,6 @@
 /**
  * Main App Component
- * 
+ *
  * This is the root component that sets up all providers:
  * - Clerk for authentication
  * - React Router for routing
@@ -15,14 +15,21 @@ import { clerkConfig } from '@/config'
 import { AppRoutes } from '@/routes'
 import { Toaster } from '@/components/ui/toaster'
 import { useClerkSupabase } from '@/hooks/useClerkSupabase'
+import { RoleSelectionModal } from '@/components/RoleSelectionModal'
 
 // Initialize Stripe
 const stripePromise = getStripe()
 
-// Component to sync Clerk with Supabase
+// Component to sync Clerk with Supabase and show role selection modal
 function AuthSync() {
-  useClerkSupabase()
-  return null
+  const { needsRoleSelection, dismissRoleSelection } = useClerkSupabase()
+
+  return (
+    <RoleSelectionModal
+      isOpen={needsRoleSelection}
+      onClose={dismissRoleSelection}
+    />
+  )
 }
 
 function App() {
@@ -43,9 +50,9 @@ function App() {
 
   return (
     <ClerkProvider publishableKey={clerkConfig.publishableKey}>
-      <AuthSync />
       <Elements stripe={stripePromise}>
         <BrowserRouter>
+          <AuthSync />
           <AppRoutes />
           <Toaster />
         </BrowserRouter>
@@ -55,4 +62,3 @@ function App() {
 }
 
 export default App
-

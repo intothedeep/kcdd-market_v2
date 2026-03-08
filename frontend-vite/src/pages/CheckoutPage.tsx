@@ -17,6 +17,13 @@ import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { routes } from '@/config'
 import type { Database } from '@/types/database'
+import { AlertTriangle } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+
+// Check if organization can accept payments
+function canAcceptPayments(organization: any): boolean {
+  return organization?.stripe_charges_enabled === true
+}
 
 export function CheckoutPage() {
   const { requestId } = useParams<{ requestId: string }>()
@@ -130,6 +137,54 @@ export function CheckoutPage() {
           <CardContent className="py-8 text-center">
             <p>Request not found</p>
           </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Check if organization can accept payments
+  if (!canAcceptPayments(request.organization)) {
+    return (
+      <div className="container py-8 max-w-2xl">
+        <h1 className="text-3xl font-bold mb-8">Complete Your Donation</h1>
+
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Payments Not Available</AlertTitle>
+          <AlertDescription>
+            This organization hasn't completed their payment setup yet.
+            Please check back later or contact the organization directly.
+          </AlertDescription>
+        </Alert>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Request Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Organization:</span>
+              <Link
+                to={`/organizations/${request.organization?.slug || request.organization?.id}`}
+                className="font-semibold text-[#ea580c] hover:underline"
+              >
+                {request.organization?.name}
+              </Link>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Request:</span>
+              <span className="font-semibold">{request.description}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Amount:</span>
+              <span className="font-semibold text-lg">{formatCurrency(request.amount)}</span>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
+              Go Back
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     )

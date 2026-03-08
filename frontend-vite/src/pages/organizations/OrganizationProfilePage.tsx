@@ -8,7 +8,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
-import { ArrowLeft, Loader2, ExternalLink, Pencil, Save, X, Plus, Upload, ImageIcon, Eye } from 'lucide-react'
+import { ArrowLeft, Loader2, ExternalLink, Pencil, Save, X, Plus, Upload, ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -704,26 +704,15 @@ export function OrganizationProfilePage() {
                 </a>
               )}
               {isOwner && !isEditing && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`/organizations/${id}`, '_blank')}
-                    className="flex-shrink-0"
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleStartEdit}
-                    className="flex-shrink-0"
-                  >
-                    <Pencil className="h-4 w-4 mr-1" />
-                    Edit Profile
-                  </Button>
-                </>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleStartEdit}
+                  className="flex-shrink-0"
+                >
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit Profile
+                </Button>
               )}
             </div>
           </div>

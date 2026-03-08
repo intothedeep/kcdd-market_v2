@@ -87,7 +87,7 @@ export function DonorDocuments() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <Sidebar className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 border-r border-gray-200 bg-white`}>
+      <Sidebar className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 border-r border-gray-200 bg-white overflow-hidden`}>
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 bg-gray-900 rounded-lg flex items-center justify-center">
