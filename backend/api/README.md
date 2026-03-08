@@ -31,6 +31,7 @@ backend/api/
 ## API Endpoints
 
 ### Health Check
+
 ```http
 GET /health
 ```
@@ -38,6 +39,7 @@ GET /health
 Returns server status.
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -47,6 +49,7 @@ Returns server status.
 ```
 
 ### Create Payment Intent
+
 ```http
 POST /api/payments/create-intent
 Content-Type: application/json
@@ -60,6 +63,7 @@ Content-Type: application/json
 Creates a Stripe payment intent.
 
 **Response:**
+
 ```json
 {
   "clientSecret": "pi_xxx_secret_xxx",
@@ -68,6 +72,7 @@ Creates a Stripe payment intent.
 ```
 
 ### Stripe Webhook
+
 ```http
 POST /api/payments/webhook
 Content-Type: application/json
@@ -77,6 +82,7 @@ Stripe-Signature: xxx
 Handles Stripe webhook events.
 
 **Events handled:**
+
 - `payment_intent.succeeded`
 - `payment_intent.payment_failed`
 - `charge.refunded`
@@ -135,6 +141,7 @@ Copy the webhook signing secret to `.env`.
 Use test card: `4242 4242 4242 4242`
 
 **Documentation:**
+
 - [Stripe API](https://stripe.com/docs/api)
 - [Webhooks](https://stripe.com/docs/webhooks)
 - [Testing](https://stripe.com/docs/testing)
@@ -142,6 +149,7 @@ Use test card: `4242 4242 4242 4242`
 ## Supabase Integration
 
 The API uses Supabase to:
+
 - Update request status after payment
 - Create notifications
 - Store payment records
@@ -199,6 +207,7 @@ kill -9 <PID>
 ### Webhook signature verification failed
 
 Make sure:
+
 - Stripe CLI is forwarding to correct URL
 - `STRIPE_WEBHOOK_SECRET` matches CLI output
 - Request body is raw (not parsed)
@@ -210,6 +219,7 @@ Add your frontend URL to `ALLOWED_ORIGINS` in `.env`
 ### Supabase connection failed
 
 Check:
+
 - Supabase is running (if Docker)
 - URL and service role key are correct
 - Network connectivity
@@ -223,6 +233,7 @@ Check:
 ## Logs
 
 Server logs all important events:
+
 - Payment successes/failures
 - Webhook events
 - Errors
@@ -245,4 +256,3 @@ MIT
 ## Contributing
 
 See main README.md for contribution guidelines.
-

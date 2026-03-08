@@ -2,26 +2,26 @@
  * ========================================
  * SECTION HEADER COMPONENT
  * ========================================
- * 
+ *
  * Location: src/components/home/SectionHeader.tsx
- * 
+ *
  * DESCRIPTION:
  * A centered text block with a bold heading and description.
  * Used to introduce sections with a title and subtitle.
- * 
+ *
  * ========================================
  * USAGE
  * ========================================
- * 
+ *
  * ```tsx
  * import { SectionHeader } from '@/components/home/SectionHeader'
- * 
- * <SectionHeader 
+ *
+ * <SectionHeader
  *   heading="Our Services"
  *   description="Discover what we have to offer..."
  * />
  * ```
- * 
+ *
  * ========================================
  */
 
@@ -38,14 +38,9 @@ export function SectionHeader({ data }: SectionHeaderProps) {
   const { heading, description } = data
 
   return (
-    <div className="flex flex-col gap-[22px] items-center justify-center text-center text-black py-10 px-4 max-w-[1000px] mx-auto">
-      <h2 className="font-bold text-[30px] w-full">
-        {heading}
-      </h2>
-      <p className="font-normal text-base w-full">
-        {description}
-      </p>
+    <div className="mx-auto flex max-w-[1000px] flex-col items-center justify-center gap-[22px] px-4 py-10 text-center text-black">
+      <h2 className="w-full text-[30px] font-bold">{heading}</h2>
+      <p className="w-full text-base font-normal">{description}</p>
     </div>
   )
 }
-

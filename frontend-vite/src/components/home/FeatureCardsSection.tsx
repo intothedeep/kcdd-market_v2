@@ -2,13 +2,13 @@
  * ========================================
  * FEATURE CARDS SECTION COMPONENT
  * ========================================
- * 
+ *
  * Location: src/components/home/FeatureCardsSection.tsx
- * 
+ *
  * DESCRIPTION:
  * A section with text content on the left and a 2x2 grid of
  * feature cards on the right. Light background with teal accents.
- * 
+ *
  * LAYOUT:
  * ┌─────────────────────────────────────────────┐
  * │  [Subtitle]         ┌───────┐ ┌───────┐    │
@@ -18,7 +18,7 @@
  * │  [Button]           │ Card  │ │ Card  │    │
  * │                     └───────┘ └───────┘    │
  * └─────────────────────────────────────────────┘
- * 
+ *
  * ========================================
  */
 
@@ -50,38 +50,33 @@ interface FeatureCardsSectionProps {
 
 function FeatureCard({ card }: { card: FeatureCardItem }) {
   return (
-    <div className="bg-white flex flex-col items-start justify-end p-5 rounded-[10px]">
-      <div className="flex flex-col gap-1.5 items-start max-w-[250px] w-full">
+    <div className="flex flex-col items-start justify-end rounded-[10px] bg-white p-5">
+      <div className="flex w-full max-w-[250px] flex-col items-start gap-1.5">
         {/* Icon */}
-        <div className="bg-[#c4e5c1] flex items-center justify-center p-2.5 rounded-full">
+        <div className="flex items-center justify-center rounded-full bg-[#c4e5c1] p-2.5">
           {card.icon || <PlusCircle className="size-6 text-[#1b5858]" />}
         </div>
-        
+
         {/* Title */}
-        <h3 className="font-bold text-base text-[#1b5858] leading-5">
-          {card.title}
-        </h3>
-        
+        <h3 className="text-base font-bold leading-5 text-[#1b5858]">{card.title}</h3>
+
         {/* Description */}
-        <p className="font-medium text-sm text-[#1b5858] leading-[18px]">
-          {card.description}
-        </p>
-        
+        <p className="text-sm font-medium leading-[18px] text-[#1b5858]">{card.description}</p>
+
         {/* Link */}
-        {card.linkText && (
-          card.linkHref ? (
-            <Link 
+        {card.linkText &&
+          (card.linkHref ? (
+            <Link
               to={card.linkHref}
-              className="font-medium text-sm text-[#1b5858] leading-[18px] underline hover:opacity-80 transition-opacity"
+              className="text-sm font-medium leading-[18px] text-[#1b5858] underline transition-opacity hover:opacity-80"
             >
               {card.linkText}
             </Link>
           ) : (
-            <span className="font-medium text-sm text-[#1b5858] leading-[18px] underline">
+            <span className="text-sm font-medium leading-[18px] text-[#1b5858] underline">
               {card.linkText}
             </span>
-          )
-        )}
+          ))}
       </div>
     </div>
   )
@@ -91,26 +86,20 @@ export function FeatureCardsSection({ data }: FeatureCardsSectionProps) {
   const { subtitle, heading, description, listItems = [], buttonLabel, buttonHref, cards } = data
 
   return (
-    <section className="bg-[#f8faf9] py-[30px] px-4">
-      <div className="max-w-[1000px] mx-auto flex flex-col lg:flex-row gap-5 items-center">
+    <section className="bg-[#f8faf9] px-4 py-[30px]">
+      <div className="mx-auto flex max-w-[1000px] flex-col items-center gap-5 lg:flex-row">
         {/* Left Content */}
-        <div className="flex-1 flex flex-col gap-[22px] items-start justify-center text-[#1b5858]">
-          <div className="flex flex-col gap-5 items-start w-full">
-            <div className="flex flex-col gap-2.5 items-start w-full">
-              {subtitle && (
-                <p className="text-base font-normal w-full">
-                  {subtitle}
-                </p>
-              )}
-              <h2 className="text-[30px] font-bold w-full">
-                {heading}
-              </h2>
+        <div className="flex flex-1 flex-col items-start justify-center gap-[22px] text-[#1b5858]">
+          <div className="flex w-full flex-col items-start gap-5">
+            <div className="flex w-full flex-col items-start gap-2.5">
+              {subtitle && <p className="w-full text-base font-normal">{subtitle}</p>}
+              <h2 className="w-full text-[30px] font-bold">{heading}</h2>
             </div>
-            
-            <div className="text-base font-normal w-full">
+
+            <div className="w-full text-base font-normal">
               <p className="mb-0">{description}</p>
               {listItems.length > 0 && (
-                <ul className="list-disc ml-6 mt-2">
+                <ul className="ml-6 mt-2 list-disc">
                   {listItems.map((item, index) => (
                     <li key={index}>{item}</li>
                   ))}
@@ -119,29 +108,24 @@ export function FeatureCardsSection({ data }: FeatureCardsSectionProps) {
             </div>
           </div>
 
-          {buttonLabel && (
-            buttonHref ? (
+          {buttonLabel &&
+            (buttonHref ? (
               <Link to={buttonHref}>
-                <Button 
-                  className="bg-[#1b5858] text-white rounded-full h-9 px-4 gap-2 hover:bg-[#1b5858]/90 shadow-sm"
-                >
+                <Button className="h-9 gap-2 rounded-full bg-[#1b5858] px-4 text-white shadow-sm hover:bg-[#1b5858]/90">
                   <PlusCircle className="size-4" />
                   {buttonLabel}
                 </Button>
               </Link>
             ) : (
-              <Button 
-                className="bg-[#1b5858] text-white rounded-full h-9 px-4 gap-2 hover:bg-[#1b5858]/90 shadow-sm"
-              >
+              <Button className="h-9 gap-2 rounded-full bg-[#1b5858] px-4 text-white shadow-sm hover:bg-[#1b5858]/90">
                 <PlusCircle className="size-4" />
                 {buttonLabel}
               </Button>
-            )
-          )}
+            ))}
         </div>
 
         {/* Right Grid - 2x2 Cards */}
-        <div className="grid grid-cols-2 gap-5 w-full lg:w-[555px]">
+        <div className="grid w-full grid-cols-2 gap-5 lg:w-[555px]">
           {cards.map((card, index) => (
             <FeatureCard key={index} card={card} />
           ))}
@@ -150,4 +134,3 @@ export function FeatureCardsSection({ data }: FeatureCardsSectionProps) {
     </section>
   )
 }
-

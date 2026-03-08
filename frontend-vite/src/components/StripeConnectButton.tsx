@@ -84,13 +84,11 @@ export function StripeConnectButton({
   if (onboardingComplete && chargesEnabled) {
     return (
       <div className="flex items-center gap-3">
-        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1">
+        <Badge variant="outline" className="gap-1 border-green-200 bg-green-50 text-green-700">
           <CheckCircle2 className="h-3.5 w-3.5" />
           Stripe Connected
         </Badge>
-        <span className="text-sm text-muted-foreground">
-          Ready to receive donations
-        </span>
+        <span className="text-sm text-muted-foreground">Ready to receive donations</span>
       </div>
     )
   }
@@ -100,7 +98,7 @@ export function StripeConnectButton({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1">
+          <Badge variant="outline" className="gap-1 border-amber-200 bg-amber-50 text-amber-700">
             <AlertCircle className="h-3.5 w-3.5" />
             Setup Incomplete
           </Badge>
@@ -108,15 +106,8 @@ export function StripeConnectButton({
         <p className="text-sm text-muted-foreground">
           Your Stripe account needs additional information before you can accept payments.
         </p>
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
-        )}
-        <Button
-          variant="outline"
-          onClick={handleConnect}
-          disabled={loading}
-          className="gap-2"
-        >
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <Button variant="outline" onClick={handleConnect} disabled={loading} className="gap-2">
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
@@ -134,14 +125,8 @@ export function StripeConnectButton({
       <p className="text-sm text-muted-foreground">
         Connect your Stripe account to start receiving donations directly to your bank account.
       </p>
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
-      <Button
-        onClick={handleConnect}
-        disabled={loading}
-        className="gap-2"
-      >
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <Button onClick={handleConnect} disabled={loading} className="gap-2">
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
@@ -182,9 +167,7 @@ export function StripeConnectCard({
           <Building2 className="h-5 w-5 text-muted-foreground" />
           <CardTitle>Payment Settings</CardTitle>
         </div>
-        <CardDescription>
-          Connect your Stripe account to receive donations directly
-        </CardDescription>
+        <CardDescription>Connect your Stripe account to receive donations directly</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <StripeConnectButton
@@ -196,12 +179,14 @@ export function StripeConnectCard({
         />
 
         {stripeAccountId && chargesEnabled && (
-          <div className="pt-4 border-t space-y-2">
+          <div className="space-y-2 border-t pt-4">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Can accept payments</span>
               <Badge variant={chargesEnabled ? 'default' : 'secondary'} className="gap-1">
                 {chargesEnabled ? (
-                  <><CheckCircle2 className="h-3 w-3" /> Yes</>
+                  <>
+                    <CheckCircle2 className="h-3 w-3" /> Yes
+                  </>
                 ) : (
                   'No'
                 )}
@@ -211,7 +196,9 @@ export function StripeConnectCard({
               <span className="text-muted-foreground">Can receive payouts</span>
               <Badge variant={payoutsEnabled ? 'default' : 'secondary'} className="gap-1">
                 {payoutsEnabled ? (
-                  <><CheckCircle2 className="h-3 w-3" /> Yes</>
+                  <>
+                    <CheckCircle2 className="h-3 w-3" /> Yes
+                  </>
                 ) : (
                   'No'
                 )}
@@ -221,8 +208,9 @@ export function StripeConnectCard({
         )}
 
         {!stripeAccountId && (
-          <p className="text-xs text-muted-foreground pt-2">
-            Stripe securely handles all payment processing. A small platform fee applies to each donation.
+          <p className="pt-2 text-xs text-muted-foreground">
+            Stripe securely handles all payment processing. A small platform fee applies to each
+            donation.
           </p>
         )}
       </CardContent>

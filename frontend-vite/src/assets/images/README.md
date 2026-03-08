@@ -1,6 +1,7 @@
 # Source Images
 
 Put images here that:
+
 - Should be imported and optimized by Vite
 - Need processing (resizing, optimization)
 - Are component-specific
@@ -9,9 +10,7 @@ Put images here that:
 
 ```tsx
 import logo from '@/assets/images/logo.png'
-
-<img src={logo} alt="Logo" />
+;<img src={logo} alt="Logo" />
 ```
 
 Vite will optimize and add cache busting hashes.
-

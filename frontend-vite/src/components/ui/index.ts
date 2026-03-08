@@ -1,6 +1,6 @@
 /**
  * UI Components Index
- * 
+ *
  * All shadcn/ui components exported from a single location
  * for easy imports throughout the application.
  */
@@ -38,4 +38,3 @@ export * from './tabs'
 export * from './accordion'
 export * from './command'
 export * from './sidebar'
-

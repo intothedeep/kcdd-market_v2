@@ -9,8 +9,8 @@ export function DonorProfile() {
   const { user } = useUser()
 
   return (
-    <div className="container py-8 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
+    <div className="container max-w-2xl py-8">
+      <h1 className="mb-8 text-3xl font-bold">Profile Settings</h1>
 
       <Card>
         <CardHeader>
@@ -31,4 +31,3 @@ export function DonorProfile() {
     </div>
   )
 }
-

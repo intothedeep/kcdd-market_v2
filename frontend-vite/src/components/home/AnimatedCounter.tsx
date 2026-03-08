@@ -1,7 +1,7 @@
 /**
  * Animated Counter Component
  * Location: src/components/home/AnimatedCounter.tsx
- * 
+ *
  * Animates numbers counting up from 0 to target value
  */
 
@@ -48,11 +48,11 @@ export function AnimatedCounter({ value, duration = 2000, className = '' }: Anim
     const animateCount = () => {
       const now = Date.now()
       const progress = Math.min((now - startTime) / duration, 1)
-      
+
       // Easing function for smooth animation
       const easeOutQuad = (t: number) => t * (2 - t)
       const easedProgress = easeOutQuad(progress)
-      
+
       const currentCount = Math.floor(easedProgress * endValue)
       setCount(currentCount)
 
@@ -72,4 +72,3 @@ export function AnimatedCounter({ value, duration = 2000, className = '' }: Anim
     </div>
   )
 }
-

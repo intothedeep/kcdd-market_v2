@@ -2,14 +2,14 @@
  * ========================================
  * FOOTER COMPONENT
  * ========================================
- * 
+ *
  * Location: src/components/Footer.tsx
  * Data File: src/data/footer.ts
- * 
+ *
  * DESCRIPTION:
  * Site-wide footer with link columns, newsletter signup,
  * and legal links. Dark teal background.
- * 
+ *
  * ========================================
  */
 
@@ -51,19 +51,19 @@ const iconMap: Record<string, React.ElementType> = {
   linkedin: Linkedin,
 }
 
-function SocialIcon({ 
-  iconName, 
-  variant = 'white' 
-}: { 
+function SocialIcon({
+  iconName,
+  variant = 'white',
+}: {
   iconName: string
-  variant?: 'white' | 'teal' 
+  variant?: 'white' | 'teal'
 }) {
   const Icon = iconMap[iconName] || Apple
   const bgColor = variant === 'white' ? 'bg-white' : 'bg-[#1b5858]'
   const iconColor = variant === 'white' ? 'text-[#103032]' : 'text-white'
-  
+
   return (
-    <div className={`${bgColor} flex items-center justify-center p-[5px] rounded-full`}>
+    <div className={`${bgColor} flex items-center justify-center rounded-full p-[5px]`}>
       <Icon className={`size-4 ${iconColor}`} />
     </div>
   )
@@ -71,7 +71,7 @@ function SocialIcon({
 
 export function Footer({ data }: FooterProps) {
   const { linkColumns, newsletter, socialLinks, legalLinks, bottomSocialLinks } = data
-  
+
   // Newsletter form state
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -80,7 +80,7 @@ export function Footer({ data }: FooterProps) {
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Basic email validation
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address')
@@ -105,22 +105,20 @@ export function Footer({ data }: FooterProps) {
   }
 
   return (
-    <footer className="bg-[#103032] py-10 px-4">
-      <div className="max-w-[1200px] mx-auto flex flex-col gap-2.5">
+    <footer className="bg-[#103032] px-4 py-10">
+      <div className="mx-auto flex max-w-[1200px] flex-col gap-2.5">
         {/* Top Section */}
-        <div className="flex flex-col lg:flex-row items-start justify-between gap-10">
+        <div className="flex flex-col items-start justify-between gap-10 lg:flex-row">
           {/* Link Columns */}
           <div className="flex flex-wrap gap-3">
             {linkColumns.map((column, colIndex) => (
-              <div key={colIndex} className="flex flex-col gap-1.5 w-[162px]">
-                <h3 className="font-bold text-base text-[#dbf938] leading-5">
-                  {column.title}
-                </h3>
+              <div key={colIndex} className="flex w-[162px] flex-col gap-1.5">
+                <h3 className="text-base font-bold leading-5 text-[#dbf938]">{column.title}</h3>
                 {column.links.map((link, linkIndex) => (
                   <Link
                     key={linkIndex}
                     to={link.href}
-                    className="font-medium text-sm text-[#d5d5d5] leading-[18px] hover:text-white transition-colors"
+                    className="text-sm font-medium leading-[18px] text-[#d5d5d5] transition-colors hover:text-white"
                   >
                     {link.label}
                   </Link>
@@ -130,18 +128,19 @@ export function Footer({ data }: FooterProps) {
           </div>
 
           {/* Newsletter Section */}
-          <div className="flex flex-col gap-1.5 w-full lg:w-auto lg:max-w-[350px]">
-            <h3 className="font-bold text-base text-white leading-5">
-              {newsletter.title}
-            </h3>
-            <p className="font-medium text-sm text-white leading-[18px]">
+          <div className="flex w-full flex-col gap-1.5 lg:w-auto lg:max-w-[350px]">
+            <h3 className="text-base font-bold leading-5 text-white">{newsletter.title}</h3>
+            <p className="text-sm font-medium leading-[18px] text-white">
               {newsletter.description}
             </p>
-            
+
             {/* Email Input Form */}
-            <form onSubmit={handleNewsletterSubmit} className="flex gap-2 items-end pt-4 pb-1.5">
-              <div className="flex-1 flex flex-col gap-2">
-                <label htmlFor="newsletter-email" className="font-medium text-sm text-white leading-none">
+            <form onSubmit={handleNewsletterSubmit} className="flex items-end gap-2 pb-1.5 pt-4">
+              <div className="flex flex-1 flex-col gap-2">
+                <label
+                  htmlFor="newsletter-email"
+                  className="text-sm font-medium leading-none text-white"
+                >
                   EMAIL:
                 </label>
                 <Input
@@ -150,14 +149,14 @@ export function Footer({ data }: FooterProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={newsletter.placeholder}
-                  className="h-9 bg-white border-[#e5e5e5] rounded-lg shadow-sm"
+                  className="h-9 rounded-lg border-[#e5e5e5] bg-white shadow-sm"
                   disabled={isLoading}
                 />
               </div>
-              <Button 
+              <Button
                 type="submit"
                 disabled={isLoading || isSuccess}
-                className="h-9 px-4 rounded-full bg-[#f5f5f5] text-[#171717] hover:bg-white shadow-sm disabled:opacity-70"
+                className="h-9 rounded-full bg-[#f5f5f5] px-4 text-[#171717] shadow-sm hover:bg-white disabled:opacity-70"
               >
                 {isLoading ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -171,24 +170,18 @@ export function Footer({ data }: FooterProps) {
 
             {/* Success/Error Messages */}
             {isSuccess && (
-              <p className="text-sm text-[#dbf938] font-medium">
-                Thanks for subscribing!
-              </p>
+              <p className="text-sm font-medium text-[#dbf938]">Thanks for subscribing!</p>
             )}
-            {error && (
-              <p className="text-sm text-red-400 font-medium">
-                {error}
-              </p>
-            )}
+            {error && <p className="text-sm font-medium text-red-400">{error}</p>}
 
             {/* Social Links (white) */}
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
               {socialLinks.map((social, index) => (
-                <a 
-                  key={index} 
+                <a
+                  key={index}
                   href={social.href}
                   aria-label={social.label}
-                  className="hover:opacity-80 transition-opacity"
+                  className="transition-opacity hover:opacity-80"
                 >
                   <SocialIcon iconName={social.icon} variant="white" />
                 </a>
@@ -198,14 +191,14 @@ export function Footer({ data }: FooterProps) {
         </div>
 
         {/* Bottom Section */}
-        <div className="flex flex-col md:flex-row gap-4 items-start md:items-end justify-between pt-10">
+        <div className="flex flex-col items-start justify-between gap-4 pt-10 md:flex-row md:items-end">
           {/* Legal Links */}
           <div className="flex flex-wrap gap-x-2 gap-y-1 text-sm text-[#d5d5d5]">
             {legalLinks.map((link, index) => (
               <Link
                 key={index}
                 to={link.href}
-                className="underline hover:text-white transition-colors"
+                className="underline transition-colors hover:text-white"
               >
                 {link.label}
               </Link>
@@ -214,13 +207,13 @@ export function Footer({ data }: FooterProps) {
 
           {/* Bottom Social Links (teal) */}
           {bottomSocialLinks && bottomSocialLinks.length > 0 && (
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
               {bottomSocialLinks.map((social, index) => (
-                <a 
-                  key={index} 
+                <a
+                  key={index}
                   href={social.href}
                   aria-label={social.label}
-                  className="hover:opacity-80 transition-opacity"
+                  className="transition-opacity hover:opacity-80"
                 >
                   <SocialIcon iconName={social.icon} variant="teal" />
                 </a>
@@ -232,4 +225,3 @@ export function Footer({ data }: FooterProps) {
     </footer>
   )
 }
-

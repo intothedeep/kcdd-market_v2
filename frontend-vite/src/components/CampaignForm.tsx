@@ -14,11 +14,11 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card } from '@/components/ui/card'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+  CheckCircle2,
   Pencil,
   Upload,
   Image,
@@ -107,7 +107,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
   const { user } = useUser()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -132,45 +132,43 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
       linkedin: '',
       youtube: '',
       tiktok: '',
-      website: ''
-    }
+      website: '',
+    },
   })
   const imageInputRef = useRef<HTMLInputElement>(null)
 
   const updateFormData = (field: keyof CampaignFormData, value: FormDataValue) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }))
     setError(null)
   }
 
   const toggleCauseArea = (area: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       causeAreas: prev.causeAreas.includes(area)
-        ? prev.causeAreas.filter(a => a !== area)
-        : [...prev.causeAreas, area]
+        ? prev.causeAreas.filter((a) => a !== area)
+        : [...prev.causeAreas, area],
     }))
   }
 
   const addFaq = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      faqs: [...prev.faqs, { question: '', answer: '' }]
+      faqs: [...prev.faqs, { question: '', answer: '' }],
     }))
   }
 
   const removeFaq = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      faqs: prev.faqs.filter((_, i) => i !== index)
+      faqs: prev.faqs.filter((_, i) => i !== index),
     }))
   }
 
   const updateFaq = (index: number, field: 'question' | 'answer', value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      faqs: prev.faqs.map((faq, i) => 
-        i === index ? { ...faq, [field]: value } : faq
-      )
+      faqs: prev.faqs.map((faq, i) => (i === index ? { ...faq, [field]: value } : faq)),
     }))
   }
 
@@ -179,19 +177,19 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
     if (!files) return
 
     const newImages: ImageFile[] = []
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file) => {
       if (file.type.startsWith('image/')) {
         newImages.push({
           file,
           preview: URL.createObjectURL(file),
-          caption: ''
+          caption: '',
         })
       }
     })
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      images: [...prev.images, ...newImages]
+      images: [...prev.images, ...newImages],
     }))
 
     // Reset input
@@ -201,29 +199,27 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
   }
 
   const removeImage = (index: number) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       // Revoke the object URL to free memory
       URL.revokeObjectURL(prev.images[index].preview)
       return {
         ...prev,
-        images: prev.images.filter((_, i) => i !== index)
+        images: prev.images.filter((_, i) => i !== index),
       }
     })
   }
 
   const updateImageCaption = (index: number, caption: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      images: prev.images.map((img, i) => 
-        i === index ? { ...img, caption } : img
-      )
+      images: prev.images.map((img, i) => (i === index ? { ...img, caption } : img)),
     }))
   }
 
   const updateSocialLink = (platform: keyof SocialLinks, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      socialLinks: { ...prev.socialLinks, [platform]: value }
+      socialLinks: { ...prev.socialLinks, [platform]: value },
     }))
   }
 
@@ -241,7 +237,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
       setError('Please write your campaign story')
       return
     }
-    
+
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1)
       setError(null)
@@ -265,7 +261,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
       setError('You must be logged in to create a campaign')
       return
     }
-    
+
     if (!organizationId) {
       setError('Organization not found. Please complete your organization setup first.')
       return
@@ -278,7 +274,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
 
     setIsSubmitting(true)
     setError(null)
-    
+
     try {
       // Look up cause area IDs from names
       let causeAreaIds: string[] = []
@@ -287,7 +283,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
           .from('cause_areas')
           .select('id')
           .in('name', formData.causeAreas)
-        
+
         if (causeAreaRecords) {
           causeAreaIds = causeAreaRecords.map((ca: { id: string }) => ca.id)
         }
@@ -299,7 +295,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
         try {
           const fileExt = formData.logoFile.name.split('.').pop()
           const fileName = `campaign-${user.id}-${Date.now()}.${fileExt}`
-          
+
           const { error: uploadError } = await supabase.storage
             .from('campaign-images')
             .upload(fileName, formData.logoFile)
@@ -314,7 +310,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
           console.error('Error uploading logo:', uploadError)
         }
       }
-      
+
       // Create the campaign with social links
       const campaign = await createCampaign({
         organization_id: organizationId,
@@ -347,7 +343,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
           try {
             const fileExt = img.file.name.split('.').pop()
             const fileName = `campaign-${campaignId}-image-${i}-${Date.now()}.${fileExt}`
-            
+
             const { error: uploadError } = await supabase.storage
               .from('campaign-images')
               .upload(fileName, img.file)
@@ -356,14 +352,14 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
               const { data: urlData } = supabase.storage
                 .from('campaign-images')
                 .getPublicUrl(fileName)
-              
+
               // Insert image record
               await (supabase.from('campaign_images') as any).insert({
                 campaign_id: campaignId,
                 image_url: urlData.publicUrl,
                 caption: img.caption || null,
                 sort_order: i,
-                is_featured: i === 0 // First image is featured
+                is_featured: i === 0, // First image is featured
               })
             }
           } catch (imgError) {
@@ -373,7 +369,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
       }
 
       // Save FAQs
-      const validFaqs = formData.faqs.filter(faq => faq.question.trim() && faq.answer.trim())
+      const validFaqs = formData.faqs.filter((faq) => faq.question.trim() && faq.answer.trim())
       if (validFaqs.length > 0 && campaignId) {
         const faqsToInsert = validFaqs.map((faq, index) => ({
           campaign_id: campaignId,
@@ -381,12 +377,12 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
           answer: faq.answer,
           sort_order: index,
         }))
-        
+
         await (supabase.from('campaign_faqs') as any).insert(faqsToInsert)
       }
 
       onComplete()
-      
+
       // Navigate to the campaign page
       const campaignSlug = (campaign as { slug?: string }).slug
       if (campaignSlug) {
@@ -408,16 +404,24 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
   }
 
   // Step titles for progress indicator
-  const stepTitles = ['Basic Info', 'Cause Areas', 'Funding', 'Media & Social', 'Your Story', 'FAQs', 'Review']
+  const stepTitles = [
+    'Basic Info',
+    'Cause Areas',
+    'Funding',
+    'Media & Social',
+    'Your Story',
+    'FAQs',
+    'Review',
+  ]
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="mx-auto max-w-4xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="mb-8 flex items-center justify-between">
         <div>
-          <button 
+          <button
             onClick={onCancel}
-            className="flex items-center gap-2 text-[#737373] hover:text-[#0a0a0a] transition-colors mb-2"
+            className="mb-2 flex items-center gap-2 text-[#737373] transition-colors hover:text-[#0a0a0a]"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="text-sm">Back to Dashboard</span>
@@ -434,15 +438,15 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
             const stepNum = index + 1
             const isActive = stepNum === currentStep
             const isCompleted = stepNum < currentStep
-            
+
             return (
-              <div key={title} className="flex flex-col items-center flex-1">
+              <div key={title} className="flex flex-1 flex-col items-center">
                 <button
                   onClick={() => stepNum < currentStep && goToStep(stepNum)}
                   disabled={stepNum > currentStep}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition-colors ${
+                  className={`flex h-10 w-10 items-center justify-center rounded-full font-medium transition-colors ${
                     isCompleted
-                      ? 'bg-[#1b5858] text-white cursor-pointer'
+                      ? 'cursor-pointer bg-[#1b5858] text-white'
                       : isActive
                         ? 'bg-[#1b5858] text-white'
                         : 'bg-gray-200 text-gray-500'
@@ -450,7 +454,9 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                 >
                   {isCompleted ? <CheckCircle2 className="h-5 w-5" /> : stepNum}
                 </button>
-                <span className={`text-xs mt-2 ${isActive ? 'text-[#0a0a0a] font-medium' : 'text-[#737373]'}`}>
+                <span
+                  className={`mt-2 text-xs ${isActive ? 'font-medium text-[#0a0a0a]' : 'text-[#737373]'}`}
+                >
                   {title}
                 </span>
               </div>
@@ -461,7 +467,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
 
       {/* Error Alert */}
       {error && (
-        <Alert className="mb-6 bg-red-50 border-red-200">
+        <Alert className="mb-6 border-red-200 bg-red-50">
           <AlertCircle className="h-4 w-4 text-red-600" />
           <AlertTitle className="text-red-800">Error</AlertTitle>
           <AlertDescription className="text-red-700">{error}</AlertDescription>
@@ -469,12 +475,12 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
       )}
 
       {/* Form Content */}
-      <Card className="p-8 mb-6">
+      <Card className="mb-6 p-8">
         {/* Step 1: Basic Info */}
         {currentStep === 1 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-[#0a0a0a] mb-1">Basic Information</h2>
+              <h2 className="mb-1 text-xl font-semibold text-[#0a0a0a]">Basic Information</h2>
               <p className="text-[#737373]">Tell us about your campaign</p>
             </div>
 
@@ -525,7 +531,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                   checked={formData.receiveUpdates}
                   onCheckedChange={(checked) => updateFormData('receiveUpdates', checked === true)}
                 />
-                <label htmlFor="updates" className="text-sm text-[#737373] cursor-pointer">
+                <label htmlFor="updates" className="cursor-pointer text-sm text-[#737373]">
                   I&apos;d like to receive updates and tips about running successful campaigns
                 </label>
               </div>
@@ -537,8 +543,10 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
         {currentStep === 2 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-[#0a0a0a] mb-1">Select Cause Areas</h2>
-              <p className="text-[#737373]">Choose the categories that best describe your campaign</p>
+              <h2 className="mb-1 text-xl font-semibold text-[#0a0a0a]">Select Cause Areas</h2>
+              <p className="text-[#737373]">
+                Choose the categories that best describe your campaign
+              </p>
             </div>
 
             <div className="flex flex-wrap gap-3" role="group" aria-label="Cause areas">
@@ -550,10 +558,10 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                     type="button"
                     onClick={() => toggleCauseArea(area)}
                     aria-pressed={isSelected}
-                    className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
+                    className={`rounded-full px-4 py-2.5 text-sm font-medium transition-all ${
                       isSelected
                         ? 'bg-[#1b5858] text-white shadow-md'
-                        : 'bg-gray-100 text-[#737373] hover:bg-gray-200 border border-gray-200'
+                        : 'border border-gray-200 bg-gray-100 text-[#737373] hover:bg-gray-200'
                     }`}
                   >
                     {area}
@@ -564,7 +572,8 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
 
             {formData.causeAreas.length > 0 && (
               <p className="text-sm text-[#1b5858]">
-                Selected: {formData.causeAreas.length} cause area{formData.causeAreas.length > 1 ? 's' : ''}
+                Selected: {formData.causeAreas.length} cause area
+                {formData.causeAreas.length > 1 ? 's' : ''}
               </p>
             )}
           </div>
@@ -574,7 +583,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
         {currentStep === 3 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-[#0a0a0a] mb-1">Funding Details</h2>
+              <h2 className="mb-1 text-xl font-semibold text-[#0a0a0a]">Funding Details</h2>
               <p className="text-[#737373]">Set your goals and provide a brief description</p>
             </div>
 
@@ -584,14 +593,16 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                   Funding Goal (USD) *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#737373] text-lg">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-[#737373]">
+                    $
+                  </span>
                   <Input
                     id="fundingGoal"
                     type="number"
                     value={formData.fundingGoal}
                     onChange={(e) => updateFormData('fundingGoal', e.target.value)}
                     placeholder="5,000"
-                    className="h-12 text-lg pl-8"
+                    className="h-12 pl-8 text-lg"
                   />
                 </div>
                 <p className="text-xs text-[#737373]">Set a realistic goal that you can achieve</p>
@@ -609,7 +620,10 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                   rows={4}
                   className="resize-none text-base"
                 />
-                <p className="text-xs text-[#737373]">This will appear on campaign cards ({formData.shortDescription.length}/200 characters)</p>
+                <p className="text-xs text-[#737373]">
+                  This will appear on campaign cards ({formData.shortDescription.length}/200
+                  characters)
+                </p>
               </div>
             </div>
           </div>
@@ -619,20 +633,22 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
         {currentStep === 4 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-[#0a0a0a] mb-1">Media & Social Links</h2>
-              <p className="text-[#737373]">Add images and connect your social media to help donors find you</p>
+              <h2 className="mb-1 text-xl font-semibold text-[#0a0a0a]">Media & Social Links</h2>
+              <p className="text-[#737373]">
+                Add images and connect your social media to help donors find you
+              </p>
             </div>
 
             <div className="space-y-6">
               {/* Main Logo/Image Upload */}
               <div className="space-y-2">
                 <span className="text-sm font-medium text-[#0a0a0a]">Campaign Logo/Avatar</span>
-                <div 
+                <div
                   role="button"
                   tabIndex={0}
                   onClick={() => fileInputRef.current?.click()}
                   onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#1b5858] hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="cursor-pointer rounded-lg border-2 border-dashed border-gray-300 p-6 text-center transition-colors hover:border-[#1b5858] hover:bg-gray-50"
                   aria-label="Upload campaign logo or avatar"
                 >
                   {formData.logoFile ? (
@@ -645,7 +661,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                     </div>
                   ) : (
                     <>
-                      <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <Upload className="mx-auto mb-2 h-8 w-8 text-gray-400" />
                       <p className="font-medium text-[#0a0a0a]">Upload Logo or Avatar</p>
                       <p className="text-sm text-[#737373]">PNG, JPG up to 5MB</p>
                     </>
@@ -665,22 +681,24 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-[#0a0a0a]">Campaign Gallery</span>
-                  <span className="text-xs text-[#737373]">{formData.images.length} image{formData.images.length !== 1 ? 's' : ''}</span>
+                  <span className="text-xs text-[#737373]">
+                    {formData.images.length} image{formData.images.length !== 1 ? 's' : ''}
+                  </span>
                 </div>
-                
+
                 {/* Image Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   {formData.images.map((img, index) => (
-                    <div key={index} className="relative group">
-                      <img 
-                        src={img.preview} 
+                    <div key={index} className="group relative">
+                      <img
+                        src={img.preview}
                         alt={`Gallery upload ${index + 1}`}
-                        className="w-full aspect-square object-cover rounded-lg border border-gray-200"
+                        className="aspect-square w-full rounded-lg border border-gray-200 object-cover"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
                         aria-label="Remove image"
                       >
                         <X className="h-3 w-3" />
@@ -689,18 +707,18 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                         value={img.caption}
                         onChange={(e) => updateImageCaption(index, e.target.value)}
                         placeholder="Caption (optional)"
-                        className="mt-1 text-xs h-8"
+                        className="mt-1 h-8 text-xs"
                       />
                     </div>
                   ))}
-                  
+
                   {/* Add Image Button */}
                   <button
                     type="button"
                     onClick={() => imageInputRef.current?.click()}
-                    className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-[#1b5858] hover:bg-gray-50 transition-colors"
+                    className="flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-[#1b5858] hover:bg-gray-50"
                   >
-                    <Plus className="h-6 w-6 text-gray-400 mb-1" />
+                    <Plus className="mb-1 h-6 w-6 text-gray-400" />
                     <span className="text-xs text-[#737373]">Add Image</span>
                   </button>
                 </div>
@@ -713,18 +731,23 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                   className="hidden"
                 />
                 <p className="text-xs text-[#737373]">
-                  Add photos that show your work and impact. The first image will be your featured image.
+                  Add photos that show your work and impact. The first image will be your featured
+                  image.
                 </p>
               </div>
 
               {/* Social Media Links */}
-              <div className="space-y-4 pt-4 border-t border-gray-200">
-                <h3 className="text-sm font-medium text-[#0a0a0a]">Social Media Links (Optional)</h3>
-                <p className="text-xs text-[#737373]">Add your social media profiles so donors can follow your work</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4 border-t border-gray-200 pt-4">
+                <h3 className="text-sm font-medium text-[#0a0a0a]">
+                  Social Media Links (Optional)
+                </h3>
+                <p className="text-xs text-[#737373]">
+                  Add your social media profiles so donors can follow your work
+                </p>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#1877f2] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#1877f2]">
                       <Facebook className="h-5 w-5 text-white" />
                     </div>
                     <Input
@@ -734,9 +757,9 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                       className="h-10"
                     />
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-black">
                       <Twitter className="h-5 w-5 text-white" />
                     </div>
                     <Input
@@ -746,9 +769,9 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                       className="h-10"
                     />
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#515bd4] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#515bd4]">
                       <Instagram className="h-5 w-5 text-white" />
                     </div>
                     <Input
@@ -758,9 +781,9 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                       className="h-10"
                     />
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#0077b5] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#0077b5]">
                       <Linkedin className="h-5 w-5 text-white" />
                     </div>
                     <Input
@@ -770,9 +793,9 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                       className="h-10"
                     />
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#ff0000] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#ff0000]">
                       <Youtube className="h-5 w-5 text-white" />
                     </div>
                     <Input
@@ -782,11 +805,11 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                       className="h-10"
                     />
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center flex-shrink-0">
-                      <svg viewBox="0 0 24 24" className="h-5 w-5 text-white fill-current">
-                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-black">
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current text-white">
+                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
                       </svg>
                     </div>
                     <Input
@@ -796,9 +819,9 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                       className="h-10"
                     />
                   </div>
-                  
+
                   <div className="flex items-center gap-3 md:col-span-2">
-                    <div className="w-10 h-10 bg-[#1b5858] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#1b5858]">
                       <Globe className="h-5 w-5 text-white" />
                     </div>
                     <Input
@@ -818,8 +841,10 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
         {currentStep === 5 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-[#0a0a0a] mb-1">Tell Your Story</h2>
-              <p className="text-[#737373]">Share the details that will inspire donors to support your cause</p>
+              <h2 className="mb-1 text-xl font-semibold text-[#0a0a0a]">Tell Your Story</h2>
+              <p className="text-[#737373]">
+                Share the details that will inspire donors to support your cause
+              </p>
             </div>
 
             <div className="space-y-4">
@@ -839,9 +864,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
 
               {/* Campaign Story - Rich Text Editor */}
               <div className="space-y-2">
-                <span className="text-sm font-medium text-[#0a0a0a]">
-                  Your Campaign Story *
-                </span>
+                <span className="text-sm font-medium text-[#0a0a0a]">Your Campaign Story *</span>
                 <RichTextEditor
                   value={formData.campaignStory}
                   onChange={(value) => updateFormData('campaignStory', value)}
@@ -850,7 +873,8 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                   className="min-h-[300px]"
                 />
                 <p className="text-xs text-[#737373]">
-                  Use the toolbar to format your text, add headings, lists, and links. A compelling story helps donors connect with your cause.
+                  Use the toolbar to format your text, add headings, lists, and links. A compelling
+                  story helps donors connect with your cause.
                 </p>
               </div>
             </div>
@@ -861,13 +885,17 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
         {currentStep === 6 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-[#0a0a0a] mb-1">Frequently Asked Questions</h2>
-              <p className="text-[#737373]">Add FAQs to help potential donors understand your campaign better</p>
+              <h2 className="mb-1 text-xl font-semibold text-[#0a0a0a]">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-[#737373]">
+                Add FAQs to help potential donors understand your campaign better
+              </p>
             </div>
 
             <div className="space-y-4">
               {formData.faqs.map((faq, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                <div key={index} className="space-y-3 rounded-lg border border-gray-200 p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 text-[#1b5858]">
                       <HelpCircle className="h-5 w-5" />
@@ -877,16 +905,19 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                       <button
                         type="button"
                         onClick={() => removeFaq(index)}
-                        className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                        className="rounded p-1 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
                         aria-label={`Remove FAQ #${index + 1}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
-                    <label htmlFor={`faq-question-${index}`} className="text-sm font-medium text-[#0a0a0a]">
+                    <label
+                      htmlFor={`faq-question-${index}`}
+                      className="text-sm font-medium text-[#0a0a0a]"
+                    >
                       Question
                     </label>
                     <Input
@@ -899,7 +930,10 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor={`faq-answer-${index}`} className="text-sm font-medium text-[#0a0a0a]">
+                    <label
+                      htmlFor={`faq-answer-${index}`}
+                      className="text-sm font-medium text-[#0a0a0a]"
+                    >
                       Answer
                     </label>
                     <Textarea
@@ -920,13 +954,14 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                 onClick={addFaq}
                 className="w-full border-dashed"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 Add Another FAQ
               </Button>
             </div>
 
             <p className="text-xs text-[#737373]">
-              Tip: Common FAQs include questions about how funds will be used, your organization&apos;s mission, and how donors can stay updated.
+              Tip: Common FAQs include questions about how funds will be used, your
+              organization&apos;s mission, and how donors can stay updated.
             </p>
           </div>
         )}
@@ -935,7 +970,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
         {currentStep === 7 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-[#0a0a0a] mb-1">Review & Launch</h2>
+              <h2 className="mb-1 text-xl font-semibold text-[#0a0a0a]">Review & Launch</h2>
               <p className="text-[#737373]">Review your campaign details before publishing</p>
             </div>
 
@@ -955,35 +990,61 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
             </div>
 
             {/* Campaign Summary */}
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-[#0a0a0a] mb-4">Campaign Summary</h3>
-              
+            <div className="rounded-lg bg-gray-50 p-6">
+              <h3 className="mb-4 text-lg font-semibold text-[#0a0a0a]">Campaign Summary</h3>
+
               <div className="space-y-3">
                 {[
                   { label: 'Campaign Title', value: formData.campaignTitle, editStep: 1 },
                   { label: 'Creator', value: formData.creatorName, editStep: 1 },
                   { label: 'Role', value: formData.roleTitle, editStep: 1 },
-                  { label: 'Funding Goal', value: formData.fundingGoal ? `$${parseFloat(formData.fundingGoal).toLocaleString()}` : 'Not set', editStep: 3 },
-                  { label: 'Cause Areas', value: formData.causeAreas.length > 0 ? formData.causeAreas.join(', ') : 'None selected', editStep: 2 },
-                  { label: 'Images', value: `${formData.images.length} image(s)${formData.logoFile ? ' + logo' : ''}`, editStep: 4 },
-                  { label: 'Social Links', value: Object.values(formData.socialLinks).filter(v => v).length > 0 ? `${Object.values(formData.socialLinks).filter(v => v).length} linked` : 'None added', editStep: 4 },
+                  {
+                    label: 'Funding Goal',
+                    value: formData.fundingGoal
+                      ? `$${parseFloat(formData.fundingGoal).toLocaleString()}`
+                      : 'Not set',
+                    editStep: 3,
+                  },
+                  {
+                    label: 'Cause Areas',
+                    value:
+                      formData.causeAreas.length > 0
+                        ? formData.causeAreas.join(', ')
+                        : 'None selected',
+                    editStep: 2,
+                  },
+                  {
+                    label: 'Images',
+                    value: `${formData.images.length} image(s)${formData.logoFile ? ' + logo' : ''}`,
+                    editStep: 4,
+                  },
+                  {
+                    label: 'Social Links',
+                    value:
+                      Object.values(formData.socialLinks).filter((v) => v).length > 0
+                        ? `${Object.values(formData.socialLinks).filter((v) => v).length} linked`
+                        : 'None added',
+                    editStep: 4,
+                  },
                   { label: 'Story Title', value: formData.storyTitle || 'Not set', editStep: 5 },
-                  { label: 'FAQs', value: `${formData.faqs.filter(f => f.question.trim()).length} question(s)`, editStep: 6 },
+                  {
+                    label: 'FAQs',
+                    value: `${formData.faqs.filter((f) => f.question.trim()).length} question(s)`,
+                    editStep: 6,
+                  },
                   { label: 'Contact Email', value: formData.contactEmail, editStep: 7 },
                 ].map((item) => (
-                  <div 
+                  <div
                     key={item.label}
-                    className="flex items-start justify-between py-3 border-b border-gray-200 last:border-0"
+                    className="flex items-start justify-between border-b border-gray-200 py-3 last:border-0"
                   >
                     <span className="text-sm text-[#737373]">{item.label}:</span>
-                    <div className="flex items-start gap-2 text-right max-w-[60%]">
-                      <span className="text-sm font-medium text-[#0a0a0a]">
-                        {item.value}
-                      </span>
+                    <div className="flex max-w-[60%] items-start gap-2 text-right">
+                      <span className="text-sm font-medium text-[#0a0a0a]">{item.value}</span>
                       {item.editStep !== 7 && (
                         <button
                           onClick={() => goToStep(item.editStep)}
-                          className="p-1 text-[#737373] hover:text-[#1b5858] transition-colors flex-shrink-0"
+                          className="flex-shrink-0 p-1 text-[#737373] transition-colors hover:text-[#1b5858]"
                           aria-label={`Edit ${item.label}`}
                         >
                           <Pencil className="h-3 w-3" />
@@ -996,11 +1057,12 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
             </div>
 
             {/* Ready notice */}
-            <Alert className="bg-green-50 border-green-200">
+            <Alert className="border-green-200 bg-green-50">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertTitle className="text-green-800">Ready to launch!</AlertTitle>
               <AlertDescription className="text-green-700">
-                Your campaign will be reviewed by our team and typically goes live within 24-48 hours.
+                Your campaign will be reviewed by our team and typically goes live within 24-48
+                hours.
               </AlertDescription>
             </Alert>
           </div>
@@ -1014,19 +1076,19 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
           onClick={currentStep === 1 ? onCancel : handlePrevious}
           className="px-6"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="mr-2 h-4 w-4" />
           {currentStep === 1 ? 'Cancel' : 'Previous'}
         </Button>
-        
+
         {currentStep === TOTAL_STEPS ? (
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || !formData.contactEmail}
-            className="bg-[#1b5858] hover:bg-[#164444] text-white px-8"
+            className="bg-[#1b5858] px-8 text-white hover:bg-[#164444]"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating...
               </>
             ) : (
@@ -1034,16 +1096,12 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
             )}
           </Button>
         ) : (
-          <Button
-            onClick={handleNext}
-            className="bg-[#1b5858] hover:bg-[#164444] text-white px-8"
-          >
+          <Button onClick={handleNext} className="bg-[#1b5858] px-8 text-white hover:bg-[#164444]">
             Next
-            <ArrowRight className="h-4 w-4 ml-2" />
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}
       </div>
     </div>
   )
 }
-

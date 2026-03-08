@@ -13,19 +13,17 @@ interface OrganizationAboutTabProps {
 
 export function OrganizationAboutTab({ organization }: OrganizationAboutTabProps) {
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="max-w-3xl space-y-8">
       {/* Mission */}
       <section>
-        <h2 className="text-2xl font-semibold text-[#0a0a0a] mb-4">Our Mission</h2>
-        <p className="text-base text-[#0a0a0a] leading-relaxed">
-          {organization.mission}
-        </p>
+        <h2 className="mb-4 text-2xl font-semibold text-[#0a0a0a]">Our Mission</h2>
+        <p className="text-base leading-relaxed text-[#0a0a0a]">{organization.mission}</p>
       </section>
 
       {/* Populations Served */}
       {organization.populations && organization.populations.length > 0 && (
         <section>
-          <h3 className="text-lg font-semibold text-[#0a0a0a] mb-3 flex items-center gap-2">
+          <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-[#0a0a0a]">
             <Users className="h-5 w-5 text-[#1b5858]" />
             Populations We Serve
           </h3>
@@ -34,7 +32,7 @@ export function OrganizationAboutTab({ organization }: OrganizationAboutTabProps
               <Badge
                 key={pop.id}
                 variant="secondary"
-                className="bg-[#1b5858]/10 text-[#1b5858] font-normal px-3 py-1"
+                className="bg-[#1b5858]/10 px-3 py-1 font-normal text-[#1b5858]"
               >
                 {pop.name}
               </Badge>
@@ -46,8 +44,8 @@ export function OrganizationAboutTab({ organization }: OrganizationAboutTabProps
       {/* Program Description */}
       {organization.program_description && (
         <section>
-          <h3 className="text-lg font-semibold text-[#0a0a0a] mb-3">Our Programs</h3>
-          <p className="text-base text-[#0a0a0a] leading-relaxed whitespace-pre-line">
+          <h3 className="mb-3 text-lg font-semibold text-[#0a0a0a]">Our Programs</h3>
+          <p className="whitespace-pre-line text-base leading-relaxed text-[#0a0a0a]">
             {organization.program_description}
           </p>
         </section>
@@ -55,16 +53,14 @@ export function OrganizationAboutTab({ organization }: OrganizationAboutTabProps
 
       {/* Technology Needs - Restyled to be informative, not alarming */}
       {organization.technology_barriers && (
-        <section className="bg-[#f0f9ff] border border-[#bae6fd] rounded-lg p-6">
+        <section className="rounded-lg border border-[#bae6fd] bg-[#f0f9ff] p-6">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-[#0ea5e9]/10 rounded-full">
+            <div className="rounded-full bg-[#0ea5e9]/10 p-2">
               <Lightbulb className="h-5 w-5 text-[#0ea5e9]" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-[#0a0a0a] mb-2">
-                How You Can Help
-              </h3>
-              <p className="text-base text-[#0a0a0a] leading-relaxed">
+              <h3 className="mb-2 text-lg font-semibold text-[#0a0a0a]">How You Can Help</h3>
+              <p className="text-base leading-relaxed text-[#0a0a0a]">
                 {organization.technology_barriers}
               </p>
             </div>
@@ -75,11 +71,11 @@ export function OrganizationAboutTab({ organization }: OrganizationAboutTabProps
       {/* Service Area */}
       {organization.service_area_description && (
         <section>
-          <h3 className="text-lg font-semibold text-[#0a0a0a] mb-3 flex items-center gap-2">
+          <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-[#0a0a0a]">
             <MapPin className="h-5 w-5 text-[#1b5858]" />
             Service Area
           </h3>
-          <p className="text-base text-[#0a0a0a] leading-relaxed">
+          <p className="text-base leading-relaxed text-[#0a0a0a]">
             {organization.service_area_description}
           </p>
         </section>

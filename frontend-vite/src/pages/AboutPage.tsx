@@ -5,13 +5,14 @@
 export function AboutPage() {
   return (
     <div className="container py-8 md:py-12 lg:py-24">
-      <div className="max-w-3xl mx-auto space-y-8">
+      <div className="mx-auto max-w-3xl space-y-8">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-4">
+          <h1 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
             About KC Digital Drive
           </h1>
           <p className="text-xl text-muted-foreground">
-            Making Kansas City a digital leader and improving quality of life for all people in the region.
+            Making Kansas City a digital leader and improving quality of life for all people in the
+            region.
           </p>
         </div>
 
@@ -24,7 +25,7 @@ export function AboutPage() {
           </p>
 
           <h2 className="text-2xl font-bold">How It Works</h2>
-          <ol className="list-decimal list-inside space-y-2">
+          <ol className="list-inside list-decimal space-y-2">
             <li>Community organizations submit requests for technology equipment</li>
             <li>Our team vets organizations to ensure they're legitimate</li>
             <li>Donors browse requests and choose where to make an impact</li>
@@ -35,12 +36,11 @@ export function AboutPage() {
           <h2 className="text-2xl font-bold">Impact</h2>
           <p>
             Since our launch, we've helped bridge the digital divide by connecting donors with
-            organizations serving the Kansas City metro area, including all counties in Missouri
-            and Kansas.
+            organizations serving the Kansas City metro area, including all counties in Missouri and
+            Kansas.
           </p>
         </div>
       </div>
     </div>
   )
 }
-

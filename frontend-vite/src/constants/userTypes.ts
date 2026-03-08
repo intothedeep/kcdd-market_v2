@@ -63,6 +63,6 @@ export const VERIFICATION_STATUS_LABELS = {
 } as const
 
 // Type exports
-export type UserType = typeof USER_TYPES[keyof typeof USER_TYPES]
-export type OrgTier = typeof ORG_TIERS[keyof typeof ORG_TIERS]
-export type VerificationStatus = typeof VERIFICATION_STATUS[keyof typeof VERIFICATION_STATUS]
+export type UserType = (typeof USER_TYPES)[keyof typeof USER_TYPES]
+export type OrgTier = (typeof ORG_TIERS)[keyof typeof ORG_TIERS]
+export type VerificationStatus = (typeof VERIFICATION_STATUS)[keyof typeof VERIFICATION_STATUS]

@@ -45,9 +45,7 @@ export function useStripeConnect(organizationId: string | undefined): UseStripeC
     }
 
     try {
-      const res = await fetch(
-        `${apiConfig.baseUrl}/api/stripe/connect/status/${organizationId}`
-      )
+      const res = await fetch(`${apiConfig.baseUrl}/api/stripe/connect/status/${organizationId}`)
 
       if (!res.ok) {
         throw new Error('Failed to fetch Stripe status')

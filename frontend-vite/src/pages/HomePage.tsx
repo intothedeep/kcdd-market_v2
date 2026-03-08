@@ -27,14 +27,15 @@ export function HomePage() {
   const [stats, setStats] = useState<Stat[]>([
     { value: 0, label: 'Requests Fulfilled', description: 'Technology needs met' },
     { value: 0, label: 'Organizations Served', description: 'CBOs supported' },
-    { value: '$0', label: 'Total Raised', description: 'Community investment' }
+    { value: '$0', label: 'Total Raised', description: 'Community investment' },
   ])
 
   const statsContent: StatsContent = {
     heading: 'Making an Impact Together',
-    description: 'KC DIME connects donors with community-based organizations to bridge the digital divide in Kansas City. Every contribution helps provide technology access and digital literacy to those who need it most.',
+    description:
+      'KC DIME connects donors with community-based organizations to bridge the digital divide in Kansas City. Every contribution helps provide technology access and digital literacy to those who need it most.',
     linkText: 'Browse open requests',
-    linkHref: '/requests'
+    linkHref: '/requests',
   }
 
   useEffect(() => {
@@ -47,19 +48,26 @@ export function HomePage() {
           .eq('status', 'fulfilled')
 
         const fulfilledCount = fulfilledRequests?.length || 0
-        const totalRaised = fulfilledRequests?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
+        const totalRaised =
+          fulfilledRequests?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
 
         // Fetch organizations count (data + count locally for reliability)
-        const { data: orgsData } = await supabase
-          .from('organizations')
-          .select('id')
+        const { data: orgsData } = await supabase.from('organizations').select('id')
 
         const orgsCount = orgsData?.length || 0
 
         setStats([
-          { value: fulfilledCount, label: 'Requests Fulfilled', description: 'Technology needs met' },
+          {
+            value: fulfilledCount,
+            label: 'Requests Fulfilled',
+            description: 'Technology needs met',
+          },
           { value: orgsCount, label: 'Organizations Served', description: 'CBOs supported' },
-          { value: `$${totalRaised.toLocaleString()}`, label: 'Total Raised', description: 'Community investment' }
+          {
+            value: `$${totalRaised.toLocaleString()}`,
+            label: 'Total Raised',
+            description: 'Community investment',
+          },
         ])
       } catch (error) {
         console.error('Error fetching stats:', error)
@@ -97,7 +105,6 @@ export function HomePage() {
 
       {/* Features Section */}
       <FeaturesSection features={homeFeatures} />
-
     </main>
   )
 }

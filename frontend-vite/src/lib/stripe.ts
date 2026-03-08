@@ -1,6 +1,6 @@
 /**
  * Stripe Payment Integration
- * 
+ *
  * Documentation:
  * - Stripe JS: https://stripe.com/docs/js
  * - Stripe React: https://stripe.com/docs/stripe-js/react
@@ -25,10 +25,7 @@ export const getStripe = () => {
 /**
  * Create a payment intent for a request
  */
-export const createPaymentIntent = async (
-  requestId: string,
-  amount: number
-): Promise<string> => {
+export const createPaymentIntent = async (requestId: string, amount: number): Promise<string> => {
   const response = await fetch(`${apiConfig.baseUrl}${apiConfig.endpoints.payments.createIntent}`, {
     method: 'POST',
     headers: {
@@ -61,4 +58,3 @@ export const toStripeAmount = (dollars: number): number => {
 export const fromStripeAmount = (cents: number): number => {
   return cents / 100
 }
-

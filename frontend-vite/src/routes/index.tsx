@@ -1,6 +1,6 @@
 /**
  * Application Routes
- * 
+ *
  * Documentation:
  * - React Router v6: https://reactrouter.com/en/main
  * - Clerk Protected Routes: https://clerk.com/docs/components/protect
@@ -12,6 +12,7 @@ import { routes } from '@/config'
 
 // Layouts
 import { MainLayout } from '@/layouts/MainLayout'
+import { DashboardLayout } from '@/layouts/DashboardLayout'
 
 // Pages
 import { HomePage } from '@/pages/HomePage'
@@ -66,17 +67,17 @@ function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ea580c]" />
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#ea580c]" />
       </div>
     )
   }
 
   if (userType !== 'admin') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-[#0a0a0a] mb-2">Access Denied</h1>
+          <h1 className="mb-2 text-2xl font-bold text-[#0a0a0a]">Access Denied</h1>
           <p className="text-[#737373]">You don't have permission to view this page.</p>
         </div>
       </div>
@@ -113,7 +114,7 @@ export function AppRoutes() {
       {/* Role Selection is now a modal in App.tsx, not a separate route */}
 
       {/* Donor routes (protected) */}
-      <Route element={<MainLayout />}>
+      <Route element={<DashboardLayout />}>
         <Route
           path={routes.donor.dashboard}
           element={
@@ -157,7 +158,7 @@ export function AppRoutes() {
       </Route>
 
       {/* CBO routes (protected) */}
-      <Route element={<MainLayout />}>
+      <Route element={<DashboardLayout />}>
         <Route
           path={routes.cbo.dashboard}
           element={
@@ -241,7 +242,7 @@ export function AppRoutes() {
       </Route>
 
       {/* Admin routes (protected, admin-only) */}
-      <Route element={<MainLayout />}>
+      <Route element={<DashboardLayout />}>
         <Route
           path={routes.admin.dashboard}
           element={
@@ -266,4 +267,3 @@ export function AppRoutes() {
     </Routes>
   )
 }
-

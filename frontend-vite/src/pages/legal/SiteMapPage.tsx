@@ -8,20 +8,16 @@ import { routes } from '@/config'
 export function SiteMapPage() {
   return (
     <div className="container py-8 md:py-12 lg:py-24">
-      <div className="max-w-3xl mx-auto space-y-8">
+      <div className="mx-auto max-w-3xl space-y-8">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-4">
-            Site Map
-          </h1>
-          <p className="text-xl text-muted-foreground">
-            Navigate all areas of KC Digital Drive
-          </p>
+          <h1 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">Site Map</h1>
+          <p className="text-xl text-muted-foreground">Navigate all areas of KC Digital Drive</p>
         </div>
 
         <div className="space-y-8">
           {/* Main Pages */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">Main Pages</h2>
+            <h2 className="mb-4 text-2xl font-bold">Main Pages</h2>
             <ul className="space-y-2">
               <li>
                 <Link to={routes.home} className="text-primary hover:underline">
@@ -43,7 +39,7 @@ export function SiteMapPage() {
 
           {/* Account */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">Account</h2>
+            <h2 className="mb-4 text-2xl font-bold">Account</h2>
             <ul className="space-y-2">
               <li>
                 <Link to={routes.signIn} className="text-primary hover:underline">
@@ -60,7 +56,7 @@ export function SiteMapPage() {
 
           {/* Donor Area */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">For Donors</h2>
+            <h2 className="mb-4 text-2xl font-bold">For Donors</h2>
             <ul className="space-y-2">
               <li>
                 <Link to={routes.donor.dashboard} className="text-primary hover:underline">
@@ -82,7 +78,7 @@ export function SiteMapPage() {
 
           {/* Organization Area */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">For Organizations</h2>
+            <h2 className="mb-4 text-2xl font-bold">For Organizations</h2>
             <ul className="space-y-2">
               <li>
                 <Link to={routes.cbo.dashboard} className="text-primary hover:underline">
@@ -109,7 +105,7 @@ export function SiteMapPage() {
 
           {/* Legal Pages */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">Legal & Policies</h2>
+            <h2 className="mb-4 text-2xl font-bold">Legal & Policies</h2>
             <ul className="space-y-2">
               <li>
                 <Link to={routes.legal.privacy} className="text-primary hover:underline">
@@ -146,7 +142,7 @@ export function SiteMapPage() {
 
           {/* Support */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">Support & Contact</h2>
+            <h2 className="mb-4 text-2xl font-bold">Support & Contact</h2>
             <ul className="space-y-2">
               <li>
                 <span className="text-muted-foreground">

@@ -1,6 +1,6 @@
 /**
  * Main Layout Component
- * 
+ *
  * Provides consistent header/footer across pages
  */
 
@@ -12,7 +12,7 @@ import { footerData } from '@/data/footer'
 
 export function MainLayout() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col">
       <NoticeBanner />
       <Navbar />
       <main className="flex-1">
@@ -22,4 +22,3 @@ export function MainLayout() {
     </div>
   )
 }
-

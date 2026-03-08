@@ -68,14 +68,14 @@ function MenuButton({ onClick, isActive, children, title, darkMode }: MenuButton
       onClick={onClick}
       title={title}
       className={cn(
-        'p-1.5 rounded transition-colors',
+        'rounded p-1.5 transition-colors',
         darkMode
           ? isActive
             ? 'bg-white/20 text-white'
-            : 'text-white/60 hover:text-white hover:bg-white/10'
+            : 'text-white/60 hover:bg-white/10 hover:text-white'
           : isActive
             ? 'bg-gray-200 text-gray-900'
-            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
       )}
     >
       {children}
@@ -166,7 +166,9 @@ function ImageUploadModal({ isOpen, onClose, onImageInsert, darkMode }: ImageUpl
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      setError(`File too large. Max size is ${MAX_FILE_SIZE / 1024 / 1024}MB. Your file will be compressed.`)
+      setError(
+        `File too large. Max size is ${MAX_FILE_SIZE / 1024 / 1024}MB. Your file will be compressed.`
+      )
     }
 
     try {
@@ -221,32 +223,30 @@ function ImageUploadModal({ isOpen, onClose, onImageInsert, darkMode }: ImageUpl
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50" 
-        onClick={onClose}
-      />
-      
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
       {/* Modal */}
-      <div className={cn(
-        'relative w-full max-w-md mx-4 rounded-xl shadow-2xl',
-        darkMode ? 'bg-[#1b5858]' : 'bg-white'
-      )}>
+      <div
+        className={cn(
+          'relative mx-4 w-full max-w-md rounded-xl shadow-2xl',
+          darkMode ? 'bg-[#1b5858]' : 'bg-white'
+        )}
+      >
         {/* Header */}
-        <div className={cn(
-          'flex items-center justify-between p-4 border-b',
-          darkMode ? 'border-white/10' : 'border-gray-200'
-        )}>
-          <h3 className={cn(
-            'text-lg font-semibold',
-            darkMode ? 'text-white' : 'text-gray-900'
-          )}>
+        <div
+          className={cn(
+            'flex items-center justify-between border-b p-4',
+            darkMode ? 'border-white/10' : 'border-gray-200'
+          )}
+        >
+          <h3 className={cn('text-lg font-semibold', darkMode ? 'text-white' : 'text-gray-900')}>
             Upload Image
           </h3>
           <button
             onClick={onClose}
             className={cn(
-              'p-1 rounded-lg transition-colors',
-              darkMode ? 'hover:bg-white/10 text-white/70' : 'hover:bg-gray-100 text-gray-500'
+              'rounded-lg p-1 transition-colors',
+              darkMode ? 'text-white/70 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100'
             )}
           >
             <X className="h-5 w-5" />
@@ -264,36 +264,29 @@ function ImageUploadModal({ isOpen, onClose, onImageInsert, darkMode }: ImageUpl
                 onDragLeave={handleDragLeave}
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
-                  'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all',
+                  'cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-all',
                   isDragging
-                    ? darkMode 
-                      ? 'border-white bg-white/10' 
+                    ? darkMode
+                      ? 'border-white bg-white/10'
                       : 'border-blue-500 bg-blue-50'
                     : darkMode
                       ? 'border-white/30 hover:border-white/50 hover:bg-white/5'
                       : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
                 )}
               >
-                <Upload className={cn(
-                  'h-10 w-10 mx-auto mb-3',
-                  darkMode ? 'text-white/50' : 'text-gray-400'
-                )} />
-                <p className={cn(
-                  'font-medium mb-1',
-                  darkMode ? 'text-white' : 'text-gray-700'
-                )}>
+                <Upload
+                  className={cn(
+                    'mx-auto mb-3 h-10 w-10',
+                    darkMode ? 'text-white/50' : 'text-gray-400'
+                  )}
+                />
+                <p className={cn('mb-1 font-medium', darkMode ? 'text-white' : 'text-gray-700')}>
                   {isDragging ? 'Drop image here' : 'Drag & drop an image'}
                 </p>
-                <p className={cn(
-                  'text-sm',
-                  darkMode ? 'text-white/60' : 'text-gray-500'
-                )}>
+                <p className={cn('text-sm', darkMode ? 'text-white/60' : 'text-gray-500')}>
                   or click to browse
                 </p>
-                <p className={cn(
-                  'text-xs mt-2',
-                  darkMode ? 'text-white/40' : 'text-gray-400'
-                )}>
+                <p className={cn('mt-2 text-xs', darkMode ? 'text-white/40' : 'text-gray-400')}>
                   JPEG, PNG, GIF, WebP • Max 2MB • Will be resized to max {MAX_WIDTH}px
                 </p>
               </div>
@@ -308,26 +301,27 @@ function ImageUploadModal({ isOpen, onClose, onImageInsert, darkMode }: ImageUpl
           ) : (
             /* Preview */
             <div className="space-y-4">
-              <div className={cn(
-                'relative rounded-lg overflow-hidden border',
-                darkMode ? 'border-white/10' : 'border-gray-200'
-              )}>
-                <img 
-                  src={preview} 
-                  alt="Preview" 
-                  className="w-full max-h-64 object-contain bg-gray-100"
+              <div
+                className={cn(
+                  'relative overflow-hidden rounded-lg border',
+                  darkMode ? 'border-white/10' : 'border-gray-200'
+                )}
+              >
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="max-h-64 w-full bg-gray-100 object-contain"
                 />
                 <button
                   onClick={() => setPreview(null)}
-                  className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                  className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-white transition-colors hover:bg-black/70"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <p className={cn(
-                'text-xs text-center',
-                darkMode ? 'text-white/60' : 'text-gray-500'
-              )}>
+              <p
+                className={cn('text-center text-xs', darkMode ? 'text-white/60' : 'text-gray-500')}
+              >
                 Image will be compressed and embedded in the editor
               </p>
             </div>
@@ -335,12 +329,18 @@ function ImageUploadModal({ isOpen, onClose, onImageInsert, darkMode }: ImageUpl
 
           {/* Error Message */}
           {error && (
-            <div className={cn(
-              'flex items-center gap-2 mt-3 p-3 rounded-lg text-sm',
-              error.includes('compressed')
-                ? darkMode ? 'bg-yellow-500/20 text-yellow-200' : 'bg-yellow-50 text-yellow-700'
-                : darkMode ? 'bg-red-500/20 text-red-200' : 'bg-red-50 text-red-700'
-            )}>
+            <div
+              className={cn(
+                'mt-3 flex items-center gap-2 rounded-lg p-3 text-sm',
+                error.includes('compressed')
+                  ? darkMode
+                    ? 'bg-yellow-500/20 text-yellow-200'
+                    : 'bg-yellow-50 text-yellow-700'
+                  : darkMode
+                    ? 'bg-red-500/20 text-red-200'
+                    : 'bg-red-50 text-red-700'
+              )}
+            >
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               {error}
             </div>
@@ -348,28 +348,30 @@ function ImageUploadModal({ isOpen, onClose, onImageInsert, darkMode }: ImageUpl
 
           {/* Processing Indicator */}
           {isProcessing && (
-            <div className={cn(
-              'flex items-center justify-center gap-2 mt-3',
-              darkMode ? 'text-white/70' : 'text-gray-600'
-            )}>
-              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <div
+              className={cn(
+                'mt-3 flex items-center justify-center gap-2',
+                darkMode ? 'text-white/70' : 'text-gray-600'
+              )}
+            >
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               Processing image...
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className={cn(
-          'flex justify-end gap-2 p-4 border-t',
-          darkMode ? 'border-white/10' : 'border-gray-200'
-        )}>
+        <div
+          className={cn(
+            'flex justify-end gap-2 border-t p-4',
+            darkMode ? 'border-white/10' : 'border-gray-200'
+          )}
+        >
           <button
             onClick={onClose}
             className={cn(
-              'px-4 py-2 rounded-lg font-medium transition-colors',
-              darkMode 
-                ? 'text-white/70 hover:bg-white/10' 
-                : 'text-gray-700 hover:bg-gray-100'
+              'rounded-lg px-4 py-2 font-medium transition-colors',
+              darkMode ? 'text-white/70 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
             )}
           >
             Cancel
@@ -378,12 +380,12 @@ function ImageUploadModal({ isOpen, onClose, onImageInsert, darkMode }: ImageUpl
             onClick={handleInsert}
             disabled={!preview || isProcessing}
             className={cn(
-              'px-4 py-2 rounded-lg font-medium transition-colors',
+              'rounded-lg px-4 py-2 font-medium transition-colors',
               preview && !isProcessing
-                ? 'bg-[#ea580c] hover:bg-[#dc4c06] text-white'
+                ? 'bg-[#ea580c] text-white hover:bg-[#dc4c06]'
                 : darkMode
-                  ? 'bg-white/10 text-white/30 cursor-not-allowed'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  ? 'cursor-not-allowed bg-white/10 text-white/30'
+                  : 'cursor-not-allowed bg-gray-100 text-gray-400'
             )}
           >
             Insert Image
@@ -428,7 +430,9 @@ function HeadingDropdown({ editor, darkMode }: { editor: Editor; darkMode?: bool
     return 'Paragraph'
   }
 
-  const isAnyHeadingActive = headingLevels.some(h => editor.isActive('heading', { level: h.level }))
+  const isAnyHeadingActive = headingLevels.some((h) =>
+    editor.isActive('heading', { level: h.level })
+  )
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -436,25 +440,27 @@ function HeadingDropdown({ editor, darkMode }: { editor: Editor; darkMode?: bool
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex items-center gap-1 px-2 py-1.5 rounded text-sm transition-colors',
+          'flex items-center gap-1 rounded px-2 py-1.5 text-sm transition-colors',
           darkMode
             ? isAnyHeadingActive
               ? 'bg-white/20 text-white'
-              : 'text-white/60 hover:text-white hover:bg-white/10'
+              : 'text-white/60 hover:bg-white/10 hover:text-white'
             : isAnyHeadingActive
               ? 'bg-gray-200 text-gray-900'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
         )}
       >
-        <span className="font-medium min-w-[70px] text-left">{getCurrentHeading()}</span>
+        <span className="min-w-[70px] text-left font-medium">{getCurrentHeading()}</span>
         <ChevronDown className="h-3 w-3" />
       </button>
-      
+
       {isOpen && (
-        <div className={cn(
-          'absolute top-full left-0 mt-1 py-1 rounded-lg shadow-lg z-50 min-w-[140px]',
-          darkMode ? 'bg-[#1b5858] border border-white/10' : 'bg-white border border-gray-200'
-        )}>
+        <div
+          className={cn(
+            'absolute left-0 top-full z-50 mt-1 min-w-[140px] rounded-lg py-1 shadow-lg',
+            darkMode ? 'border border-white/10 bg-[#1b5858]' : 'border border-gray-200 bg-white'
+          )}
+        >
           <button
             type="button"
             onClick={() => {
@@ -462,10 +468,8 @@ function HeadingDropdown({ editor, darkMode }: { editor: Editor; darkMode?: bool
               setIsOpen(false)
             }}
             className={cn(
-              'w-full text-left px-3 py-1.5 text-sm',
-              darkMode
-                ? 'text-white/80 hover:bg-white/10'
-                : 'text-gray-700 hover:bg-gray-100'
+              'w-full px-3 py-1.5 text-left text-sm',
+              darkMode ? 'text-white/80 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
             )}
           >
             Paragraph
@@ -479,7 +483,7 @@ function HeadingDropdown({ editor, darkMode }: { editor: Editor; darkMode?: bool
                 setIsOpen(false)
               }}
               className={cn(
-                'w-full text-left px-3 py-1.5 flex items-center gap-2',
+                'flex w-full items-center gap-2 px-3 py-1.5 text-left',
                 darkMode
                   ? editor.isActive('heading', { level })
                     ? 'bg-white/20 text-white'
@@ -490,14 +494,16 @@ function HeadingDropdown({ editor, darkMode }: { editor: Editor; darkMode?: bool
               )}
             >
               <Icon className={cn('h-4 w-4', level > 3 && 'h-3.5 w-3.5')} />
-              <span className={cn(
-                level === 1 && 'text-lg font-bold',
-                level === 2 && 'text-base font-bold',
-                level === 3 && 'text-sm font-semibold',
-                level === 4 && 'text-sm font-medium',
-                level === 5 && 'text-xs font-medium',
-                level === 6 && 'text-xs'
-              )}>
+              <span
+                className={cn(
+                  level === 1 && 'text-lg font-bold',
+                  level === 2 && 'text-base font-bold',
+                  level === 3 && 'text-sm font-semibold',
+                  level === 4 && 'text-sm font-medium',
+                  level === 5 && 'text-xs font-medium',
+                  level === 6 && 'text-xs'
+                )}
+              >
                 {label}
               </span>
             </button>
@@ -527,7 +533,7 @@ function MenuBar({ editor, darkMode }: { editor: Editor | null; darkMode?: boole
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center gap-0.5 p-2 border-b',
+        'flex flex-wrap items-center gap-0.5 border-b p-2',
         darkMode ? 'border-white/10 bg-[#0d2628]' : 'border-gray-200 bg-gray-50'
       )}
     >
@@ -557,12 +563,12 @@ function MenuBar({ editor, darkMode }: { editor: Editor | null; darkMode?: boole
         <UnderlineIcon className="h-4 w-4" />
       </MenuButton>
 
-      <div className={cn('w-px h-5 mx-1', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
+      <div className={cn('mx-1 h-5 w-px', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
 
       {/* Headings Dropdown */}
       <HeadingDropdown editor={editor} darkMode={darkMode} />
 
-      <div className={cn('w-px h-5 mx-1', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
+      <div className={cn('mx-1 h-5 w-px', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
 
       {/* Lists */}
       <MenuButton
@@ -582,7 +588,7 @@ function MenuBar({ editor, darkMode }: { editor: Editor | null; darkMode?: boole
         <ListOrdered className="h-4 w-4" />
       </MenuButton>
 
-      <div className={cn('w-px h-5 mx-1', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
+      <div className={cn('mx-1 h-5 w-px', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
 
       {/* Alignment */}
       <MenuButton
@@ -610,7 +616,7 @@ function MenuBar({ editor, darkMode }: { editor: Editor | null; darkMode?: boole
         <AlignRight className="h-4 w-4" />
       </MenuButton>
 
-      <div className={cn('w-px h-5 mx-1', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
+      <div className={cn('mx-1 h-5 w-px', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
 
       {/* Block Quote, Link & Image */}
       <MenuButton
@@ -646,7 +652,7 @@ function MenuBar({ editor, darkMode }: { editor: Editor | null; darkMode?: boole
         darkMode={darkMode}
       />
 
-      <div className={cn('w-px h-5 mx-1', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
+      <div className={cn('mx-1 h-5 w-px', darkMode ? 'bg-white/20' : 'bg-gray-300')} />
 
       {/* Undo/Redo */}
       <MenuButton
@@ -734,8 +740,8 @@ export function RichTextEditor({
   return (
     <div
       className={cn(
-        'rounded-lg border overflow-hidden',
-        darkMode ? 'bg-[#183c3f] border-[#1b5858]' : 'bg-white border-gray-300 shadow-sm',
+        'overflow-hidden rounded-lg border',
+        darkMode ? 'border-[#1b5858] bg-[#183c3f]' : 'border-gray-300 bg-white shadow-sm',
         className
       )}
     >
@@ -746,4 +752,3 @@ export function RichTextEditor({
     </div>
   )
 }
-

@@ -5,33 +5,31 @@
 export function PrivacyStatementPage() {
   return (
     <div className="container py-8 md:py-12 lg:py-24">
-      <div className="max-w-3xl mx-auto space-y-8">
+      <div className="mx-auto max-w-3xl space-y-8">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-4">
+          <h1 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
             Privacy Statement
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Last updated: March 2026
-          </p>
+          <p className="text-sm text-muted-foreground">Last updated: March 2026</p>
         </div>
 
         <div className="prose dark:prose-invert max-w-none space-y-6">
           <p>
-            KC Digital Drive ("we," "our," or "us") is committed to protecting your privacy.
-            This Privacy Statement explains how we collect, use, disclose, and safeguard your
-            information when you visit our website and use our services.
+            KC Digital Drive ("we," "our," or "us") is committed to protecting your privacy. This
+            Privacy Statement explains how we collect, use, disclose, and safeguard your information
+            when you visit our website and use our services.
           </p>
 
           <h2 className="text-2xl font-bold">Information We Collect</h2>
           <p>We may collect information about you in various ways, including:</p>
-          <ul className="list-disc list-inside space-y-2">
+          <ul className="list-inside list-disc space-y-2">
             <li>
-              <strong>Personal Data:</strong> Name, email address, phone number, and mailing
-              address when you register for an account or make a donation.
+              <strong>Personal Data:</strong> Name, email address, phone number, and mailing address
+              when you register for an account or make a donation.
             </li>
             <li>
-              <strong>Payment Information:</strong> Credit card numbers and billing information
-              when you make a donation (processed securely through our payment processor).
+              <strong>Payment Information:</strong> Credit card numbers and billing information when
+              you make a donation (processed securely through our payment processor).
             </li>
             <li>
               <strong>Usage Data:</strong> Information about how you use our website, including
@@ -45,7 +43,7 @@ export function PrivacyStatementPage() {
 
           <h2 className="text-2xl font-bold">How We Use Your Information</h2>
           <p>We use the information we collect to:</p>
-          <ul className="list-disc list-inside space-y-2">
+          <ul className="list-inside list-disc space-y-2">
             <li>Process donations and provide receipts</li>
             <li>Communicate with you about your account and our services</li>
             <li>Send updates about campaigns you've supported</li>
@@ -56,10 +54,10 @@ export function PrivacyStatementPage() {
 
           <h2 className="text-2xl font-bold">Information Sharing</h2>
           <p>We do not sell your personal information. We may share your information with:</p>
-          <ul className="list-disc list-inside space-y-2">
+          <ul className="list-inside list-disc space-y-2">
             <li>
-              <strong>Service Providers:</strong> Third-party vendors who assist us in operating
-              our website and processing payments.
+              <strong>Service Providers:</strong> Third-party vendors who assist us in operating our
+              website and processing payments.
             </li>
             <li>
               <strong>Community Organizations:</strong> When you donate to a specific organization,
@@ -72,14 +70,14 @@ export function PrivacyStatementPage() {
 
           <h2 className="text-2xl font-bold">Data Security</h2>
           <p>
-            We implement appropriate technical and organizational security measures to protect
-            your personal information. However, no method of transmission over the Internet is
-            100% secure, and we cannot guarantee absolute security.
+            We implement appropriate technical and organizational security measures to protect your
+            personal information. However, no method of transmission over the Internet is 100%
+            secure, and we cannot guarantee absolute security.
           </p>
 
           <h2 className="text-2xl font-bold">Your Rights</h2>
           <p>Depending on your location, you may have the right to:</p>
-          <ul className="list-disc list-inside space-y-2">
+          <ul className="list-inside list-disc space-y-2">
             <li>Access the personal information we hold about you</li>
             <li>Request correction of inaccurate information</li>
             <li>Request deletion of your personal information</li>
@@ -95,8 +93,8 @@ export function PrivacyStatementPage() {
 
           <h2 className="text-2xl font-bold">Children's Privacy</h2>
           <p>
-            Our services are not directed to individuals under 13 years of age. We do not
-            knowingly collect personal information from children under 13.
+            Our services are not directed to individuals under 13 years of age. We do not knowingly
+            collect personal information from children under 13.
           </p>
 
           <h2 className="text-2xl font-bold">Changes to This Statement</h2>
@@ -112,8 +110,10 @@ export function PrivacyStatementPage() {
             contact us at:
           </p>
           <p>
-            KC Digital Drive<br />
-            Email: privacy@kcdigitaldrive.org<br />
+            KC Digital Drive
+            <br />
+            Email: privacy@kcdigitaldrive.org
+            <br />
             Kansas City, MO
           </p>
         </div>

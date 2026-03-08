@@ -5,10 +5,21 @@
 @layer base {
   :root {
     /* Brand Colors - Change these to update theme */
-    --brand-primary: 166 51% 22%;     /* #1b5858 - Main teal */
-    --brand-primary-light: 123 45% 81%;  /* #c4e5c1 - Light green */
-    --brand-accent: 166 51% 22%;      /* #1b5858 - Accent */
-    
+    --brand-primary: 166 51% 22%; /* #1b5858 - Main teal */
+    --brand-primary-light: 123 45% 81%; /* #c4e5c1 - Light green */
+    --brand-accent: 166 51% 22%; /* #1b5858 - Accent */
+    --brand-orange: 21 91% 48%; /* #ea580c - CTA Orange */
+    --brand-lime: 68 94% 60%; /* #dbf938 - Lime accent */
+
+    /* Semantic Colors - Brand aligned */
+    --success: 166 51% 22%; /* #1b5858 - Brand teal */
+    --success-light: 152 76% 91%; /* #d1fae5 - Success background */
+    --info: 123 45% 81%; /* #c4e5c1 - Brand light green */
+    --warning: 21 91% 48%; /* #ea580c - Brand orange */
+    --error: 21 91% 48%; /* #ea580c - Brand orange */
+    --error-light: 0 93% 94%; /* #fee2e2 - Error background */
+    --violet: 68 94% 60%; /* #dbf938 - Brand lime */
+
     /* Shadcn defaults */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -24,8 +35,8 @@
     --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 21 91% 48%; /* #ea580c - Brand orange for destructive */
+    --destructive-foreground: 0 0% 100%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: var(--brand-primary);
@@ -61,7 +72,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
   }
 }
-

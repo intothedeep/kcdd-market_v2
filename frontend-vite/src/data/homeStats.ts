@@ -1,7 +1,7 @@
 /**
  * Home Page Stats Data
  * Location: src/data/homeStats.ts
- * 
+ *
  * Statistics for the homepage stats section
  */
 
@@ -9,26 +9,27 @@ import { Stat, StatsContent } from '@/components/home/StatsSection'
 
 export const homeStats: Stat[] = [
   {
-    value: 42,
-    label: 'Fulfilled Requests',
-    description: 'Successfully completed'
+    value: 150,
+    label: 'Requests Fulfilled',
+    description: 'Technology needs met',
   },
   {
-    value: 28,
-    label: 'CBOs Served',
-    description: 'Organizations helped'
+    value: 45,
+    label: 'Organizations Served',
+    description: 'CBOs empowered',
   },
   {
-    value: 156,
-    label: 'Total Impact',
-    description: 'Value delivered'
-  }
+    value: 85000,
+    label: 'Total Donated',
+    description: 'In community support',
+    prefix: '$',
+  },
 ]
 
 export const homeStatsContent: StatsContent = {
-  heading: 'Title Label',
-  description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim',
-  linkText: 'Lorem ipsum dolor',
-  linkHref: '#'
+  heading: 'Making an Impact Together',
+  description:
+    'KC Digital Drive connects generous donors with community-based organizations in Kansas City. Every donation directly supports local nonprofits with their technology needs.',
+  linkText: 'View Impact Reports',
+  linkHref: '/impact',
 }
-

@@ -16,7 +16,7 @@ export function OrganizationTeamTab({ members }: OrganizationTeamTabProps) {
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(word => word[0])
+      .map((word) => word[0])
       .join('')
       .slice(0, 2)
       .toUpperCase()
@@ -25,11 +25,11 @@ export function OrganizationTeamTab({ members }: OrganizationTeamTabProps) {
   if (members.length === 0) {
     return (
       <div className="max-w-3xl">
-        <h2 className="text-2xl font-semibold text-[#0a0a0a] mb-6">Our Team</h2>
-        <div className="py-12 text-center text-[#737373] bg-[#f5f5f5] rounded-lg">
-          <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <h2 className="mb-6 text-2xl font-semibold text-[#0a0a0a]">Our Team</h2>
+        <div className="rounded-lg bg-[#f5f5f5] py-12 text-center text-[#737373]">
+          <Users className="mx-auto mb-4 h-12 w-12 opacity-50" />
           <p className="text-lg">No team members listed.</p>
-          <p className="text-sm mt-2">This organization hasn't added team members yet.</p>
+          <p className="mt-2 text-sm">This organization hasn't added team members yet.</p>
         </div>
       </div>
     )
@@ -37,31 +37,29 @@ export function OrganizationTeamTab({ members }: OrganizationTeamTabProps) {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold text-[#0a0a0a] mb-6">Our Team</h2>
+      <h2 className="mb-6 text-2xl font-semibold text-[#0a0a0a]">Our Team</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {members.map((member) => (
-          <Card key={member.id} className="p-6 border-[#f5f5f5] hover:shadow-md transition-shadow">
+          <Card key={member.id} className="border-[#f5f5f5] p-6 transition-shadow hover:shadow-md">
             <div className="flex flex-col items-center text-center">
               {/* Avatar */}
-              <Avatar className="h-20 w-20 mb-4">
+              <Avatar className="mb-4 h-20 w-20">
                 {member.photo_url && <AvatarImage src={member.photo_url} alt={member.name} />}
-                <AvatarFallback className="bg-[#1b5858] text-white text-xl">
+                <AvatarFallback className="bg-[#1b5858] text-xl text-white">
                   {getInitials(member.name)}
                 </AvatarFallback>
               </Avatar>
 
               {/* Name */}
-              <h3 className="font-semibold text-lg text-[#0a0a0a]">{member.name}</h3>
+              <h3 className="text-lg font-semibold text-[#0a0a0a]">{member.name}</h3>
 
               {/* Role */}
-              {member.role && (
-                <p className="text-sm text-[#ea580c] mb-3">{member.role}</p>
-              )}
+              {member.role && <p className="mb-3 text-sm text-[#ea580c]">{member.role}</p>}
 
               {/* Bio */}
               {member.bio && (
-                <p className="text-sm text-[#737373] leading-relaxed mb-4 line-clamp-3">
+                <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-[#737373]">
                   {member.bio}
                 </p>
               )}
@@ -70,7 +68,7 @@ export function OrganizationTeamTab({ members }: OrganizationTeamTabProps) {
               {member.email && (
                 <a
                   href={`mailto:${member.email}`}
-                  className="inline-flex items-center gap-2 text-sm text-[#1b5858] hover:text-[#ea580c] transition-colors"
+                  className="inline-flex items-center gap-2 text-sm text-[#1b5858] transition-colors hover:text-[#ea580c]"
                 >
                   <Mail className="h-4 w-4" />
                   Contact

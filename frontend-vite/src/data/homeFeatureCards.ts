@@ -1,37 +1,41 @@
 import type { FeatureCardsSectionData } from '@/components/home/FeatureCardsSection'
 
 export const homeFeatureCards: FeatureCardsSectionData = {
-  subtitle: 'Lorem ipsum dolor sit amet',
-  heading: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-  description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.',
-  listItems: ['ut labore et dol'],
-  buttonLabel: 'Login',
-  buttonHref: '/login',
+  subtitle: 'How KC Digital Drive Works',
+  heading: 'Connecting donors with community organizations that need support.',
+  description:
+    'Our platform makes it easy to discover, fund, and track technology requests from verified 501(c)(3) organizations in the Kansas City area.',
+  listItems: ['100% tax-deductible', 'Direct impact tracking', 'Verified nonprofits'],
+  buttonLabel: 'Get Started',
+  buttonHref: '/register',
   cards: [
     {
-      title: 'Title Label',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor',
-      linkText: 'Lorem ipsum dolor',
-      linkHref: '#'
+      title: 'Browse Requests',
+      description:
+        'Explore technology needs from local nonprofits including laptops, software, and equipment for their operations.',
+      linkText: 'View All Requests',
+      linkHref: '/requests',
     },
     {
-      title: 'Title Label',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor',
-      linkText: 'Lorem ipsum dolor',
-      linkHref: '#'
+      title: 'Make a Donation',
+      description:
+        'Fund requests directly with secure payment processing. Your entire donation goes to the organization.',
+      linkText: 'Learn More',
+      linkHref: '/about/how-it-works',
     },
     {
-      title: 'Title Label',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor',
-      linkText: 'Lorem ipsum dolor',
-      linkHref: '#'
+      title: 'Track Your Impact',
+      description:
+        'See exactly how your donations are used with proof of delivery, impact reports, and thank you messages.',
+      linkText: 'View Impact',
+      linkHref: '/impact',
     },
     {
-      title: 'Title Label',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor',
-      linkText: 'Lorem ipsum dolor',
-      linkHref: '#'
-    }
-  ]
+      title: 'Tax Benefits',
+      description:
+        'Receive instant tax receipts for every donation. Download annual summaries for easy tax filing.',
+      linkText: 'Tax Information',
+      linkHref: '/about/tax-benefits',
+    },
+  ],
 }
-

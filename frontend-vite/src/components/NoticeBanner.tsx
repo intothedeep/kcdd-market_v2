@@ -5,11 +5,11 @@
 
 export function NoticeBanner() {
   return (
-    <div className="bg-[hsl(var(--brand-primary-light))] flex items-center justify-center px-4 py-2.5 overflow-hidden">
-      <p className="text-[hsl(var(--brand-primary))] text-sm font-normal whitespace-nowrap">
-        Important Notice Banner • Important Notice Banner • Important Notice Banner • Important Notice Banner • Important Notice Banner • Important Notice Banner • Important Notice Banner
+    <div className="flex items-center justify-center overflow-hidden bg-[hsl(var(--brand-primary-light))] px-4 py-2.5">
+      <p className="whitespace-nowrap text-sm font-normal text-[hsl(var(--brand-primary))]">
+        Important Notice Banner • Important Notice Banner • Important Notice Banner • Important
+        Notice Banner • Important Notice Banner • Important Notice Banner • Important Notice Banner
       </p>
     </div>
   )
 }
-

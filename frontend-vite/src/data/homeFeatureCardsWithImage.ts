@@ -1,36 +1,39 @@
 import type { FeatureCardsWithImageSectionData } from '@/components/home/FeatureCardsWithImageSection'
 
 export const homeFeatureCardsWithImage: FeatureCardsWithImageSectionData = {
-  subtitle: 'Lorem ipsum dolor sit amet',
-  heading: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-  buttonLabel: 'Call To Action',
-  buttonHref: '#',
+  subtitle: 'For Community Organizations',
+  heading: 'Get the technology your nonprofit needs to thrive.',
+  buttonLabel: 'Register Your Organization',
+  buttonHref: '/register?role=cbo',
   imagePlaceholderColor: '#1b5858',
   cards: [
     {
-      title: 'Title Label',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor',
-      linkText: 'Lorem ipsum dolor',
-      linkHref: '#'
+      title: 'Submit Requests',
+      description:
+        'Post specific technology needs to our community of donors. Include details about how items will be used.',
+      linkText: 'Learn How',
+      linkHref: '/about/organizations',
     },
     {
-      title: 'Title Label',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor',
-      linkText: 'Lorem ipsum dolor',
-      linkHref: '#'
+      title: 'Verified Status',
+      description:
+        'Our team verifies your 501(c)(3) status ensuring donors can trust their contributions are going to legitimate causes.',
+      linkText: 'Verification Process',
+      linkHref: '/about/verification',
     },
     {
-      title: 'Title Label',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor',
-      linkText: 'Lorem ipsum dolor',
-      linkHref: '#'
+      title: 'Receive Funding',
+      description:
+        'When donors fund your requests, payments are processed securely through Stripe directly to your organization.',
+      linkText: 'Payment Details',
+      linkHref: '/about/payments',
     },
     {
-      title: 'Title Label',
-      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor',
-      linkText: 'Lorem ipsum dolor',
-      linkHref: '#'
-    }
-  ]
+      title: 'Share Your Impact',
+      description:
+        'Keep donors updated with proof of delivery, photos, and impact stories that build lasting relationships.',
+      linkText: 'Impact Reporting',
+      linkHref: '/about/impact-reporting',
+    },
+  ],
 }
-

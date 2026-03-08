@@ -10,7 +10,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
@@ -61,7 +68,8 @@ export function CampaignDonatePage() {
       try {
         const { data, error } = await supabase
           .from('campaigns')
-          .select(`
+          .select(
+            `
             id,
             title,
             slug,
@@ -70,22 +78,15 @@ export function CampaignDonatePage() {
             amount_raised,
             image_url,
             organization_id,
-            organization:organizations(id, name, slug)
-          `)
+            organization:organizations(id, name, slug, stripe_charges_enabled, stripe_account_id)
+          `
+          )
           .or(`slug.eq.${slug},id.eq.${slug}`)
           .single()
 
         if (error) throw error
 
-        // Add stripe_charges_enabled as false by default until Stripe Connect is set up
-        const campaignWithStripe = {
-          ...data,
-          organization: data.organization ? {
-            ...data.organization,
-            stripe_charges_enabled: false // Default to false until Stripe Connect migration is applied
-          } : null
-        }
-        setCampaign(campaignWithStripe)
+        setCampaign(data)
       } catch (err) {
         console.error('Error loading campaign:', err)
         setError('Failed to load campaign')
@@ -152,17 +153,14 @@ export function CampaignDonatePage() {
       const cardElement = elements.getElement(CardElement)
       if (!cardElement) throw new Error('Card element not found')
 
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        clientSecret,
-        {
-          payment_method: {
-            card: cardElement,
-            billing_details: {
-              email: user?.primaryEmailAddress?.emailAddress,
-            },
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            email: user?.primaryEmailAddress?.emailAddress,
           },
-        }
-      )
+        },
+      })
 
       if (stripeError) {
         throw new Error(stripeError.message)
@@ -182,7 +180,7 @@ export function CampaignDonatePage() {
 
   if (loading) {
     return (
-      <div className="container py-8 flex justify-center">
+      <div className="container flex justify-center py-8">
         <Loader2 className="h-8 w-8 animate-spin text-[#ea580c]" />
       </div>
     )
@@ -195,7 +193,7 @@ export function CampaignDonatePage() {
           <CardContent className="py-8 text-center">
             <p>Campaign not found</p>
             <Button variant="outline" onClick={() => navigate(-1)} className="mt-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
             </Button>
           </CardContent>
@@ -207,15 +205,15 @@ export function CampaignDonatePage() {
   // Check if organization can accept payments
   if (!campaign.organization?.stripe_charges_enabled) {
     return (
-      <div className="container py-8 max-w-2xl">
-        <h1 className="text-3xl font-bold mb-8">Support {campaign.title}</h1>
+      <div className="container max-w-2xl py-8">
+        <h1 className="mb-8 text-3xl font-bold">Support {campaign.title}</h1>
 
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Payments Not Available</AlertTitle>
           <AlertDescription>
-            This organization hasn't completed their payment setup yet.
-            Please check back later or contact the organization directly.
+            This organization hasn't completed their payment setup yet. Please check back later or
+            contact the organization directly.
           </AlertDescription>
         </Alert>
 
@@ -260,48 +258,52 @@ export function CampaignDonatePage() {
   }
 
   return (
-    <div className="container py-8 max-w-2xl">
+    <div className="container max-w-2xl py-8">
       <Link
         to={`/campaign/${campaign.slug}`}
-        className="inline-flex items-center text-[#737373] hover:text-[#0a0a0a] mb-6"
+        className="mb-6 inline-flex items-center text-[#737373] hover:text-[#0a0a0a]"
       >
-        <ArrowLeft className="h-4 w-4 mr-2" />
+        <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Campaign
       </Link>
 
-      <h1 className="text-3xl font-bold mb-2">Support {campaign.title}</h1>
-      <p className="text-[#737373] mb-8">{campaign.short_description}</p>
+      <h1 className="mb-2 text-3xl font-bold">Support {campaign.title}</h1>
+      <p className="mb-8 text-[#737373]">{campaign.short_description}</p>
 
       <div className="grid gap-6">
         {/* Campaign Progress */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4 mb-4">
+            <div className="mb-4 flex items-center gap-4">
               {campaign.image_url ? (
                 <img
                   src={campaign.image_url}
                   alt={campaign.title}
-                  className="w-20 h-20 rounded-lg object-cover"
+                  className="h-20 w-20 rounded-lg object-cover"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-lg bg-[#f5f5f5] flex items-center justify-center">
+                <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-[#f5f5f5]">
                   <Heart className="h-8 w-8 text-[#ea580c]" />
                 </div>
               )}
               <div className="flex-1">
-                <p className="font-semibold text-lg">{campaign.title}</p>
+                <p className="text-lg font-semibold">{campaign.title}</p>
                 <p className="text-sm text-[#737373]">by {campaign.organization?.name}</p>
               </div>
             </div>
             <div className="space-y-2">
-              <div className="h-2 w-full bg-[#f5f5f5] rounded-full overflow-hidden">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[#f5f5f5]">
                 <div
-                  className="h-full bg-[#ea580c] rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min((campaign.amount_raised / campaign.funding_goal) * 100, 100)}%` }}
+                  className="h-full rounded-full bg-[#ea580c] transition-all duration-500"
+                  style={{
+                    width: `${Math.min((campaign.amount_raised / campaign.funding_goal) * 100, 100)}%`,
+                  }}
                 />
               </div>
               <div className="flex justify-between text-sm">
-                <span className="font-semibold">{formatCurrency(campaign.amount_raised)} raised</span>
+                <span className="font-semibold">
+                  {formatCurrency(campaign.amount_raised)} raised
+                </span>
                 <span className="text-[#737373]">of {formatCurrency(campaign.funding_goal)}</span>
               </div>
             </div>
@@ -315,15 +317,14 @@ export function CampaignDonatePage() {
             <CardDescription>Select a donation amount or enter a custom amount</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="mb-4 grid grid-cols-3 gap-3">
               {SUGGESTED_AMOUNTS.map((suggestedAmount) => (
                 <Button
                   key={suggestedAmount}
                   type="button"
                   variant={!isCustom && amount === suggestedAmount ? 'default' : 'outline'}
-                  className={!isCustom && amount === suggestedAmount
-                    ? 'bg-[#ea580c] hover:bg-[#dc4c06]'
-                    : ''
+                  className={
+                    !isCustom && amount === suggestedAmount ? 'bg-[#ea580c] hover:bg-[#dc4c06]' : ''
                   }
                   onClick={() => handleAmountSelect(suggestedAmount)}
                 >
@@ -359,12 +360,10 @@ export function CampaignDonatePage() {
               </div>
             )}
 
-            <div className="mt-4 p-4 bg-[#f5f5f5] rounded-lg">
-              <div className="flex justify-between items-center">
+            <div className="mt-4 rounded-lg bg-[#f5f5f5] p-4">
+              <div className="flex items-center justify-between">
                 <span className="text-[#737373]">Your Donation</span>
-                <span className="text-2xl font-bold text-[#0a0a0a]">
-                  {formatCurrency(amount)}
-                </span>
+                <span className="text-2xl font-bold text-[#0a0a0a]">{formatCurrency(amount)}</span>
               </div>
             </div>
           </CardContent>
@@ -378,7 +377,7 @@ export function CampaignDonatePage() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent>
-              <div className="p-4 border rounded-md">
+              <div className="rounded-md border p-4">
                 <CardElement
                   options={{
                     style: {
@@ -397,7 +396,7 @@ export function CampaignDonatePage() {
                 />
               </div>
               {error && (
-                <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+                <div className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                   {error}
                 </div>
               )}
@@ -410,12 +409,12 @@ export function CampaignDonatePage() {
               >
                 {processing ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Processing...
                   </>
                 ) : (
                   <>
-                    <Heart className="h-4 w-4 mr-2" />
+                    <Heart className="mr-2 h-4 w-4" />
                     Donate {formatCurrency(amount)}
                   </>
                 )}

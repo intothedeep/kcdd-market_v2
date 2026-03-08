@@ -23,14 +23,14 @@ interface OrganizationSidebarProps {
 export function OrganizationSidebar({
   organization,
   requestStats,
-  showSupportButton = true
+  showSupportButton = true,
 }: OrganizationSidebarProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount)
   }
 
@@ -38,11 +38,9 @@ export function OrganizationSidebar({
   const getFullAddress = () => {
     const parts = []
     if (organization.address) parts.push(organization.address)
-    const cityStateZip = [
-      organization.city,
-      organization.state,
-      organization.zipcode
-    ].filter(Boolean).join(organization.state ? ', ' : ' ')
+    const cityStateZip = [organization.city, organization.state, organization.zipcode]
+      .filter(Boolean)
+      .join(organization.state ? ', ' : ' ')
     if (cityStateZip) parts.push(cityStateZip)
     return parts.join(', ')
   }
@@ -50,34 +48,34 @@ export function OrganizationSidebar({
   const fullAddress = getFullAddress()
 
   return (
-    <Card className="w-[340px] sticky top-6 overflow-hidden border-[#e5e5e5] rounded-xl shadow-sm">
+    <Card className="sticky top-6 w-[340px] overflow-hidden rounded-xl border-[#e5e5e5] shadow-sm">
       {/* Impact Stats - Prominent at top with colored background */}
       {requestStats && (
         <div className="bg-gradient-to-br from-[#1b5858] to-[#0f3d3d] p-6">
-          <h3 className="text-sm font-medium text-white/80 mb-4">Community Impact</h3>
+          <h3 className="mb-4 text-sm font-medium text-white/80">Community Impact</h3>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
               <p className="text-3xl font-bold text-white">{requestStats.open}</p>
-              <p className="text-xs text-white/70 mt-1">Active Requests</p>
+              <p className="mt-1 text-xs text-white/70">Active Requests</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-white">{requestStats.fulfilled}</p>
-              <p className="text-xs text-white/70 mt-1">Fulfilled</p>
+              <p className="mt-1 text-xs text-white/70">Fulfilled</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-[#fbbf24]">
                 {formatCurrency(requestStats.totalRaised)}
               </p>
-              <p className="text-xs text-white/70 mt-1">Raised</p>
+              <p className="mt-1 text-xs text-white/70">Raised</p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="p-6 space-y-5">
+      <div className="space-y-5 p-6">
         {/* Verified Badge */}
         {organization.user_profile?.is_vetted && (
-          <div className="flex items-center gap-2 p-3 bg-[#d1fae5]/50 rounded-lg">
+          <div className="flex items-center gap-2 rounded-lg bg-[#d1fae5]/50 p-3">
             <BadgeCheck className="h-5 w-5 text-[#059669]" />
             <div>
               <p className="text-sm font-medium text-[#059669]">Verified Organization</p>
@@ -90,19 +88,19 @@ export function OrganizationSidebar({
         <div className="space-y-3">
           {organization.organization_size && (
             <div className="flex items-center gap-3">
-              <Users className="h-4 w-4 text-[#737373] flex-shrink-0" />
+              <Users className="h-4 w-4 flex-shrink-0 text-[#737373]" />
               <span className="text-sm text-[#0a0a0a]">{organization.organization_size}</span>
             </div>
           )}
           {organization.year_founded && (
             <div className="flex items-center gap-3">
-              <Calendar className="h-4 w-4 text-[#737373] flex-shrink-0" />
+              <Calendar className="h-4 w-4 flex-shrink-0 text-[#737373]" />
               <span className="text-sm text-[#0a0a0a]">Founded {organization.year_founded}</span>
             </div>
           )}
           {organization.ein && (
             <div className="flex items-center gap-3">
-              <Building2 className="h-4 w-4 text-[#737373] flex-shrink-0" />
+              <Building2 className="h-4 w-4 flex-shrink-0 text-[#737373]" />
               <span className="text-sm text-[#737373]">EIN: {organization.ein}</span>
             </div>
           )}
@@ -113,21 +111,21 @@ export function OrganizationSidebar({
 
         {/* Contact Info */}
         <div className="space-y-3">
-          <h3 className="text-xs font-semibold text-[#737373] uppercase tracking-wide">Contact</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-[#737373]">Contact</h3>
           {fullAddress && (
             <div className="flex items-start gap-3">
-              <MapPin className="h-4 w-4 text-[#737373] mt-0.5 flex-shrink-0" />
+              <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#737373]" />
               <span className="text-sm text-[#0a0a0a]">{fullAddress}</span>
             </div>
           )}
           {organization.website && (
             <div className="flex items-center gap-3">
-              <Globe className="h-4 w-4 text-[#737373] flex-shrink-0" />
+              <Globe className="h-4 w-4 flex-shrink-0 text-[#737373]" />
               <a
                 href={organization.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-[#ea580c] hover:underline truncate"
+                className="truncate text-sm text-[#ea580c] hover:underline"
               >
                 {organization.website.replace(/^https?:\/\//, '')}
               </a>
@@ -135,7 +133,7 @@ export function OrganizationSidebar({
           )}
           {organization.email && (
             <div className="flex items-center gap-3">
-              <Mail className="h-4 w-4 text-[#737373] flex-shrink-0" />
+              <Mail className="h-4 w-4 flex-shrink-0 text-[#737373]" />
               <a
                 href={`mailto:${organization.email}`}
                 className="text-sm text-[#0a0a0a] hover:text-[#ea580c]"
@@ -146,7 +144,7 @@ export function OrganizationSidebar({
           )}
           {organization.phone && (
             <div className="flex items-center gap-3">
-              <Phone className="h-4 w-4 text-[#737373] flex-shrink-0" />
+              <Phone className="h-4 w-4 flex-shrink-0 text-[#737373]" />
               <a
                 href={`tel:${organization.phone}`}
                 className="text-sm text-[#0a0a0a] hover:text-[#ea580c]"
@@ -160,7 +158,7 @@ export function OrganizationSidebar({
         {/* Support CTA */}
         {showSupportButton && (
           <Link to={`/requests?organization=${organization.id}`} className="block pt-2">
-            <Button className="w-full bg-[#ea580c] hover:bg-[#dc4c06] text-white rounded-full h-11 text-base font-medium">
+            <Button className="h-11 w-full rounded-full bg-[#ea580c] text-base font-medium text-white hover:bg-[#dc4c06]">
               Support This Organization
             </Button>
           </Link>

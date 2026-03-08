@@ -27,40 +27,38 @@ const statusConfig = {
   open: {
     label: 'Open',
     className: 'bg-[#d1fae5] text-[#059669]',
-    icon: Target
+    icon: Target,
   },
   claimed: {
     label: 'Claimed',
     className: 'bg-[#dbeafe] text-[#2563eb]',
-    icon: Clock
+    icon: Clock,
   },
   fulfilled: {
     label: 'Fulfilled',
     className: 'bg-[#f3e8ff] text-[#7c3aed]',
-    icon: CheckCircle2
+    icon: CheckCircle2,
   },
   denied: {
     label: 'Denied',
     className: 'bg-[#fee2e2] text-[#dc2626]',
-    icon: AlertCircle
-  }
+    icon: AlertCircle,
+  },
 }
 
 const urgencyConfig = {
   low: { label: 'Low', className: 'bg-gray-100 text-gray-600' },
   medium: { label: 'Medium', className: 'bg-amber-100 text-amber-700' },
-  high: { label: 'Urgent', className: 'bg-red-100 text-red-700' }
+  high: { label: 'Urgent', className: 'bg-red-100 text-red-700' },
 }
 
-export function OrganizationCampaignsTab({
-  requests
-}: OrganizationCampaignsTabProps) {
+export function OrganizationCampaignsTab({ requests }: OrganizationCampaignsTabProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount)
   }
 
@@ -68,22 +66,22 @@ export function OrganizationCampaignsTab({
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     })
   }
 
   // Calculate stats
-  const openRequests = requests.filter(r => r.status === 'open')
-  const fulfilledRequests = requests.filter(r => r.status === 'fulfilled')
+  const openRequests = requests.filter((r) => r.status === 'open')
+  const fulfilledRequests = requests.filter((r) => r.status === 'fulfilled')
   const totalRaised = fulfilledRequests.reduce((sum, r) => sum + Number(r.amount), 0)
 
   return (
     <div className="space-y-8">
       {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="p-6 border-[#f5f5f5]">
+        <Card className="border-[#f5f5f5] p-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-[#d1fae5] rounded-lg">
+            <div className="rounded-lg bg-[#d1fae5] p-3">
               <Target className="h-6 w-6 text-[#059669]" />
             </div>
             <div>
@@ -92,9 +90,9 @@ export function OrganizationCampaignsTab({
             </div>
           </div>
         </Card>
-        <Card className="p-6 border-[#f5f5f5]">
+        <Card className="border-[#f5f5f5] p-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-[#f3e8ff] rounded-lg">
+            <div className="rounded-lg bg-[#f3e8ff] p-3">
               <CheckCircle2 className="h-6 w-6 text-[#7c3aed]" />
             </div>
             <div>
@@ -103,9 +101,9 @@ export function OrganizationCampaignsTab({
             </div>
           </div>
         </Card>
-        <Card className="p-6 border-[#f5f5f5]">
+        <Card className="border-[#f5f5f5] p-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-[#ea580c]/10 rounded-lg">
+            <div className="rounded-lg bg-[#ea580c]/10 p-3">
               <DollarSign className="h-6 w-6 text-[#ea580c]" />
             </div>
             <div>
@@ -118,13 +116,13 @@ export function OrganizationCampaignsTab({
 
       {/* Request Cards */}
       <div>
-        <h2 className="text-2xl font-semibold text-[#0a0a0a] mb-4">Technology Requests</h2>
+        <h2 className="mb-4 text-2xl font-semibold text-[#0a0a0a]">Technology Requests</h2>
 
         {requests.length === 0 ? (
-          <div className="py-12 text-center text-[#737373] bg-[#f5f5f5] rounded-lg">
-            <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <div className="rounded-lg bg-[#f5f5f5] py-12 text-center text-[#737373]">
+            <Target className="mx-auto mb-4 h-12 w-12 opacity-50" />
             <p className="text-lg">No requests yet.</p>
-            <p className="text-sm mt-2">This organization hasn't posted any technology requests.</p>
+            <p className="mt-2 text-sm">This organization hasn't posted any technology requests.</p>
           </div>
         ) : (
           <div className="grid gap-4">
@@ -134,12 +132,15 @@ export function OrganizationCampaignsTab({
               const StatusIcon = status.icon
 
               return (
-                <Card key={request.id} className="p-5 border-[#f5f5f5] hover:shadow-md transition-shadow">
+                <Card
+                  key={request.id}
+                  className="border-[#f5f5f5] p-5 transition-shadow hover:shadow-md"
+                >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex items-center gap-2">
                         <Badge className={`${status.className} hover:${status.className}`}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
+                          <StatusIcon className="mr-1 h-3 w-3" />
                           {status.label}
                         </Badge>
                         <Badge className={`${urgency.className} hover:${urgency.className}`}>
@@ -151,14 +152,14 @@ export function OrganizationCampaignsTab({
                           </Badge>
                         )}
                       </div>
-                      <p className="text-base text-[#0a0a0a] mb-2 line-clamp-2">
+                      <p className="mb-2 line-clamp-2 text-base text-[#0a0a0a]">
                         {request.description}
                       </p>
                       <p className="text-sm text-[#737373]">
                         Posted {formatDate(request.created_at)}
                       </p>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="flex-shrink-0 text-right">
                       <p className="text-2xl font-bold text-[#0a0a0a]">
                         {formatCurrency(request.amount)}
                       </p>
@@ -166,7 +167,7 @@ export function OrganizationCampaignsTab({
                         <Link to={`/checkout/${request.id}`}>
                           <Button
                             size="sm"
-                            className="mt-2 bg-[#ea580c] hover:bg-[#dc4c06] text-white rounded-full"
+                            className="mt-2 rounded-full bg-[#ea580c] text-white hover:bg-[#dc4c06]"
                           >
                             Support
                           </Button>

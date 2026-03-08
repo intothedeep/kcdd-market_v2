@@ -8,7 +8,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
-import { ArrowLeft, Loader2, ExternalLink, Pencil, Save, X, Plus, Upload, ImageIcon } from 'lucide-react'
+import {
+  ArrowLeft,
+  Loader2,
+  ExternalLink,
+  Pencil,
+  Save,
+  X,
+  Plus,
+  Upload,
+  ImageIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -29,7 +39,7 @@ import {
   OrganizationAboutTab,
   OrganizationCampaignsTab,
   OrganizationUpdatesTab,
-  OrganizationTeamTab
+  OrganizationTeamTab,
 } from '@/components/organization'
 import {
   fetchOrganizationProfile,
@@ -44,7 +54,7 @@ import {
   supabase,
   type OrganizationProfile,
   type OrganizationUpdate,
-  type OrganizationTeamMember
+  type OrganizationTeamMember,
 } from '@/lib/supabase'
 
 interface CauseArea {
@@ -68,7 +78,7 @@ const ORGANIZATION_TYPES = [
   'Library',
   'Government Agency',
   'Healthcare Organization',
-  'Other'
+  'Other',
 ]
 
 const ORGANIZATION_SIZES = [
@@ -77,7 +87,7 @@ const ORGANIZATION_SIZES = [
   '11-25 employees',
   '26-50 employees',
   '51-100 employees',
-  '100+ employees'
+  '100+ employees',
 ]
 
 interface EditForm {
@@ -141,7 +151,7 @@ export function OrganizationProfilePage() {
     facebook_url: '',
     twitter_url: '',
     instagram_url: '',
-    linkedin_url: ''
+    linkedin_url: '',
   })
 
   // File upload refs and states
@@ -175,7 +185,7 @@ export function OrganizationProfilePage() {
       try {
         const [causeAreasData, populationsData] = await Promise.all([
           fetchCauseAreas(),
-          fetchIdentityCategories()
+          fetchIdentityCategories(),
         ])
         setAllCauseAreas(causeAreasData)
         setAllPopulations(populationsData)
@@ -212,7 +222,7 @@ export function OrganizationProfilePage() {
         facebook_url: socialLinks.facebook || '',
         twitter_url: socialLinks.twitter || '',
         instagram_url: socialLinks.instagram || '',
-        linkedin_url: socialLinks.linkedin || ''
+        linkedin_url: socialLinks.linkedin || '',
       })
 
       // Populate selected cause areas and populations
@@ -237,7 +247,7 @@ export function OrganizationProfilePage() {
         fetchOrganizationProfile(id),
         fetchOrganizationRequests(id),
         fetchOrganizationUpdates(id),
-        fetchOrganizationTeamMembers(id)
+        fetchOrganizationTeamMembers(id),
       ])
 
       if (!org) {
@@ -295,7 +305,7 @@ export function OrganizationProfilePage() {
         facebook_url: socialLinks.facebook || '',
         twitter_url: socialLinks.twitter || '',
         instagram_url: socialLinks.instagram || '',
-        linkedin_url: socialLinks.linkedin || ''
+        linkedin_url: socialLinks.linkedin || '',
       })
       // Reset cause areas and populations
       if (organization.cause_areas) {
@@ -338,15 +348,15 @@ export function OrganizationProfilePage() {
 
   // Toggle cause area selection
   const toggleCauseArea = (id: string) => {
-    setSelectedCauseAreaIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    setSelectedCauseAreaIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     )
   }
 
   // Toggle population selection
   const togglePopulation = (id: string) => {
-    setSelectedPopulationIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    setSelectedPopulationIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     )
   }
 
@@ -369,9 +379,7 @@ export function OrganizationProfilePage() {
         })
       }
 
-      const { data: urlData } = supabase.storage
-        .from('organization-images')
-        .getPublicUrl(data.path)
+      const { data: urlData } = supabase.storage.from('organization-images').getPublicUrl(data.path)
       return urlData.publicUrl
     } catch (err) {
       console.error('Image upload error:', err)
@@ -425,14 +433,14 @@ export function OrganizationProfilePage() {
           facebook: updates.facebook_url || undefined,
           twitter: updates.twitter_url || undefined,
           instagram: updates.instagram_url || undefined,
-          linkedin: updates.linkedin_url || undefined
-        }
+          linkedin: updates.linkedin_url || undefined,
+        },
       } as any)
 
       // Save cause areas and populations
       await Promise.all([
         saveOrganizationCauseAreas(organization.id, selectedCauseAreaIds),
-        saveOrganizationPopulations(organization.id, selectedPopulationIds)
+        saveOrganizationPopulations(organization.id, selectedPopulationIds),
       ])
 
       // Update local state
@@ -460,10 +468,10 @@ export function OrganizationProfilePage() {
           facebook: updates.facebook_url || '',
           twitter: updates.twitter_url || '',
           instagram: updates.instagram_url || '',
-          linkedin: updates.linkedin_url || ''
+          linkedin: updates.linkedin_url || '',
         },
-        cause_areas: allCauseAreas.filter(ca => selectedCauseAreaIds.includes(ca.id)),
-        populations: allPopulations.filter(p => selectedPopulationIds.includes(p.id))
+        cause_areas: allCauseAreas.filter((ca) => selectedCauseAreaIds.includes(ca.id)),
+        populations: allPopulations.filter((p) => selectedPopulationIds.includes(p.id)),
       })
 
       // Reset file states
@@ -481,16 +489,16 @@ export function OrganizationProfilePage() {
 
   // Calculate request stats
   const requestStats = {
-    open: requests.filter(r => r.status === 'open').length,
-    fulfilled: requests.filter(r => r.status === 'fulfilled').length,
+    open: requests.filter((r) => r.status === 'open').length,
+    fulfilled: requests.filter((r) => r.status === 'fulfilled').length,
     totalRaised: requests
-      .filter(r => r.status === 'fulfilled')
-      .reduce((sum, r) => sum + Number(r.amount), 0)
+      .filter((r) => r.status === 'fulfilled')
+      .reduce((sum, r) => sum + Number(r.amount), 0),
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
         <Loader2 className="h-8 w-8 animate-spin text-[#ea580c]" />
       </div>
     )
@@ -498,14 +506,14 @@ export function OrganizationProfilePage() {
 
   if (error || !organization) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafafa] p-6">
-        <h1 className="text-2xl font-bold text-[#0a0a0a] mb-4">Organization Not Found</h1>
-        <p className="text-[#737373] mb-6">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa] p-6">
+        <h1 className="mb-4 text-2xl font-bold text-[#0a0a0a]">Organization Not Found</h1>
+        <p className="mb-6 text-[#737373]">
           The organization you're looking for doesn't exist or has been removed.
         </p>
         <Link to="/requests">
           <Button>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Browse Requests
           </Button>
         </Link>
@@ -515,22 +523,17 @@ export function OrganizationProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="mx-auto max-w-[1200px] px-6 py-8">
         {/* Edit Mode Banner */}
         {isEditing && (
-          <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
+          <div className="mb-4 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 p-4">
             <div className="flex items-center gap-2">
               <Pencil className="h-4 w-4 text-amber-600" />
-              <span className="text-amber-800 font-medium">Editing Profile</span>
+              <span className="font-medium text-amber-800">Editing Profile</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCancelEdit}
-                disabled={saving}
-              >
-                <X className="h-4 w-4 mr-1" />
+              <Button variant="outline" size="sm" onClick={handleCancelEdit} disabled={saving}>
+                <X className="mr-1 h-4 w-4" />
                 Cancel
               </Button>
               <Button
@@ -540,9 +543,9 @@ export function OrganizationProfilePage() {
                 disabled={saving}
               >
                 {saving ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                 ) : (
-                  <Save className="h-4 w-4 mr-1" />
+                  <Save className="mr-1 h-4 w-4" />
                 )}
                 Save Changes
               </Button>
@@ -553,7 +556,7 @@ export function OrganizationProfilePage() {
         {/* Back Link */}
         <Link
           to="/requests"
-          className="inline-flex items-center gap-2 text-sm text-[#737373] hover:text-[#0a0a0a] mb-6 transition-colors"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-[#737373] transition-colors hover:text-[#0a0a0a]"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Requests
@@ -565,23 +568,23 @@ export function OrganizationProfilePage() {
             {/* Clickable Cover Image */}
             <div
               onClick={() => coverInputRef.current?.click()}
-              className="w-full h-[300px] bg-[#f5f5f5] rounded-[10px] overflow-hidden cursor-pointer group relative"
+              className="group relative h-[300px] w-full cursor-pointer overflow-hidden rounded-[10px] bg-[#f5f5f5]"
             >
               {coverPreview || editForm.cover_image_url ? (
                 <img
                   src={coverPreview || editForm.cover_image_url}
                   alt={`${editForm.name} cover`}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#ea580c]/10 to-[#1b5858]/10">
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#ea580c]/10 to-[#1b5858]/10">
                   <ImageIcon className="h-16 w-16 text-[#737373] opacity-30" />
                 </div>
               )}
               {/* Upload Overlay */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <div className="text-white text-center">
-                  <Upload className="h-8 w-8 mx-auto mb-2" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="text-center text-white">
+                  <Upload className="mx-auto mb-2 h-8 w-8" />
                   <span className="text-sm">Click to change cover image</span>
                 </div>
               </div>
@@ -598,24 +601,24 @@ export function OrganizationProfilePage() {
             <div className="absolute -bottom-12 left-6">
               <div
                 onClick={() => logoInputRef.current?.click()}
-                className="p-1 bg-white rounded-full shadow-lg cursor-pointer group relative"
+                className="group relative cursor-pointer rounded-full bg-white p-1 shadow-lg"
               >
-                <div className="w-24 h-24 rounded-full overflow-hidden bg-[#f5f5f5] relative">
+                <div className="relative h-24 w-24 overflow-hidden rounded-full bg-[#f5f5f5]">
                   {logoPreview || editForm.logo_url ? (
                     <img
                       src={logoPreview || editForm.logo_url}
                       alt={editForm.name}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#ea580c] to-[#1b5858]">
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#ea580c] to-[#1b5858]">
                       <span className="text-3xl font-bold text-white">
                         {editForm.name?.charAt(0) || '?'}
                       </span>
                     </div>
                   )}
                   {/* Upload Overlay */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                     <Upload className="h-6 w-6 text-white" />
                   </div>
                 </div>
@@ -641,7 +644,7 @@ export function OrganizationProfilePage() {
         )}
 
         {/* Header with Name */}
-        <div className="mt-16 mb-6">
+        <div className="mb-6 mt-16">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               {isEditing ? (
@@ -649,31 +652,29 @@ export function OrganizationProfilePage() {
                   <Input
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="text-3xl font-bold h-auto py-2 border-dashed max-w-xl"
+                    className="h-auto max-w-xl border-dashed py-2 text-3xl font-bold"
                     placeholder="Organization Name"
                   />
                   <Input
                     value={editForm.tagline}
                     onChange={(e) => setEditForm({ ...editForm, tagline: e.target.value })}
-                    className="text-lg h-auto py-1 border-dashed max-w-xl text-[#737373]"
+                    className="h-auto max-w-xl border-dashed py-1 text-lg text-[#737373]"
                     placeholder="Add a tagline..."
                   />
                 </div>
               ) : (
                 <>
-                  <h1 className="text-4xl font-bold text-[#0a0a0a] mb-2">
-                    {organization.name}
-                  </h1>
+                  <h1 className="mb-2 text-4xl font-bold text-[#0a0a0a]">{organization.name}</h1>
                   {organization.tagline && (
-                    <p className="text-lg text-[#737373] mb-3">{organization.tagline}</p>
+                    <p className="mb-3 text-lg text-[#737373]">{organization.tagline}</p>
                   )}
                   {/* Display cause areas and populations as badges */}
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex flex-wrap items-center gap-2">
                     {organization.cause_areas?.map((area: any) => (
                       <Badge
                         key={area.id}
                         variant="secondary"
-                        className="bg-[#eaeaea] text-[#737373] font-normal rounded-full px-2 py-0.5"
+                        className="rounded-full bg-[#eaeaea] px-2 py-0.5 font-normal text-[#737373]"
                       >
                         {area.name}
                       </Badge>
@@ -682,7 +683,7 @@ export function OrganizationProfilePage() {
                       <Badge
                         key={pop.id}
                         variant="secondary"
-                        className="bg-[#ea580c]/10 text-[#ea580c] font-normal rounded-full px-2 py-0.5"
+                        className="rounded-full bg-[#ea580c]/10 px-2 py-0.5 font-normal text-[#ea580c]"
                       >
                         {pop.name}
                       </Badge>
@@ -710,7 +711,7 @@ export function OrganizationProfilePage() {
                   onClick={handleStartEdit}
                   className="flex-shrink-0"
                 >
-                  <Pencil className="h-4 w-4 mr-1" />
+                  <Pencil className="mr-1 h-4 w-4" />
                   Edit Profile
                 </Button>
               )}
@@ -721,44 +722,44 @@ export function OrganizationProfilePage() {
         {/* Main Content */}
         <div className="flex gap-8">
           {/* Tabs Content (Left) */}
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="bg-[#f5f5f5] p-[3px] rounded-lg w-full justify-start mb-6">
+              <TabsList className="mb-6 w-full justify-start rounded-lg bg-[#f5f5f5] p-[3px]">
                 <TabsTrigger
                   value="about"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                  className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   About
                 </TabsTrigger>
                 <TabsTrigger
                   value="campaigns"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                  className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   Campaigns
                   {requests.length > 0 && (
-                    <span className="ml-1.5 text-xs bg-[#171717] text-white px-1.5 py-0.5 rounded-full">
+                    <span className="ml-1.5 rounded-full bg-[#171717] px-1.5 py-0.5 text-xs text-white">
                       {requests.length}
                     </span>
                   )}
                 </TabsTrigger>
                 <TabsTrigger
                   value="updates"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                  className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   Updates
                   {updates.length > 0 && (
-                    <span className="ml-1.5 text-xs bg-[#171717] text-white px-1.5 py-0.5 rounded-full">
+                    <span className="ml-1.5 rounded-full bg-[#171717] px-1.5 py-0.5 text-xs text-white">
                       {updates.length}
                     </span>
                   )}
                 </TabsTrigger>
                 <TabsTrigger
                   value="team"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                  className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   Team
                   {teamMembers.length > 0 && (
-                    <span className="ml-1.5 text-xs bg-[#171717] text-white px-1.5 py-0.5 rounded-full">
+                    <span className="ml-1.5 rounded-full bg-[#171717] px-1.5 py-0.5 text-xs text-white">
                       {teamMembers.length}
                     </span>
                   )}
@@ -770,11 +771,13 @@ export function OrganizationProfilePage() {
                   <div className="space-y-6">
                     {/* Mission */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-[#0a0a0a]">Mission Statement</label>
+                      <label className="text-sm font-medium text-[#0a0a0a]">
+                        Mission Statement
+                      </label>
                       <Textarea
                         value={editForm.mission}
                         onChange={(e) => setEditForm({ ...editForm, mission: e.target.value })}
-                        className="border-dashed min-h-[100px]"
+                        className="min-h-[100px] border-dashed"
                         placeholder="Your organization's mission..."
                       />
                     </div>
@@ -782,33 +785,45 @@ export function OrganizationProfilePage() {
                     {/* Organization Details */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-[#0a0a0a]">Organization Type</label>
+                        <label className="text-sm font-medium text-[#0a0a0a]">
+                          Organization Type
+                        </label>
                         <Select
                           value={editForm.organization_type}
-                          onValueChange={(value) => setEditForm({ ...editForm, organization_type: value })}
+                          onValueChange={(value) =>
+                            setEditForm({ ...editForm, organization_type: value })
+                          }
                         >
                           <SelectTrigger className="border-dashed">
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent>
-                            {ORGANIZATION_TYPES.map(type => (
-                              <SelectItem key={type} value={type}>{type}</SelectItem>
+                            {ORGANIZATION_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-[#0a0a0a]">Organization Size</label>
+                        <label className="text-sm font-medium text-[#0a0a0a]">
+                          Organization Size
+                        </label>
                         <Select
                           value={editForm.organization_size}
-                          onValueChange={(value) => setEditForm({ ...editForm, organization_size: value })}
+                          onValueChange={(value) =>
+                            setEditForm({ ...editForm, organization_size: value })
+                          }
                         >
                           <SelectTrigger className="border-dashed">
                             <SelectValue placeholder="Select size" />
                           </SelectTrigger>
                           <SelectContent>
-                            {ORGANIZATION_SIZES.map(size => (
-                              <SelectItem key={size} value={size}>{size}</SelectItem>
+                            {ORGANIZATION_SIZES.map((size) => (
+                              <SelectItem key={size} value={size}>
+                                {size}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -821,28 +836,36 @@ export function OrganizationProfilePage() {
                         type="number"
                         value={editForm.year_founded}
                         onChange={(e) => setEditForm({ ...editForm, year_founded: e.target.value })}
-                        className="border-dashed max-w-[150px]"
+                        className="max-w-[150px] border-dashed"
                         placeholder="e.g., 2015"
                       />
                     </div>
 
                     {/* Programs */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-[#0a0a0a]">Programs & Services</label>
+                      <label className="text-sm font-medium text-[#0a0a0a]">
+                        Programs & Services
+                      </label>
                       <RichTextEditor
                         value={editForm.program_description}
-                        onChange={(value) => setEditForm({ ...editForm, program_description: value })}
+                        onChange={(value) =>
+                          setEditForm({ ...editForm, program_description: value })
+                        }
                         placeholder="Describe your programs and services..."
                       />
                     </div>
 
                     {/* Technology Challenges */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-[#0a0a0a]">Technology Challenges</label>
+                      <label className="text-sm font-medium text-[#0a0a0a]">
+                        Technology Challenges
+                      </label>
                       <Textarea
                         value={editForm.technology_barriers}
-                        onChange={(e) => setEditForm({ ...editForm, technology_barriers: e.target.value })}
-                        className="border-dashed min-h-[80px]"
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, technology_barriers: e.target.value })
+                        }
+                        className="min-h-[80px] border-dashed"
                         placeholder="What tech challenges does your organization face?"
                       />
                     </div>
@@ -852,15 +875,19 @@ export function OrganizationProfilePage() {
                       <label className="text-sm font-medium text-[#0a0a0a]">Service Area</label>
                       <Textarea
                         value={editForm.service_area_description}
-                        onChange={(e) => setEditForm({ ...editForm, service_area_description: e.target.value })}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, service_area_description: e.target.value })
+                        }
                         className="border-dashed"
                         placeholder="Geographic area you serve..."
                       />
                     </div>
 
                     {/* Contact Info */}
-                    <div className="pt-4 border-t border-gray-200">
-                      <h3 className="text-sm font-medium text-[#0a0a0a] mb-4">Contact Information</h3>
+                    <div className="border-t border-gray-200 pt-4">
+                      <h3 className="mb-4 text-sm font-medium text-[#0a0a0a]">
+                        Contact Information
+                      </h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="text-xs text-[#737373]">Email</label>
@@ -934,18 +961,18 @@ export function OrganizationProfilePage() {
                     </div>
 
                     {/* Cause Areas */}
-                    <div className="pt-4 border-t border-gray-200">
-                      <h3 className="text-sm font-medium text-[#0a0a0a] mb-4">Cause Areas</h3>
-                      <div className="flex items-center gap-2 flex-wrap">
+                    <div className="border-t border-gray-200 pt-4">
+                      <h3 className="mb-4 text-sm font-medium text-[#0a0a0a]">Cause Areas</h3>
+                      <div className="flex flex-wrap items-center gap-2">
                         {/* Selected cause areas as removable badges */}
                         {selectedCauseAreaIds.map((id) => {
-                          const area = allCauseAreas.find(a => a.id === id)
+                          const area = allCauseAreas.find((a) => a.id === id)
                           if (!area) return null
                           return (
                             <Badge
                               key={area.id}
                               variant="secondary"
-                              className="bg-[#1b5858] text-white font-normal rounded-full px-2 py-0.5 cursor-pointer hover:bg-[#164444] flex items-center gap-1"
+                              className="flex cursor-pointer items-center gap-1 rounded-full bg-[#1b5858] px-2 py-0.5 font-normal text-white hover:bg-[#164444]"
                               onClick={() => toggleCauseArea(area.id)}
                             >
                               {area.name}
@@ -959,22 +986,24 @@ export function OrganizationProfilePage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-6 text-xs border-dashed"
+                            className="h-6 border-dashed text-xs"
                             onClick={() => setShowCauseAreaSelector(!showCauseAreaSelector)}
                           >
-                            <Plus className="h-3 w-3 mr-1" />
+                            <Plus className="mr-1 h-3 w-3" />
                             Add Cause Area
                           </Button>
 
                           {/* Tag selector dropdown */}
                           {showCauseAreaSelector && (
-                            <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                            <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-64 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
                               <div className="p-2">
-                                <p className="text-xs text-[#737373] mb-2 px-2">Select cause areas:</p>
+                                <p className="mb-2 px-2 text-xs text-[#737373]">
+                                  Select cause areas:
+                                </p>
                                 {allCauseAreas.map((area) => (
                                   <label
                                     key={area.id}
-                                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer"
+                                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-gray-50"
                                   >
                                     <Checkbox
                                       checked={selectedCauseAreaIds.includes(area.id)}
@@ -991,18 +1020,20 @@ export function OrganizationProfilePage() {
                     </div>
 
                     {/* Populations Served */}
-                    <div className="pt-4 border-t border-gray-200">
-                      <h3 className="text-sm font-medium text-[#0a0a0a] mb-4">Populations Served</h3>
-                      <div className="flex items-center gap-2 flex-wrap">
+                    <div className="border-t border-gray-200 pt-4">
+                      <h3 className="mb-4 text-sm font-medium text-[#0a0a0a]">
+                        Populations Served
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-2">
                         {/* Selected populations as removable badges */}
                         {selectedPopulationIds.map((id) => {
-                          const pop = allPopulations.find(p => p.id === id)
+                          const pop = allPopulations.find((p) => p.id === id)
                           if (!pop) return null
                           return (
                             <Badge
                               key={pop.id}
                               variant="secondary"
-                              className="bg-[#ea580c] text-white font-normal rounded-full px-2 py-0.5 cursor-pointer hover:bg-[#dc4c06] flex items-center gap-1"
+                              className="flex cursor-pointer items-center gap-1 rounded-full bg-[#ea580c] px-2 py-0.5 font-normal text-white hover:bg-[#dc4c06]"
                               onClick={() => togglePopulation(pop.id)}
                             >
                               {pop.name}
@@ -1016,22 +1047,24 @@ export function OrganizationProfilePage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-6 text-xs border-dashed"
+                            className="h-6 border-dashed text-xs"
                             onClick={() => setShowPopulationSelector(!showPopulationSelector)}
                           >
-                            <Plus className="h-3 w-3 mr-1" />
+                            <Plus className="mr-1 h-3 w-3" />
                             Add Population
                           </Button>
 
                           {/* Tag selector dropdown */}
                           {showPopulationSelector && (
-                            <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                            <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-64 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
                               <div className="p-2">
-                                <p className="text-xs text-[#737373] mb-2 px-2">Select populations:</p>
+                                <p className="mb-2 px-2 text-xs text-[#737373]">
+                                  Select populations:
+                                </p>
                                 {allPopulations.map((pop) => (
                                   <label
                                     key={pop.id}
-                                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer"
+                                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-gray-50"
                                   >
                                     <Checkbox
                                       checked={selectedPopulationIds.includes(pop.id)}
@@ -1048,15 +1081,17 @@ export function OrganizationProfilePage() {
                     </div>
 
                     {/* Social Links */}
-                    <div className="pt-4 border-t border-gray-200">
-                      <h3 className="text-sm font-medium text-[#0a0a0a] mb-4">Social Media</h3>
+                    <div className="border-t border-gray-200 pt-4">
+                      <h3 className="mb-4 text-sm font-medium text-[#0a0a0a]">Social Media</h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="text-xs text-[#737373]">Facebook</label>
                           <Input
                             type="url"
                             value={editForm.facebook_url}
-                            onChange={(e) => setEditForm({ ...editForm, facebook_url: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, facebook_url: e.target.value })
+                            }
                             className="border-dashed"
                             placeholder="https://facebook.com/..."
                           />
@@ -1066,7 +1101,9 @@ export function OrganizationProfilePage() {
                           <Input
                             type="url"
                             value={editForm.twitter_url}
-                            onChange={(e) => setEditForm({ ...editForm, twitter_url: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, twitter_url: e.target.value })
+                            }
                             className="border-dashed"
                             placeholder="https://x.com/..."
                           />
@@ -1076,7 +1113,9 @@ export function OrganizationProfilePage() {
                           <Input
                             type="url"
                             value={editForm.instagram_url}
-                            onChange={(e) => setEditForm({ ...editForm, instagram_url: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, instagram_url: e.target.value })
+                            }
                             className="border-dashed"
                             placeholder="https://instagram.com/..."
                           />
@@ -1086,7 +1125,9 @@ export function OrganizationProfilePage() {
                           <Input
                             type="url"
                             value={editForm.linkedin_url}
-                            onChange={(e) => setEditForm({ ...editForm, linkedin_url: e.target.value })}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, linkedin_url: e.target.value })
+                            }
                             className="border-dashed"
                             placeholder="https://linkedin.com/..."
                           />
@@ -1114,10 +1155,7 @@ export function OrganizationProfilePage() {
           </div>
 
           {/* Sidebar (Right) */}
-          <OrganizationSidebar
-            organization={organization}
-            requestStats={requestStats}
-          />
+          <OrganizationSidebar organization={organization} requestStats={requestStats} />
         </div>
 
         {/* Bottom Padding */}

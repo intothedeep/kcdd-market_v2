@@ -22,20 +22,16 @@ export function OrganizationHero({
   logoEmoji,
   name,
   isOwner = false,
-  onEditClick
+  onEditClick,
 }: OrganizationHeroProps) {
   return (
     <div className="relative">
       {/* Cover Image */}
-      <div className="w-full h-[300px] bg-[#f5f5f5] rounded-[10px] overflow-hidden">
+      <div className="h-[300px] w-full overflow-hidden rounded-[10px] bg-[#f5f5f5]">
         {coverImageUrl ? (
-          <img
-            src={coverImageUrl}
-            alt={`${name} cover`}
-            className="w-full h-full object-cover"
-          />
+          <img src={coverImageUrl} alt={`${name} cover`} className="h-full w-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#ea580c]/10 to-[#1b5858]/10">
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#ea580c]/10 to-[#1b5858]/10">
             <ImagePlus className="h-16 w-16 text-[#737373] opacity-30" />
           </div>
         )}
@@ -43,7 +39,7 @@ export function OrganizationHero({
 
       {/* Logo Overlay */}
       <div className="absolute -bottom-12 left-6">
-        <div className="p-1 bg-white rounded-full shadow-lg">
+        <div className="rounded-full bg-white p-1 shadow-lg">
           <OrganizationLogo
             logoUrl={logoUrl}
             logoEmoji={logoEmoji}
@@ -60,9 +56,9 @@ export function OrganizationHero({
           variant="outline"
           size="sm"
           onClick={onEditClick}
-          className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm"
+          className="absolute right-4 top-4 bg-white/90 backdrop-blur-sm"
         >
-          <Pencil className="h-4 w-4 mr-1" />
+          <Pencil className="mr-1 h-4 w-4" />
           Edit Profile
         </Button>
       )}

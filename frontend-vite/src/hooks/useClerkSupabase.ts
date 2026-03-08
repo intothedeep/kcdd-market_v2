@@ -90,7 +90,7 @@ export const useClerkSupabase = () => {
     isProfileSynced,
     isSyncing,
     needsRoleSelection,
-    dismissRoleSelection
+    dismissRoleSelection,
   }
 }
 

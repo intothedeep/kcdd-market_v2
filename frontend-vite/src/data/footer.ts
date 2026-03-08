@@ -3,61 +3,60 @@ import type { FooterData } from '@/components/Footer'
 export const footerData: FooterData = {
   linkColumns: [
     {
-      title: 'Title Label',
+      title: 'Platform',
       links: [
-        { label: 'Lorem ipsum dolor', href: '#' }
-      ]
+        { label: 'Browse Requests', href: '/requests' },
+        { label: 'For Organizations', href: '/about/organizations' },
+        { label: 'For Donors', href: '/about/donors' },
+      ],
     },
     {
-      title: 'Title Label',
+      title: 'Resources',
       links: [
-        { label: 'Lorem ipsum dolor', href: '#' },
-        { label: 'Lorem ipsum dolor', href: '#' },
-        { label: 'Lorem ipsum dolor', href: '#' }
-      ]
+        { label: 'How It Works', href: '/about/how-it-works' },
+        { label: 'Impact Reports', href: '/impact' },
+        { label: 'FAQs', href: '/about/faqs' },
+      ],
     },
     {
-      title: 'Title Label',
+      title: 'Company',
       links: [
-        { label: 'Lorem ipsum dolor', href: '#' },
-        { label: 'Lorem ipsum dolor', href: '#' },
-        { label: 'Lorem ipsum dolor', href: '#' }
-      ]
+        { label: 'About Us', href: '/about' },
+        { label: 'Contact', href: '/contact' },
+        { label: 'Careers', href: '/careers' },
+      ],
     },
     {
-      title: 'Title Label',
+      title: 'Support',
       links: [
-        { label: 'Lorem ipsum dolor', href: '#' },
-        { label: 'Lorem ipsum dolor', href: '#' },
-        { label: 'Lorem ipsum dolor', href: '#' }
-      ]
-    }
+        { label: 'Help Center', href: '/support' },
+        { label: 'Report an Issue', href: '/support/report' },
+        { label: 'Partner With Us', href: '/partners' },
+      ],
+    },
   ],
   newsletter: {
-    title: 'Title Label',
-    description: 'Lorem ipsum dolor sit amet, onse ctetur.',
-    placeholder: 'Placeholder',
-    buttonLabel: 'Submit'
+    title: 'Stay Updated',
+    description: 'Get the latest on community impact and giving opportunities.',
+    placeholder: 'Enter your email',
+    buttonLabel: 'Subscribe',
   },
   socialLinks: [
-    { icon: 'facebook', href: '#', label: 'Facebook' },
-    { icon: 'twitter', href: '#', label: 'Twitter' },
-    { icon: 'instagram', href: '#', label: 'Instagram' },
-    { icon: 'linkedin', href: '#', label: 'LinkedIn' }
+    { icon: 'facebook', href: 'https://facebook.com/kcdigitaldrive', label: 'Facebook' },
+    { icon: 'twitter', href: 'https://twitter.com/kcdigitaldrive', label: 'Twitter' },
+    { icon: 'instagram', href: 'https://instagram.com/kcdigitaldrive', label: 'Instagram' },
+    { icon: 'linkedin', href: 'https://linkedin.com/company/kcdigitaldrive', label: 'LinkedIn' },
   ],
   legalLinks: [
-    { label: 'Privacy Statement', href: '/legal/privacy' },
-    { label: 'Do Not Sell My Personal Information', href: '/legal/do-not-sell' },
-    { label: 'Accessibility Statement', href: '/legal/accessibility' },
-    { label: 'Terms and Conditions', href: '/legal/terms' },
-    { label: 'GCC-CPSIA Compliance', href: '/legal/cpsia-compliance' },
-    { label: 'Site Map', href: '/legal/sitemap' }
+    { label: 'Privacy Policy', href: '/legal/privacy' },
+    { label: 'Terms of Service', href: '/legal/terms' },
+    { label: 'Accessibility', href: '/legal/accessibility' },
+    { label: 'Cookie Policy', href: '/legal/cookies' },
   ],
   bottomSocialLinks: [
-    { icon: 'facebook', href: '#', label: 'Facebook' },
-    { icon: 'twitter', href: '#', label: 'Twitter' },
-    { icon: 'instagram', href: '#', label: 'Instagram' },
-    { icon: 'linkedin', href: '#', label: 'LinkedIn' }
-  ]
+    { icon: 'facebook', href: 'https://facebook.com/kcdigitaldrive', label: 'Facebook' },
+    { icon: 'twitter', href: 'https://twitter.com/kcdigitaldrive', label: 'Twitter' },
+    { icon: 'instagram', href: 'https://instagram.com/kcdigitaldrive', label: 'Instagram' },
+    { icon: 'linkedin', href: 'https://linkedin.com/company/kcdigitaldrive', label: 'LinkedIn' },
+  ],
 }
-

@@ -24,12 +24,7 @@ const stripePromise = getStripe()
 function AuthSync() {
   const { needsRoleSelection, dismissRoleSelection } = useClerkSupabase()
 
-  return (
-    <RoleSelectionModal
-      isOpen={needsRoleSelection}
-      onClose={dismissRoleSelection}
-    />
-  )
+  return <RoleSelectionModal isOpen={needsRoleSelection} onClose={dismissRoleSelection} />
 }
 
 function App() {
@@ -38,8 +33,8 @@ function App() {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Configuration Error</h1>
-          <p className="text-gray-600 mb-2">Missing Clerk publishable key.</p>
+          <h1 className="mb-4 text-2xl font-bold text-red-600">Configuration Error</h1>
+          <p className="mb-2 text-gray-600">Missing Clerk publishable key.</p>
           <p className="text-sm text-gray-500">
             Please copy .env.example to .env.local and add your configuration.
           </p>

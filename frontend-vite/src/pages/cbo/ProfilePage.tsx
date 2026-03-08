@@ -16,7 +16,7 @@ import {
   OrganizationAboutTab,
   OrganizationCampaignsTab,
   OrganizationUpdatesTab,
-  OrganizationTeamTab
+  OrganizationTeamTab,
 } from '@/components/organization'
 import {
   fetchOrganizationByUserId,
@@ -25,7 +25,7 @@ import {
   fetchOrganizationTeamMembers,
   type OrganizationProfile,
   type OrganizationUpdate,
-  type OrganizationTeamMember
+  type OrganizationTeamMember,
 } from '@/lib/supabase'
 import { routes } from '@/config'
 
@@ -65,7 +65,7 @@ export function CBOProfile() {
       const [reqs, upds, team] = await Promise.all([
         fetchOrganizationRequests(org.id),
         fetchOrganizationUpdates(org.id),
-        fetchOrganizationTeamMembers(org.id)
+        fetchOrganizationTeamMembers(org.id),
       ])
 
       setOrganization(org)
@@ -81,17 +81,19 @@ export function CBOProfile() {
   }
 
   // Calculate request stats
-  const requestStats = organization ? {
-    open: requests.filter(r => r.status === 'open').length,
-    fulfilled: requests.filter(r => r.status === 'fulfilled').length,
-    totalRaised: requests
-      .filter(r => r.status === 'fulfilled')
-      .reduce((sum, r) => sum + Number(r.amount), 0)
-  } : undefined
+  const requestStats = organization
+    ? {
+        open: requests.filter((r) => r.status === 'open').length,
+        fulfilled: requests.filter((r) => r.status === 'fulfilled').length,
+        totalRaised: requests
+          .filter((r) => r.status === 'fulfilled')
+          .reduce((sum, r) => sum + Number(r.amount), 0),
+      }
+    : undefined
 
   if (!isLoaded || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
         <Loader2 className="h-8 w-8 animate-spin text-[#ea580c]" />
       </div>
     )
@@ -100,17 +102,15 @@ export function CBOProfile() {
   // No organization yet - prompt to complete setup
   if (error === 'no_organization') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafafa] p-6">
-        <AlertCircle className="h-16 w-16 text-amber-500 mb-6" />
-        <h1 className="text-2xl font-bold text-[#0a0a0a] mb-4">Complete Your Profile</h1>
-        <p className="text-[#737373] mb-6 text-center max-w-md">
-          You haven't set up your organization profile yet. Complete the setup to start
-          posting technology requests.
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa] p-6">
+        <AlertCircle className="mb-6 h-16 w-16 text-amber-500" />
+        <h1 className="mb-4 text-2xl font-bold text-[#0a0a0a]">Complete Your Profile</h1>
+        <p className="mb-6 max-w-md text-center text-[#737373]">
+          You haven't set up your organization profile yet. Complete the setup to start posting
+          technology requests.
         </p>
         <Link to={routes.cbo.setup}>
-          <Button className="bg-[#ea580c] hover:bg-[#dc4c06]">
-            Complete Setup
-          </Button>
+          <Button className="bg-[#ea580c] hover:bg-[#dc4c06]">Complete Setup</Button>
         </Link>
       </div>
     )
@@ -118,9 +118,9 @@ export function CBOProfile() {
 
   if (error || !organization) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafafa] p-6">
-        <h1 className="text-2xl font-bold text-[#0a0a0a] mb-4">Error Loading Profile</h1>
-        <p className="text-[#737373] mb-6">{error}</p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa] p-6">
+        <h1 className="mb-4 text-2xl font-bold text-[#0a0a0a]">Error Loading Profile</h1>
+        <p className="mb-6 text-[#737373]">{error}</p>
         <Button onClick={loadOrganizationData}>Try Again</Button>
       </div>
     )
@@ -128,20 +128,20 @@ export function CBOProfile() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="mx-auto max-w-[1200px] px-6 py-8">
         {/* Action Buttons */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-[#0a0a0a]">Organization Profile</h1>
           <div className="flex items-center gap-3">
             <Link to={`/organizations/${organization.id}`} target="_blank">
               <Button variant="outline" size="sm">
-                <ExternalLink className="h-4 w-4 mr-2" />
+                <ExternalLink className="mr-2 h-4 w-4" />
                 View Public Profile
               </Button>
             </Link>
             <Link to="/cbo/profile/edit">
               <Button size="sm" className="bg-[#1b5858] hover:bg-[#164444]">
-                <Pencil className="h-4 w-4 mr-2" />
+                <Pencil className="mr-2 h-4 w-4" />
                 Edit Profile
               </Button>
             </Link>
@@ -159,12 +159,10 @@ export function CBOProfile() {
         />
 
         {/* Header with Name */}
-        <div className="mt-16 mb-6">
+        <div className="mb-6 mt-16">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-[#0a0a0a] mb-2">
-                {organization.name}
-              </h1>
+              <h1 className="mb-2 text-4xl font-bold text-[#0a0a0a]">{organization.name}</h1>
               {organization.tagline && (
                 <p className="text-lg text-[#737373]">{organization.tagline}</p>
               )}
@@ -175,44 +173,44 @@ export function CBOProfile() {
         {/* Main Content */}
         <div className="flex gap-8">
           {/* Tabs Content (Left) */}
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="bg-[#f5f5f5] p-[3px] rounded-lg w-full justify-start mb-6">
+              <TabsList className="mb-6 w-full justify-start rounded-lg bg-[#f5f5f5] p-[3px]">
                 <TabsTrigger
                   value="about"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                  className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   About
                 </TabsTrigger>
                 <TabsTrigger
                   value="campaigns"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                  className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   Campaigns
                   {requests.length > 0 && (
-                    <span className="ml-1.5 text-xs bg-[#171717] text-white px-1.5 py-0.5 rounded-full">
+                    <span className="ml-1.5 rounded-full bg-[#171717] px-1.5 py-0.5 text-xs text-white">
                       {requests.length}
                     </span>
                   )}
                 </TabsTrigger>
                 <TabsTrigger
                   value="updates"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                  className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   Updates
                   {updates.length > 0 && (
-                    <span className="ml-1.5 text-xs bg-[#171717] text-white px-1.5 py-0.5 rounded-full">
+                    <span className="ml-1.5 rounded-full bg-[#171717] px-1.5 py-0.5 text-xs text-white">
                       {updates.length}
                     </span>
                   )}
                 </TabsTrigger>
                 <TabsTrigger
                   value="team"
-                  className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+                  className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   Team
                   {teamMembers.length > 0 && (
-                    <span className="ml-1.5 text-xs bg-[#171717] text-white px-1.5 py-0.5 rounded-full">
+                    <span className="ml-1.5 rounded-full bg-[#171717] px-1.5 py-0.5 text-xs text-white">
                       {teamMembers.length}
                     </span>
                   )}

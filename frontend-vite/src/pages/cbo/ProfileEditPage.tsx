@@ -16,7 +16,7 @@ import {
   Phone,
   Palette,
   Users,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,7 +38,7 @@ import {
   fetchIdentityCategories,
   saveOrganizationCauseAreas,
   saveOrganizationPopulations,
-  type OrganizationProfile
+  type OrganizationProfile,
 } from '@/lib/supabase'
 
 const ORGANIZATION_TYPES = [
@@ -50,7 +50,7 @@ const ORGANIZATION_TYPES = [
   'Library',
   'Government Agency',
   'Healthcare Organization',
-  'Other'
+  'Other',
 ]
 
 const ORGANIZATION_SIZES = [
@@ -59,7 +59,7 @@ const ORGANIZATION_SIZES = [
   '11-25 employees',
   '26-50 employees',
   '51-100 employees',
-  '100+ employees'
+  '100+ employees',
 ]
 
 interface FormData {
@@ -116,7 +116,7 @@ export function CBOProfileEdit() {
     ein: '',
     logo_url: '',
     cover_image_url: '',
-    social_links: {}
+    social_links: {},
   })
 
   // Cause areas and populations
@@ -140,7 +140,7 @@ export function CBOProfileEdit() {
       const [org, causes, pops] = await Promise.all([
         fetchOrganizationByUserId(user.id),
         fetchCauseAreas(),
-        fetchIdentityCategories()
+        fetchIdentityCategories(),
       ])
 
       setCauseAreas(causes)
@@ -168,12 +168,12 @@ export function CBOProfileEdit() {
           ein: org.ein || '',
           logo_url: org.logo_url || '',
           cover_image_url: org.cover_image_url || '',
-          social_links: org.social_links || {}
+          social_links: org.social_links || {},
         })
 
         // Set selected cause areas and populations
-        setSelectedCauseAreas(org.cause_areas?.map(c => c.id) || [])
-        setSelectedPopulations(org.populations?.map(p => p.id) || [])
+        setSelectedCauseAreas(org.cause_areas?.map((c) => c.id) || [])
+        setSelectedPopulations(org.populations?.map((p) => p.id) || [])
       }
     } catch (err) {
       console.error('Error loading data:', err)
@@ -184,28 +184,26 @@ export function CBOProfileEdit() {
   }
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
   const handleSocialLinkChange = (platform: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      social_links: { ...prev.social_links, [platform]: value }
+      social_links: { ...prev.social_links, [platform]: value },
     }))
   }
 
   const toggleCauseArea = (causeAreaId: string) => {
-    setSelectedCauseAreas(prev =>
-      prev.includes(causeAreaId)
-        ? prev.filter(id => id !== causeAreaId)
-        : [...prev, causeAreaId]
+    setSelectedCauseAreas((prev) =>
+      prev.includes(causeAreaId) ? prev.filter((id) => id !== causeAreaId) : [...prev, causeAreaId]
     )
   }
 
   const togglePopulation = (populationId: string) => {
-    setSelectedPopulations(prev =>
+    setSelectedPopulations((prev) =>
       prev.includes(populationId)
-        ? prev.filter(id => id !== populationId)
+        ? prev.filter((id) => id !== populationId)
         : [...prev, populationId]
     )
   }
@@ -237,13 +235,13 @@ export function CBOProfileEdit() {
         ein: formData.ein || null,
         logo_url: formData.logo_url || null,
         cover_image_url: formData.cover_image_url || null,
-        social_links: formData.social_links
+        social_links: formData.social_links,
       } as any)
 
       // Update cause areas
       const causeAreaNames = causeAreas
-        .filter(c => selectedCauseAreas.includes(c.id))
-        .map(c => c.name)
+        .filter((c) => selectedCauseAreas.includes(c.id))
+        .map((c) => c.name)
       await saveOrganizationCauseAreas(organization.id, causeAreaNames)
 
       // Update populations
@@ -261,7 +259,7 @@ export function CBOProfileEdit() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
         <Loader2 className="h-8 w-8 animate-spin text-[#ea580c]" />
       </div>
     )
@@ -269,10 +267,10 @@ export function CBOProfileEdit() {
 
   if (!organization) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafafa] p-6">
-        <AlertCircle className="h-16 w-16 text-amber-500 mb-6" />
-        <h1 className="text-2xl font-bold text-[#0a0a0a] mb-4">No Organization Found</h1>
-        <p className="text-[#737373] mb-6">Please complete your organization setup first.</p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa] p-6">
+        <AlertCircle className="mb-6 h-16 w-16 text-amber-500" />
+        <h1 className="mb-4 text-2xl font-bold text-[#0a0a0a]">No Organization Found</h1>
+        <p className="mb-6 text-[#737373]">Please complete your organization setup first.</p>
         <Button onClick={() => navigate('/cbo/setup')}>Go to Setup</Button>
       </div>
     )
@@ -280,16 +278,12 @@ export function CBOProfileEdit() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <div className="max-w-[900px] mx-auto px-6 py-8">
+      <div className="mx-auto max-w-[900px] px-6 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/cbo/profile')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <Button variant="ghost" size="sm" onClick={() => navigate('/cbo/profile')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Profile
             </Button>
             <h1 className="text-2xl font-bold text-[#0a0a0a]">Edit Organization Profile</h1>
@@ -300,9 +294,9 @@ export function CBOProfileEdit() {
             className="bg-[#1b5858] hover:bg-[#164444]"
           >
             {saving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="mr-2 h-4 w-4" />
             )}
             Save Changes
           </Button>
@@ -310,12 +304,12 @@ export function CBOProfileEdit() {
 
         {/* Success/Error Messages */}
         {successMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+          <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
             {successMessage}
           </div>
         )}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
             {error}
           </div>
         )}
@@ -323,7 +317,7 @@ export function CBOProfileEdit() {
         <div className="space-y-8">
           {/* Basic Info Section */}
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="mb-6 flex items-center gap-3">
               <Building2 className="h-5 w-5 text-[#1b5858]" />
               <h2 className="text-lg font-semibold text-[#0a0a0a]">Basic Information</h2>
             </div>
@@ -331,9 +325,7 @@ export function CBOProfileEdit() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#0a0a0a]">
-                    Organization Name *
-                  </label>
+                  <label className="text-sm font-medium text-[#0a0a0a]">Organization Name *</label>
                   <Input
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
@@ -372,8 +364,10 @@ export function CBOProfileEdit() {
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {ORGANIZATION_TYPES.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      {ORGANIZATION_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -388,8 +382,10 @@ export function CBOProfileEdit() {
                       <SelectValue placeholder="Select size" />
                     </SelectTrigger>
                     <SelectContent>
-                      {ORGANIZATION_SIZES.map(size => (
-                        <SelectItem key={size} value={size}>{size}</SelectItem>
+                      {ORGANIZATION_SIZES.map((size) => (
+                        <SelectItem key={size} value={size}>
+                          {size}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -412,7 +408,7 @@ export function CBOProfileEdit() {
 
           {/* Mission & Programs Section */}
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="mb-6 flex items-center gap-3">
               <FileText className="h-5 w-5 text-[#1b5858]" />
               <h2 className="text-lg font-semibold text-[#0a0a0a]">Programs & Services</h2>
             </div>
@@ -462,7 +458,7 @@ export function CBOProfileEdit() {
 
           {/* Cause Areas & Populations */}
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="mb-6 flex items-center gap-3">
               <Users className="h-5 w-5 text-[#1b5858]" />
               <h2 className="text-lg font-semibold text-[#0a0a0a]">Focus Areas & Populations</h2>
             </div>
@@ -471,7 +467,7 @@ export function CBOProfileEdit() {
               <div className="space-y-3">
                 <label className="text-sm font-medium text-[#0a0a0a]">Cause Areas</label>
                 <div className="flex flex-wrap gap-2">
-                  {causeAreas.map(cause => (
+                  {causeAreas.map((cause) => (
                     <Badge
                       key={cause.id}
                       variant="secondary"
@@ -491,10 +487,10 @@ export function CBOProfileEdit() {
               <div className="space-y-3">
                 <label className="text-sm font-medium text-[#0a0a0a]">Populations Served</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {populations.map(pop => (
+                  {populations.map((pop) => (
                     <label
                       key={pop.id}
-                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#f5f5f5] cursor-pointer"
+                      className="flex cursor-pointer items-center gap-2 rounded-lg p-2 hover:bg-[#f5f5f5]"
                     >
                       <Checkbox
                         checked={selectedPopulations.includes(pop.id)}
@@ -510,7 +506,7 @@ export function CBOProfileEdit() {
 
           {/* Contact Information */}
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="mb-6 flex items-center gap-3">
               <Phone className="h-5 w-5 text-[#1b5858]" />
               <h2 className="text-lg font-semibold text-[#0a0a0a]">Contact Information</h2>
             </div>
@@ -570,7 +566,7 @@ export function CBOProfileEdit() {
 
           {/* Branding */}
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="mb-6 flex items-center gap-3">
               <Palette className="h-5 w-5 text-[#1b5858]" />
               <h2 className="text-lg font-semibold text-[#0a0a0a]">Branding</h2>
             </div>
@@ -584,7 +580,9 @@ export function CBOProfileEdit() {
                   onChange={(e) => handleInputChange('logo_url', e.target.value)}
                   placeholder="https://example.com/logo.png"
                 />
-                <p className="text-xs text-[#737373]">Direct URL to your organization's logo image</p>
+                <p className="text-xs text-[#737373]">
+                  Direct URL to your organization's logo image
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -595,11 +593,13 @@ export function CBOProfileEdit() {
                   onChange={(e) => handleInputChange('cover_image_url', e.target.value)}
                   placeholder="https://example.com/cover.jpg"
                 />
-                <p className="text-xs text-[#737373]">Banner image for your profile (recommended: 1200x300)</p>
+                <p className="text-xs text-[#737373]">
+                  Banner image for your profile (recommended: 1200x300)
+                </p>
               </div>
 
-              <div className="pt-4 border-t border-[#f5f5f5]">
-                <h3 className="text-sm font-medium text-[#0a0a0a] mb-4">Social Media Links</h3>
+              <div className="border-t border-[#f5f5f5] pt-4">
+                <h3 className="mb-4 text-sm font-medium text-[#0a0a0a]">Social Media Links</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs text-[#737373]">Facebook</label>
@@ -653,9 +653,9 @@ export function CBOProfileEdit() {
               className="bg-[#1b5858] hover:bg-[#164444]"
             >
               {saving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="mr-2 h-4 w-4" />
               )}
               Save Changes
             </Button>

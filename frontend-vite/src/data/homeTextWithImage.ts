@@ -1,15 +1,15 @@
 import type { TextWithImageSectionData } from '@/components/home/TextWithImageSection'
 
 export const homeTextWithImage: TextWithImageSectionData = {
-  subtitle: 'Lorem ipsum dolor sit amet',
-  heading: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-  description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.',
+  subtitle: 'About KC Digital Drive Market',
+  heading: 'Connecting donors directly with community organizations in need.',
+  description:
+    'KC Digital Drive Market is a transparent giving platform that connects generous donors with community-based organizations across the Kansas City area. Every dollar you give goes directly to fulfilling specific technology and resource requests.',
   listItems: [
-    'Lorem ipsum dolor si',
-    'incididunt ut labor',
-    'qua. Ut enim ad mi',
-    'ut labore et dol'
+    '100% of donations go directly to organizations',
+    'Track the real impact of your contributions',
+    'Support vetted nonprofits in your community',
+    'Receive tax-deductible receipts for all donations',
   ],
-  imagePlaceholderColor: '#1b5858'
+  imagePlaceholderColor: '#1b5858',
 }
-

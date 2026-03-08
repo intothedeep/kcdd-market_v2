@@ -78,11 +78,13 @@ export function AdminUsersPage() {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
-        .select(`
+        .select(
+          `
           *,
           donor_profile:donor_profiles(display_name, email),
           organization:organizations(name, email)
-        `)
+        `
+        )
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -104,9 +106,7 @@ export function AdminUsersPage() {
 
       if (error) throw error
 
-      setUsers(users.map(u =>
-        u.id === userId ? { ...u, org_tier: newTier } : u
-      ))
+      setUsers(users.map((u) => (u.id === userId ? { ...u, org_tier: newTier } : u)))
     } catch (err) {
       console.error('Error updating tier:', err)
     } finally {
@@ -122,19 +122,23 @@ export function AdminUsersPage() {
         .update({
           verification_status: newStatus,
           is_vetted: newStatus !== VERIFICATION_STATUS.UNVERIFIED,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', userId)
 
       if (error) throw error
 
-      setUsers(users.map(u =>
-        u.id === userId ? {
-          ...u,
-          verification_status: newStatus,
-          is_vetted: newStatus !== VERIFICATION_STATUS.UNVERIFIED
-        } : u
-      ))
+      setUsers(
+        users.map((u) =>
+          u.id === userId
+            ? {
+                ...u,
+                verification_status: newStatus,
+                is_vetted: newStatus !== VERIFICATION_STATUS.UNVERIFIED,
+              }
+            : u
+        )
+      )
     } catch (err) {
       console.error('Error updating status:', err)
     } finally {
@@ -142,14 +146,13 @@ export function AdminUsersPage() {
     }
   }
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = users.filter((user) => {
     // Search filter
-    const displayName = user.donor_profile?.display_name ||
-      user.organization?.name ||
-      user.id
+    const displayName = user.donor_profile?.display_name || user.organization?.name || user.id
     const email = user.donor_profile?.email || user.organization?.email || ''
 
-    const matchesSearch = !searchQuery ||
+    const matchesSearch =
+      !searchQuery ||
       displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       email.toLowerCase().includes(searchQuery.toLowerCase())
 
@@ -167,42 +170,52 @@ export function AdminUsersPage() {
 
   const getTierBadgeColor = (tier: OrgTier) => {
     switch (tier) {
-      case ORG_TIERS.INDIVIDUAL: return 'bg-gray-100 text-gray-800'
-      case ORG_TIERS.SMALL_ORG: return 'bg-blue-100 text-blue-800'
-      case ORG_TIERS.LARGE_ORG: return 'bg-purple-100 text-purple-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case ORG_TIERS.INDIVIDUAL:
+        return 'bg-gray-100 text-gray-800'
+      case ORG_TIERS.SMALL_ORG:
+        return 'bg-blue-100 text-blue-800'
+      case ORG_TIERS.LARGE_ORG:
+        return 'bg-purple-100 text-purple-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
   const getStatusBadgeColor = (status: VerificationStatus) => {
     switch (status) {
-      case VERIFICATION_STATUS.UNVERIFIED: return 'bg-yellow-100 text-yellow-800'
-      case VERIFICATION_STATUS.VERIFIED: return 'bg-green-100 text-green-800'
-      case VERIFICATION_STATUS.PREMIUM: return 'bg-orange-100 text-orange-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case VERIFICATION_STATUS.UNVERIFIED:
+        return 'bg-yellow-100 text-yellow-800'
+      case VERIFICATION_STATUS.VERIFIED:
+        return 'bg-green-100 text-green-800'
+      case VERIFICATION_STATUS.PREMIUM:
+        return 'bg-orange-100 text-orange-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
   const getUserTypeIcon = (type: string) => {
     switch (type) {
-      case 'donor': return <User className="w-4 h-4" />
-      case 'cbo': return <Building2 className="w-4 h-4" />
-      case 'admin': return <Shield className="w-4 h-4" />
-      default: return <User className="w-4 h-4" />
+      case 'donor':
+        return <User className="h-4 w-4" />
+      case 'cbo':
+        return <Building2 className="h-4 w-4" />
+      case 'admin':
+        return <Shield className="h-4 w-4" />
+      default:
+        return <User className="h-4 w-4" />
     }
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-[#0a0a0a]">User Management</h1>
-        <p className="text-[#737373] mt-1">
-          Manage user tiers and verification status
-        </p>
+        <p className="mt-1 text-[#737373]">Manage user tiers and verification status</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4 mb-8">
+      <div className="mb-8 grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total Users</CardDescription>
@@ -213,7 +226,7 @@ export function AdminUsersPage() {
           <CardHeader className="pb-2">
             <CardDescription>Donors</CardDescription>
             <CardTitle className="text-2xl">
-              {users.filter(u => u.user_type === 'donor').length}
+              {users.filter((u) => u.user_type === 'donor').length}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -221,7 +234,7 @@ export function AdminUsersPage() {
           <CardHeader className="pb-2">
             <CardDescription>Organizations</CardDescription>
             <CardTitle className="text-2xl">
-              {users.filter(u => u.user_type === 'cbo').length}
+              {users.filter((u) => u.user_type === 'cbo').length}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -229,7 +242,7 @@ export function AdminUsersPage() {
           <CardHeader className="pb-2">
             <CardDescription>Verified</CardDescription>
             <CardTitle className="text-2xl">
-              {users.filter(u => u.verification_status !== 'unverified').length}
+              {users.filter((u) => u.verification_status !== 'unverified').length}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -239,9 +252,9 @@ export function AdminUsersPage() {
       <Card className="mb-6">
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
+            <div className="min-w-[200px] flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#737373]" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#737373]" />
                 <Input
                   placeholder="Search by name or email..."
                   value={searchQuery}
@@ -255,19 +268,17 @@ export function AdminUsersPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
-                  <Filter className="w-4 h-4" />
-                  {filterType ? USER_TYPE_LABELS[filterType as keyof typeof USER_TYPE_LABELS] : 'User Type'}
-                  <ChevronDown className="w-4 h-4" />
+                  <Filter className="h-4 w-4" />
+                  {filterType
+                    ? USER_TYPE_LABELS[filterType as keyof typeof USER_TYPE_LABELS]
+                    : 'User Type'}
+                  <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setFilterType(null)}>
-                  All Types
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterType(null)}>All Types</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setFilterType('donor')}>
-                  Donor
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterType('donor')}>Donor</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType('cbo')}>
                   Recipient Organization
                 </DropdownMenuItem>
@@ -281,14 +292,14 @@ export function AdminUsersPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
-                  {filterTier ? ORG_TIER_LABELS[filterTier as keyof typeof ORG_TIER_LABELS] : 'Tier'}
-                  <ChevronDown className="w-4 h-4" />
+                  {filterTier
+                    ? ORG_TIER_LABELS[filterTier as keyof typeof ORG_TIER_LABELS]
+                    : 'Tier'}
+                  <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setFilterTier(null)}>
-                  All Tiers
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterTier(null)}>All Tiers</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {Object.entries(ORG_TIER_LABELS).map(([key, label]) => (
                   <DropdownMenuItem key={key} onClick={() => setFilterTier(key)}>
@@ -302,8 +313,12 @@ export function AdminUsersPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
-                  {filterStatus ? VERIFICATION_STATUS_LABELS[filterStatus as keyof typeof VERIFICATION_STATUS_LABELS] : 'Status'}
-                  <ChevronDown className="w-4 h-4" />
+                  {filterStatus
+                    ? VERIFICATION_STATUS_LABELS[
+                        filterStatus as keyof typeof VERIFICATION_STATUS_LABELS
+                      ]
+                    : 'Status'}
+                  <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
@@ -351,24 +366,24 @@ export function AdminUsersPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-[#737373]">
+                  <TableCell colSpan={5} className="py-8 text-center text-[#737373]">
                     Loading users...
                   </TableCell>
                 </TableRow>
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-[#737373]">
+                  <TableCell colSpan={5} className="py-8 text-center text-[#737373]">
                     No users found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredUsers.map((userProfile) => {
-                  const displayName = userProfile.donor_profile?.display_name ||
+                  const displayName =
+                    userProfile.donor_profile?.display_name ||
                     userProfile.organization?.name ||
                     'Unknown'
-                  const email = userProfile.donor_profile?.email ||
-                    userProfile.organization?.email ||
-                    ''
+                  const email =
+                    userProfile.donor_profile?.email || userProfile.organization?.email || ''
 
                   return (
                     <TableRow key={userProfile.id}>
@@ -390,13 +405,13 @@ export function AdminUsersPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="gap-1 h-auto p-1"
+                              className="h-auto gap-1 p-1"
                               disabled={updating === userProfile.id}
                             >
                               <Badge className={getTierBadgeColor(userProfile.org_tier)}>
                                 {ORG_TIER_LABELS[userProfile.org_tier]}
                               </Badge>
-                              <ChevronDown className="w-3 h-3" />
+                              <ChevronDown className="h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
@@ -408,9 +423,7 @@ export function AdminUsersPage() {
                                 onClick={() => updateUserTier(userProfile.id, value)}
                                 className="gap-2"
                               >
-                                {userProfile.org_tier === value && (
-                                  <Check className="w-4 h-4" />
-                                )}
+                                {userProfile.org_tier === value && <Check className="h-4 w-4" />}
                                 {ORG_TIER_LABELS[value]}
                               </DropdownMenuItem>
                             ))}
@@ -423,13 +436,15 @@ export function AdminUsersPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="gap-1 h-auto p-1"
+                              className="h-auto gap-1 p-1"
                               disabled={updating === userProfile.id}
                             >
-                              <Badge className={getStatusBadgeColor(userProfile.verification_status)}>
+                              <Badge
+                                className={getStatusBadgeColor(userProfile.verification_status)}
+                              >
                                 {VERIFICATION_STATUS_LABELS[userProfile.verification_status]}
                               </Badge>
-                              <ChevronDown className="w-3 h-3" />
+                              <ChevronDown className="h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
@@ -442,7 +457,7 @@ export function AdminUsersPage() {
                                 className="gap-2"
                               >
                                 {userProfile.verification_status === value && (
-                                  <Check className="w-4 h-4" />
+                                  <Check className="h-4 w-4" />
                                 )}
                                 {VERIFICATION_STATUS_LABELS[value]}
                               </DropdownMenuItem>

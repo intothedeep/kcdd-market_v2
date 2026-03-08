@@ -1,6 +1,6 @@
 /**
  * Checkout Page with Stripe Integration
- * 
+ *
  * Documentation:
  * - Stripe Payment Element: https://stripe.com/docs/payments/payment-element
  * - CardElement: https://stripe.com/docs/stripe-js/react#element-components
@@ -11,7 +11,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { createPaymentIntent, toStripeAmount } from '@/lib/stripe'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
@@ -73,26 +80,20 @@ export function CheckoutPage() {
 
     try {
       // Create payment intent
-      const clientSecret = await createPaymentIntent(
-        requestId,
-        toStripeAmount(request.amount)
-      )
+      const clientSecret = await createPaymentIntent(requestId, toStripeAmount(request.amount))
 
       // Confirm payment
       const cardElement = elements.getElement(CardElement)
       if (!cardElement) throw new Error('Card element not found')
 
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        clientSecret,
-        {
-          payment_method: {
-            card: cardElement,
-            billing_details: {
-              email: user?.primaryEmailAddress?.emailAddress,
-            },
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            email: user?.primaryEmailAddress?.emailAddress,
           },
-        }
-      )
+        },
+      })
 
       if (stripeError) {
         throw new Error(stripeError.message)
@@ -105,11 +106,8 @@ export function CheckoutPage() {
           donor_id: user?.id,
           claimed_at: new Date().toISOString(),
         }
-        
-        await supabase
-          .from('requests')
-          .update(updateData)
-          .eq('id', requestId)
+
+        await supabase.from('requests').update(updateData).eq('id', requestId)
 
         // Redirect to success page
         navigate(routes.paymentSuccess)
@@ -145,15 +143,15 @@ export function CheckoutPage() {
   // Check if organization can accept payments
   if (!canAcceptPayments(request.organization)) {
     return (
-      <div className="container py-8 max-w-2xl">
-        <h1 className="text-3xl font-bold mb-8">Complete Your Donation</h1>
+      <div className="container max-w-2xl py-8">
+        <h1 className="mb-8 text-3xl font-bold">Complete Your Donation</h1>
 
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Payments Not Available</AlertTitle>
           <AlertDescription>
-            This organization hasn't completed their payment setup yet.
-            Please check back later or contact the organization directly.
+            This organization hasn't completed their payment setup yet. Please check back later or
+            contact the organization directly.
           </AlertDescription>
         </Alert>
 
@@ -177,7 +175,7 @@ export function CheckoutPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Amount:</span>
-              <span className="font-semibold text-lg">{formatCurrency(request.amount)}</span>
+              <span className="text-lg font-semibold">{formatCurrency(request.amount)}</span>
             </div>
           </CardContent>
           <CardFooter>
@@ -191,8 +189,8 @@ export function CheckoutPage() {
   }
 
   return (
-    <div className="container py-8 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-8">Complete Your Donation</h1>
+    <div className="container max-w-2xl py-8">
+      <h1 className="mb-8 text-3xl font-bold">Complete Your Donation</h1>
 
       <div className="grid gap-6">
         {/* Request Summary */}
@@ -216,7 +214,7 @@ export function CheckoutPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Amount:</span>
-              <span className="font-semibold text-lg">{formatCurrency(request.amount)}</span>
+              <span className="text-lg font-semibold">{formatCurrency(request.amount)}</span>
             </div>
           </CardContent>
         </Card>
@@ -229,7 +227,7 @@ export function CheckoutPage() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent>
-              <div className="p-4 border rounded-md">
+              <div className="rounded-md border p-4">
                 <CardElement
                   options={{
                     style: {
@@ -248,17 +246,13 @@ export function CheckoutPage() {
                 />
               </div>
               {error && (
-                <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+                <div className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                   {error}
                 </div>
               )}
             </CardContent>
             <CardFooter>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={!stripe || processing}
-              >
+              <Button type="submit" className="w-full" disabled={!stripe || processing}>
                 {processing ? 'Processing...' : `Donate ${formatCurrency(request.amount)}`}
               </Button>
             </CardFooter>
@@ -268,4 +262,3 @@ export function CheckoutPage() {
     </div>
   )
 }
-

@@ -1,9 +1,9 @@
 /**
  * Supabase Client Configuration
- * 
+ *
  * This client is configured to work with Clerk authentication.
  * The Clerk JWT token is automatically included in requests.
- * 
+ *
  * Documentation:
  * - Supabase JS Client: https://supabase.com/docs/reference/javascript/introduction
  * - Clerk + Supabase: https://clerk.com/docs/integrations/databases/supabase
@@ -14,16 +14,12 @@ import { supabaseConfig } from '@/config'
 import type { Database } from '@/types/database'
 
 // Create Supabase client
-export const supabase = createClient<Database>(
-  supabaseConfig.url,
-  supabaseConfig.anonKey,
-  {
-    auth: {
-      persistSession: false, // We use Clerk for auth
-      autoRefreshToken: false,
-    },
-  }
-)
+export const supabase = createClient<Database>(supabaseConfig.url, supabaseConfig.anonKey, {
+  auth: {
+    persistSession: false, // We use Clerk for auth
+    autoRefreshToken: false,
+  },
+})
 
 /**
  * Set Clerk JWT token for Supabase requests
@@ -49,13 +45,13 @@ export const isSupabaseAuthenticated = (): boolean => {
 
 /**
  * Real-time subscription helper
- * 
+ *
  * Example usage:
  * ```ts
  * const subscription = subscribeToRequests((payload) => {
  *   console.log('New request:', payload)
  * })
- * 
+ *
  * // Later, unsubscribe:
  * subscription.unsubscribe()
  * ```
@@ -89,11 +85,13 @@ export const subscribeToRequests = (
 export const fetchOpenRequests = async () => {
   const { data, error } = await supabase
     .from('requests')
-    .select(`
+    .select(
+      `
       *,
       organization:organizations(*),
       cause_area:cause_areas(*)
-    `)
+    `
+    )
     .eq('status', 'open')
     .order('created_at', { ascending: false })
 
@@ -103,11 +101,7 @@ export const fetchOpenRequests = async () => {
 
 // Fetch user profile
 export const fetchUserProfile = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', userId)
-    .single()
+  const { data, error } = await supabase.from('user_profiles').select('*').eq('id', userId).single()
 
   if (error) throw error
   return data
@@ -120,7 +114,7 @@ export const claimRequest = async (requestId: string, donorId: string) => {
     donor_id: donorId,
     claimed_at: new Date().toISOString(),
   }
-  
+
   const { data, error } = await supabase
     .from('requests')
     .update(updateData)
@@ -134,11 +128,7 @@ export const claimRequest = async (requestId: string, donorId: string) => {
 
 // Create a new request
 export const createRequest = async (request: any) => {
-  const { data, error } = await supabase
-    .from('requests')
-    .insert(request)
-    .select()
-    .single()
+  const { data, error } = await supabase.from('requests').insert(request).select().single()
 
   if (error) throw error
   return data
@@ -152,15 +142,15 @@ export const subscribeToNewsletter = async (email: string, source: string = 'foo
   const { data, error } = await supabase
     .from('newsletter_subscriptions')
     .upsert(
-      { 
+      {
         email: email.toLowerCase().trim(),
         source,
         is_active: true,
-        subscribed_at: new Date().toISOString()
+        subscribed_at: new Date().toISOString(),
       },
-      { 
+      {
         onConflict: 'email',
-        ignoreDuplicates: false 
+        ignoreDuplicates: false,
       }
     )
     .select()
@@ -175,7 +165,10 @@ export const subscribeToNewsletter = async (email: string, source: string = 'foo
  */
 
 // Check if user has completed onboarding
-export const checkOnboardingStatus = async (userId: string, userType: 'donor' | 'cbo' = 'donor') => {
+export const checkOnboardingStatus = async (
+  userId: string,
+  userType: 'donor' | 'cbo' = 'donor'
+) => {
   const { data, error } = await supabase
     .from('user_profiles')
     .select('onboarding_complete, user_type')
@@ -186,19 +179,17 @@ export const checkOnboardingStatus = async (userId: string, userType: 'donor' | 
     // If no profile exists, create one and return incomplete status
     if (error.code === 'PGRST116') {
       // Create the user profile
-      const { error: insertError } = await supabase
-        .from('user_profiles')
-        .insert({
-          id: userId,
-          user_type: userType,
-          onboarding_complete: false,
-          wants_updates: false
-        })
-      
+      const { error: insertError } = await supabase.from('user_profiles').insert({
+        id: userId,
+        user_type: userType,
+        onboarding_complete: false,
+        wants_updates: false,
+      })
+
       if (insertError) {
         console.error('Error creating user profile:', insertError)
       }
-      
+
       return { onboarding_complete: false, user_type: userType }
     }
     throw error
@@ -208,7 +199,7 @@ export const checkOnboardingStatus = async (userId: string, userType: 'donor' | 
 
 // Save organization onboarding data
 export const saveOrganizationOnboarding = async (
-  userId: string, 
+  userId: string,
   data: {
     name: string
     website: string | null
@@ -224,7 +215,7 @@ export const saveOrganizationOnboarding = async (
   if (data.logo) {
     const fileExt = data.logo.name.split('.').pop()
     const fileName = `${userId}-logo-${Date.now()}.${fileExt}`
-    
+
     const { error: uploadError } = await supabase.storage
       .from('organization-logos')
       .upload(fileName, data.logo)
@@ -233,9 +224,7 @@ export const saveOrganizationOnboarding = async (
       console.error('Logo upload error:', uploadError)
       // Continue without logo
     } else {
-      const { data: urlData } = supabase.storage
-        .from('organization-logos')
-        .getPublicUrl(fileName)
+      const { data: urlData } = supabase.storage.from('organization-logos').getPublicUrl(fileName)
       logoUrl = urlData.publicUrl
     }
   }
@@ -253,7 +242,7 @@ export const saveOrganizationOnboarding = async (
         email: data.email,
         logo_url: logoUrl,
         zipcode: data.zipcode || null, // Use provided zipcode or null
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id' }
     )
@@ -272,7 +261,7 @@ export const completeOnboarding = async (userId: string, wantsUpdates: boolean =
     .update({
       onboarding_complete: true,
       wants_updates: wantsUpdates,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', userId)
     .select()
@@ -287,11 +276,11 @@ export const completeOnboarding = async (userId: string, wantsUpdates: boolean =
           id: userId,
           onboarding_complete: true,
           wants_updates: wantsUpdates,
-          user_type: 'donor'
+          user_type: 'donor',
         })
         .select()
         .single()
-      
+
       if (insertError) throw insertError
       return insertData
     }
@@ -314,7 +303,7 @@ export const getOrganizationByUserId = async (userId: string) => {
 
 // Update organization info
 export const updateOrganization = async (
-  organizationId: string, 
+  organizationId: string,
   updates: {
     name?: string
     mission?: string
@@ -338,7 +327,7 @@ export const updateOrganization = async (
     .from('organizations')
     .update({
       ...updates,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', organizationId)
     .select()
@@ -366,7 +355,7 @@ export const saveDonorOnboarding = async (
   if (data.logo) {
     const fileExt = data.logo.name.split('.').pop()
     const fileName = `${userId}-profile-${Date.now()}.${fileExt}`
-    
+
     const { error: uploadError } = await supabase.storage
       .from('profile-pictures')
       .upload(fileName, data.logo)
@@ -374,26 +363,22 @@ export const saveDonorOnboarding = async (
     if (uploadError) {
       console.error('Profile picture upload error:', uploadError)
     } else {
-      const { data: urlData } = supabase.storage
-        .from('profile-pictures')
-        .getPublicUrl(fileName)
+      const { data: urlData } = supabase.storage.from('profile-pictures').getPublicUrl(fileName)
       profilePictureUrl = urlData.publicUrl
     }
   }
 
   // First update user_profiles with email info
-  await supabase
-    .from('user_profiles')
-    .upsert(
-      {
-        id: userId,
-        email: data.email,
-        phone: data.phone,
-        profile_picture_url: profilePictureUrl,
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: 'id' }
-    )
+  await supabase.from('user_profiles').upsert(
+    {
+      id: userId,
+      email: data.email,
+      phone: data.phone,
+      profile_picture_url: profilePictureUrl,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' }
+  )
 
   // Upsert donor profile
   const { data: profileData, error } = await supabase
@@ -408,7 +393,7 @@ export const saveDonorOnboarding = async (
         bio: data.bio,
         website: data.website,
         profile_picture_url: profilePictureUrl,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id' }
     )
@@ -441,22 +426,16 @@ export const saveDonorCauseAreas = async (userId: string, causeAreas: string[]) 
   }
 
   // Create donor_cause_areas records
-  const records = causeAreaRecords.map(ca => ({
+  const records = causeAreaRecords.map((ca) => ({
     user_id: userId,
-    cause_area_id: ca.id
+    cause_area_id: ca.id,
   }))
 
   // Delete existing associations first
-  await supabase
-    .from('donor_cause_areas')
-    .delete()
-    .eq('user_id', userId)
+  await supabase.from('donor_cause_areas').delete().eq('user_id', userId)
 
   // Insert new associations
-  const { data, error } = await supabase
-    .from('donor_cause_areas')
-    .insert(records)
-    .select()
+  const { data, error } = await supabase.from('donor_cause_areas').insert(records).select()
 
   if (error) throw error
   return data
@@ -479,22 +458,16 @@ export const saveOrganizationCauseAreas = async (organizationId: string, causeAr
   }
 
   // Create organization_cause_areas records
-  const records = causeAreaRecords.map(ca => ({
+  const records = causeAreaRecords.map((ca) => ({
     organization_id: organizationId,
-    cause_area_id: ca.id
+    cause_area_id: ca.id,
   }))
 
   // Delete existing associations first (to handle updates)
-  await supabase
-    .from('organization_cause_areas')
-    .delete()
-    .eq('organization_id', organizationId)
+  await supabase.from('organization_cause_areas').delete().eq('organization_id', organizationId)
 
   // Insert new associations
-  const { data, error } = await supabase
-    .from('organization_cause_areas')
-    .insert(records)
-    .select()
+  const { data, error } = await supabase.from('organization_cause_areas').insert(records).select()
 
   if (error) throw error
   return data
@@ -551,38 +524,41 @@ export const fetchDonorDashboardStats = async (donorId: string): Promise<DonorDa
   // Get all requests where this donor is involved
   const { data: donations, error } = await supabase
     .from('requests')
-    .select(`
+    .select(
+      `
       id,
       amount,
       status,
       cause_area_id
-    `)
+    `
+    )
     .eq('donor_id', donorId)
 
   if (error) throw error
 
-  const fulfilled = donations?.filter(d => d.status === 'fulfilled') || []
-  const claimed = donations?.filter(d => d.status === 'claimed') || []
-  
+  const fulfilled = donations?.filter((d) => d.status === 'fulfilled') || []
+  const claimed = donations?.filter((d) => d.status === 'claimed') || []
+
   // Calculate unique cause areas supported
-  const uniqueCauseAreas = new Set(donations?.map(d => d.cause_area_id) || [])
+  const uniqueCauseAreas = new Set(donations?.map((d) => d.cause_area_id) || [])
 
   return {
     totalDonations: fulfilled.reduce((sum, d) => sum + Number(d.amount), 0),
     requestsFulfilled: fulfilled.length,
     requestsClaimed: claimed.length,
-    causesSupported: uniqueCauseAreas.size
+    causesSupported: uniqueCauseAreas.size,
   }
 }
 
 // Fetch donor's donation history
 export const fetchDonorDonations = async (
-  donorId: string, 
+  donorId: string,
   filters?: { status?: string; search?: string }
 ): Promise<DonationRecord[]> => {
   let query = supabase
     .from('requests')
-    .select(`
+    .select(
+      `
       id,
       description,
       amount,
@@ -593,7 +569,8 @@ export const fetchDonorDonations = async (
       fulfilled_at,
       organization:organizations(name, logo_emoji),
       cause_area:cause_areas(name)
-    `)
+    `
+    )
     .eq('donor_id', donorId)
     .order('created_at', { ascending: false })
 
@@ -616,11 +593,11 @@ export const fetchDonorDonations = async (
     status: item.status,
     urgency: item.urgency,
     organization_name: item.organization?.name || 'Unknown Organization',
-    organization_logo_emoji: item.organization?.logo_emoji || '🏢',
+    organization_logo_emoji: item.organization?.logo_emoji || 'building2',
     cause_area_name: item.cause_area?.name || 'General',
     created_at: item.created_at,
     claimed_at: item.claimed_at,
-    fulfilled_at: item.fulfilled_at
+    fulfilled_at: item.fulfilled_at,
   }))
 }
 
@@ -639,7 +616,7 @@ export const fetchCBODashboardStats = async (userId: string): Promise<CBODashboa
       totalReceived: 0,
       activeRequests: 0,
       fulfilledRequests: 0,
-      pendingRequests: 0
+      pendingRequests: 0,
     }
   }
 
@@ -651,15 +628,15 @@ export const fetchCBODashboardStats = async (userId: string): Promise<CBODashboa
 
   if (error) throw error
 
-  const fulfilled = requests?.filter(r => r.status === 'fulfilled') || []
-  const active = requests?.filter(r => r.status === 'claimed') || []
-  const pending = requests?.filter(r => r.status === 'open') || []
+  const fulfilled = requests?.filter((r) => r.status === 'fulfilled') || []
+  const active = requests?.filter((r) => r.status === 'claimed') || []
+  const pending = requests?.filter((r) => r.status === 'open') || []
 
   return {
     totalReceived: fulfilled.reduce((sum, r) => sum + Number(r.amount), 0),
     activeRequests: active.length,
     fulfilledRequests: fulfilled.length,
-    pendingRequests: pending.length
+    pendingRequests: pending.length,
   }
 }
 
@@ -679,7 +656,8 @@ export const fetchCBORequests = async (
 
   let query = supabase
     .from('requests')
-    .select(`
+    .select(
+      `
       id,
       description,
       amount,
@@ -691,7 +669,8 @@ export const fetchCBORequests = async (
       fulfilled_at,
       cause_area:cause_areas(name),
       donor:user_profiles!requests_donor_id_fkey(id)
-    `)
+    `
+    )
     .eq('organization_id', org.id)
     .order('created_at', { ascending: false })
 
@@ -718,7 +697,7 @@ export const fetchCBORequests = async (
     donor_email: item.donor ? 'Donor assigned' : null,
     created_at: item.created_at,
     claimed_at: item.claimed_at,
-    fulfilled_at: item.fulfilled_at
+    fulfilled_at: item.fulfilled_at,
   }))
 }
 
@@ -758,7 +737,7 @@ export const createNewRequest = async (request: {
     .from('requests')
     .insert({
       ...request,
-      status: 'open'
+      status: 'open',
     })
     .select()
     .single()
@@ -769,12 +748,12 @@ export const createNewRequest = async (request: {
 
 // Update request status
 export const updateRequestStatus = async (
-  requestId: string, 
+  requestId: string,
   status: 'open' | 'claimed' | 'fulfilled' | 'denied',
   additionalData?: { donor_id?: string; donor_note?: string; denial_reason?: string }
 ) => {
   const updateData: any = { status }
-  
+
   if (status === 'claimed') {
     updateData.claimed_at = new Date().toISOString()
     if (additionalData?.donor_id) updateData.donor_id = additionalData.donor_id
@@ -834,7 +813,7 @@ export const createCampaign = async (campaignData: CampaignData) => {
       ...campaignData,
       status: 'pending',
       amount_raised: 0,
-      supporters_count: 0
+      supporters_count: 0,
     })
     .select()
     .single()
@@ -847,10 +826,12 @@ export const createCampaign = async (campaignData: CampaignData) => {
 export const getCampaignBySlug = async (slugOrId: string) => {
   const { data, error } = await supabase
     .from('campaigns')
-    .select(`
+    .select(
+      `
       *,
       organization:organizations(id, name, slug, mission, logo_url)
-    `)
+    `
+    )
     .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
     .single()
 
@@ -871,7 +852,10 @@ export const getCampaignsByOrganization = async (organizationId: string) => {
 }
 
 // Update campaign
-export const updateCampaign = async (campaignId: string, updates: Partial<CampaignData> & { status?: string }) => {
+export const updateCampaign = async (
+  campaignId: string,
+  updates: Partial<CampaignData> & { status?: string }
+) => {
   const { data, error } = await supabase
     .from('campaigns')
     .update(updates)
@@ -886,13 +870,11 @@ export const updateCampaign = async (campaignId: string, updates: Partial<Campai
 // Get active campaigns (for public listing)
 // includesPending: also show pending campaigns (for testing/preview)
 export const getActiveCampaigns = async (limit: number = 10, includePending: boolean = true) => {
-  let query = supabase
-    .from('campaigns')
-    .select(`
+  let query = supabase.from('campaigns').select(`
       *,
       organization:organizations(id, name, slug, logo_url)
     `)
-  
+
   if (includePending) {
     // Show both active and pending campaigns
     query = query.in('status', ['active', 'pending'])
@@ -900,10 +882,8 @@ export const getActiveCampaigns = async (limit: number = 10, includePending: boo
     // Only show active campaigns
     query = query.eq('status', 'active')
   }
-  
-  const { data, error } = await query
-    .order('created_at', { ascending: false })
-    .limit(limit)
+
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(limit)
 
   if (error) throw error
   return data || []
@@ -913,16 +893,14 @@ export const getActiveCampaigns = async (limit: number = 10, includePending: boo
 export const uploadCampaignImage = async (file: File, campaignId: string) => {
   const fileExt = file.name.split('.').pop()
   const fileName = `${campaignId}-${Date.now()}.${fileExt}`
-  
+
   const { error: uploadError } = await supabase.storage
     .from('campaign-images')
     .upload(fileName, file)
 
   if (uploadError) throw uploadError
 
-  const { data: urlData } = supabase.storage
-    .from('campaign-images')
-    .getPublicUrl(fileName)
+  const { data: urlData } = supabase.storage.from('campaign-images').getPublicUrl(fileName)
 
   return urlData.publicUrl
 }
@@ -944,69 +922,70 @@ export interface OrganizationQuestion {
 }
 
 // Fetch all questions for an organization's campaigns
-export const fetchOrganizationQuestions = async (organizationId: string): Promise<OrganizationQuestion[]> => {
+export const fetchOrganizationQuestions = async (
+  organizationId: string
+): Promise<OrganizationQuestion[]> => {
   // Get all campaigns for this org
   const { data: campaigns, error: campaignsError } = await supabase
     .from('campaigns')
     .select('id, title')
     .eq('organization_id', organizationId)
-  
+
   if (campaignsError) {
     console.error('Error fetching campaigns:', campaignsError)
     return []
   }
-  
+
   if (!campaigns?.length) return []
-  
-  const campaignIds = campaigns.map(c => c.id)
-  
+
+  const campaignIds = campaigns.map((c) => c.id)
+
   // Get all questions for these campaigns
-  const { data: questions, error: questionsError } = await (supabase
-    .from('campaign_questions') as any)
+  const { data: questions, error: questionsError } = await (
+    supabase.from('campaign_questions') as any
+  )
     .select('*')
     .in('campaign_id', campaignIds)
     .order('created_at', { ascending: false })
-  
+
   if (questionsError) {
     console.error('Error fetching questions:', questionsError)
     return []
   }
-  
+
   // Join campaign titles to questions
   return (questions || []).map((q: any) => ({
     ...q,
-    campaign_title: campaigns.find(c => c.id === q.campaign_id)?.title || 'Unknown Campaign'
+    campaign_title: campaigns.find((c) => c.id === q.campaign_id)?.title || 'Unknown Campaign',
   }))
 }
 
 // Answer a question
 export const answerQuestion = async (
-  questionId: string, 
-  answer: string, 
+  questionId: string,
+  answer: string,
   isPublic: boolean,
   userId: string
 ) => {
-  const { error } = await (supabase
-    .from('campaign_questions') as any)
+  const { error } = await (supabase.from('campaign_questions') as any)
     .update({
       answer: answer.trim(),
       status: 'answered',
       is_public: isPublic,
       answered_at: new Date().toISOString(),
-      answered_by: userId
+      answered_by: userId,
     })
     .eq('id', questionId)
-  
+
   if (error) throw error
 }
 
 // Dismiss/reject a question
 export const dismissQuestion = async (questionId: string) => {
-  const { error } = await (supabase
-    .from('campaign_questions') as any)
+  const { error } = await (supabase.from('campaign_questions') as any)
     .update({ status: 'rejected' })
     .eq('id', questionId)
-  
+
   if (error) throw error
 }
 
@@ -1018,28 +997,88 @@ export interface DonorDocument {
   id: string
   user_id: string
   name: string
-  type: string
+  type: string // 'tax_receipt' | 'annual_summary' | 'quarterly_statement'
   size: string
   file_url: string | null
   year: number
   quarter: number | null
   status: string
   created_at: string
+  // Extended fields for receipts
+  organization_id?: string
+  organization_name?: string
+  organization_ein?: string
+  donation_amount?: number
+  donation_date?: string
+  receipt_number?: string
+  request_id?: string
+  campaign_id?: string
+  donor_name?: string
+  donor_email?: string
 }
 
 export const fetchDonorDocuments = async (userId: string): Promise<DonorDocument[]> => {
-  const { data, error } = await (supabase
-    .from('donor_documents') as any)
+  const { data, error } = await (supabase.from('donor_documents') as any)
     .select('*')
     .eq('user_id', userId)
+    .eq('status', 'ready')
     .order('year', { ascending: false })
-    .order('created_at', { ascending: false })
+    .order('donation_date', { ascending: false })
 
   if (error) {
     console.error('Error fetching donor documents:', error)
     return []
   }
   return data || []
+}
+
+/**
+ * Get download URL for a document
+ */
+export const getDocumentDownloadUrl = async (documentId: string): Promise<string | null> => {
+  try {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+    const response = await fetch(`${apiUrl}/api/documents/download/${documentId}`)
+
+    if (!response.ok) {
+      console.error('Error fetching download URL')
+      return null
+    }
+
+    const data = await response.json()
+    return data.url || null
+  } catch (error) {
+    console.error('Error getting document download URL:', error)
+    return null
+  }
+}
+
+/**
+ * Generate annual summary for a donor
+ */
+export const generateAnnualSummary = async (
+  donorId: string,
+  year: number
+): Promise<DonorDocument | null> => {
+  try {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+    const response = await fetch(`${apiUrl}/api/documents/generate-annual-summary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ donorId, year }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to generate summary')
+    }
+
+    const data = await response.json()
+    return data.document || null
+  } catch (error) {
+    console.error('Error generating annual summary:', error)
+    throw error
+  }
 }
 
 // ============================================
@@ -1080,47 +1119,50 @@ export interface DonorImpactData {
 export const fetchDonorImpactData = async (userId: string): Promise<DonorImpactData | null> => {
   try {
     // Fetch summary
-    const { data: summaryData } = await (supabase
-      .from('donor_impact_summary') as any)
+    const { data: summaryData } = await (supabase.from('donor_impact_summary') as any)
       .select('*')
       .eq('user_id', userId)
       .single()
 
     // Fetch impact by cause with cause area names
-    const { data: causeData } = await (supabase
-      .from('donor_impact_by_cause') as any)
-      .select(`
+    const { data: causeData } = await (supabase.from('donor_impact_by_cause') as any)
+      .select(
+        `
         amount,
         percentage,
         cause_area:cause_areas(name)
-      `)
+      `
+      )
       .eq('user_id', userId)
       .order('percentage', { ascending: false })
 
     // Fetch monthly donations
-    const { data: monthlyData } = await (supabase
-      .from('donor_monthly_donations') as any)
+    const { data: monthlyData } = await (supabase.from('donor_monthly_donations') as any)
       .select('month, amount')
       .eq('user_id', userId)
       .order('year', { ascending: true })
 
     // Fetch impact stories
-    const { data: storiesData } = await (supabase
-      .from('donor_impact_stories') as any)
+    const { data: storiesData } = await (supabase.from('donor_impact_stories') as any)
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(4)
 
     return {
-      summary: summaryData || { total_donated: 0, lives_impacted: 0, organizations_helped: 0, months_active: 0 },
+      summary: summaryData || {
+        total_donated: 0,
+        lives_impacted: 0,
+        organizations_helped: 0,
+        months_active: 0,
+      },
       topCauses: (causeData || []).map((c: any) => ({
         name: c.cause_area?.name || 'Unknown',
         amount: c.amount,
-        percentage: c.percentage
+        percentage: c.percentage,
       })),
       monthlyData: monthlyData || [],
-      recentImpact: storiesData || []
+      recentImpact: storiesData || [],
     }
   } catch (error) {
     console.error('Error fetching donor impact data:', error)
@@ -1150,9 +1192,10 @@ export interface SupportContactInfo {
   sort_order: number
 }
 
-export const fetchSupportFAQs = async (userType: 'donor' | 'cbo' | 'all' = 'all'): Promise<SupportFAQ[]> => {
-  let query = (supabase
-    .from('support_faqs') as any)
+export const fetchSupportFAQs = async (
+  userType: 'donor' | 'cbo' | 'all' = 'all'
+): Promise<SupportFAQ[]> => {
+  let query = (supabase.from('support_faqs') as any)
     .select('*')
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
@@ -1171,8 +1214,7 @@ export const fetchSupportFAQs = async (userType: 'donor' | 'cbo' | 'all' = 'all'
 }
 
 export const fetchSupportContactInfo = async (): Promise<SupportContactInfo[]> => {
-  const { data, error } = await (supabase
-    .from('support_contact_info') as any)
+  const { data, error } = await (supabase.from('support_contact_info') as any)
     .select('*')
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
@@ -1228,7 +1270,7 @@ export const fetchDonorYearlySummary = async (userId: string): Promise<DonorYear
       year: parseInt(year),
       total_donations: data.total,
       donation_count: data.count,
-      tax_deductible: data.total // All donations are tax deductible
+      tax_deductible: data.total, // All donations are tax deductible
     }))
     .sort((a, b) => b.year - a.year)
 }
@@ -1293,13 +1335,17 @@ export interface OrganizationTeamMember {
 }
 
 // Fetch organization by ID with related data
-export const fetchOrganizationProfile = async (organizationId: string): Promise<OrganizationProfile | null> => {
+export const fetchOrganizationProfile = async (
+  organizationId: string
+): Promise<OrganizationProfile | null> => {
   const { data: org, error } = await supabase
     .from('organizations')
-    .select(`
+    .select(
+      `
       *,
       user_profile:user_profiles!organizations_user_id_fkey(is_vetted)
-    `)
+    `
+    )
     .eq('id', organizationId)
     .single()
 
@@ -1316,7 +1362,7 @@ export const fetchOrganizationProfile = async (organizationId: string): Promise<
 
   let causeAreas: { id: string; name: string }[] = []
   if (causeAreaLinks && causeAreaLinks.length > 0) {
-    const causeAreaIds = causeAreaLinks.map(ca => ca.cause_area_id)
+    const causeAreaIds = causeAreaLinks.map((ca) => ca.cause_area_id)
     const { data: causes } = await supabase
       .from('cause_areas')
       .select('id, name')
@@ -1325,8 +1371,7 @@ export const fetchOrganizationProfile = async (organizationId: string): Promise<
   }
 
   // Fetch populations served
-  const { data: populationLinks } = await (supabase
-    .from('organization_populations') as any)
+  const { data: populationLinks } = await (supabase.from('organization_populations') as any)
     .select('identity_category_id')
     .eq('organization_id', organizationId)
 
@@ -1343,12 +1388,14 @@ export const fetchOrganizationProfile = async (organizationId: string): Promise<
   return {
     ...org,
     cause_areas: causeAreas,
-    populations: populations
+    populations: populations,
   } as OrganizationProfile
 }
 
 // Fetch organization by user ID
-export const fetchOrganizationByUserId = async (userId: string): Promise<OrganizationProfile | null> => {
+export const fetchOrganizationByUserId = async (
+  userId: string
+): Promise<OrganizationProfile | null> => {
   const { data: org, error } = await supabase
     .from('organizations')
     .select('id')
@@ -1366,10 +1413,12 @@ export const fetchOrganizationByUserId = async (userId: string): Promise<Organiz
 export const fetchOrganizationRequests = async (organizationId: string) => {
   const { data, error } = await supabase
     .from('requests')
-    .select(`
+    .select(
+      `
       *,
       cause_area:cause_areas(id, name)
-    `)
+    `
+    )
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false })
 
@@ -1382,9 +1431,10 @@ export const fetchOrganizationRequests = async (organizationId: string) => {
 }
 
 // Fetch organization updates
-export const fetchOrganizationUpdates = async (organizationId: string): Promise<OrganizationUpdate[]> => {
-  const { data, error } = await (supabase
-    .from('organization_updates') as any)
+export const fetchOrganizationUpdates = async (
+  organizationId: string
+): Promise<OrganizationUpdate[]> => {
+  const { data, error } = await (supabase.from('organization_updates') as any)
     .select('*')
     .eq('organization_id', organizationId)
     .eq('is_published', true)
@@ -1399,9 +1449,10 @@ export const fetchOrganizationUpdates = async (organizationId: string): Promise<
 }
 
 // Fetch organization team members
-export const fetchOrganizationTeamMembers = async (organizationId: string): Promise<OrganizationTeamMember[]> => {
-  const { data, error } = await (supabase
-    .from('organization_team_members') as any)
+export const fetchOrganizationTeamMembers = async (
+  organizationId: string
+): Promise<OrganizationTeamMember[]> => {
+  const { data, error } = await (supabase.from('organization_team_members') as any)
     .select('*')
     .eq('organization_id', organizationId)
     .eq('is_active', true)
@@ -1424,7 +1475,7 @@ export const updateOrganizationProfile = async (
     .from('organizations')
     .update({
       ...updates,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', organizationId)
     .select()
@@ -1445,11 +1496,10 @@ export const createOrganizationUpdate = async (update: {
   content: string
   image_url?: string
 }) => {
-  const { data, error } = await (supabase
-    .from('organization_updates') as any)
+  const { data, error } = await (supabase.from('organization_updates') as any)
     .insert({
       ...update,
-      is_published: true
+      is_published: true,
     })
     .select()
     .single()
@@ -1472,11 +1522,10 @@ export const createOrganizationTeamMember = async (member: {
   email?: string
   display_order?: number
 }) => {
-  const { data, error } = await (supabase
-    .from('organization_team_members') as any)
+  const { data, error } = await (supabase.from('organization_team_members') as any)
     .insert({
       ...member,
-      is_active: true
+      is_active: true,
     })
     .select()
     .single()
@@ -1494,8 +1543,7 @@ export const updateOrganizationTeamMember = async (
   memberId: string,
   updates: Partial<OrganizationTeamMember>
 ) => {
-  const { data, error } = await (supabase
-    .from('organization_team_members') as any)
+  const { data, error } = await (supabase.from('organization_team_members') as any)
     .update(updates)
     .eq('id', memberId)
     .select()
@@ -1511,8 +1559,7 @@ export const updateOrganizationTeamMember = async (
 
 // Delete organization team member (soft delete)
 export const deleteOrganizationTeamMember = async (memberId: string) => {
-  const { error } = await (supabase
-    .from('organization_team_members') as any)
+  const { error } = await (supabase.from('organization_team_members') as any)
     .update({ is_active: false })
     .eq('id', memberId)
 
@@ -1523,23 +1570,24 @@ export const deleteOrganizationTeamMember = async (memberId: string) => {
 }
 
 // Save organization populations
-export const saveOrganizationPopulations = async (organizationId: string, populationIds: string[]) => {
+export const saveOrganizationPopulations = async (
+  organizationId: string,
+  populationIds: string[]
+) => {
   // Delete existing populations
-  await (supabase
-    .from('organization_populations') as any)
+  await (supabase.from('organization_populations') as any)
     .delete()
     .eq('organization_id', organizationId)
 
   if (populationIds.length === 0) return []
 
   // Insert new populations
-  const records = populationIds.map(id => ({
+  const records = populationIds.map((id) => ({
     organization_id: organizationId,
-    identity_category_id: id
+    identity_category_id: id,
   }))
 
-  const { data, error } = await (supabase
-    .from('organization_populations') as any)
+  const { data, error } = await (supabase.from('organization_populations') as any)
     .insert(records)
     .select()
 
@@ -1592,16 +1640,17 @@ export interface CampaignReport extends CampaignReportData {
 }
 
 // Submit a campaign report
-export const submitCampaignReport = async (reportData: CampaignReportData): Promise<CampaignReport> => {
-  const { data, error } = await (supabase
-    .from('campaign_reports') as any)
+export const submitCampaignReport = async (
+  reportData: CampaignReportData
+): Promise<CampaignReport> => {
+  const { data, error } = await (supabase.from('campaign_reports') as any)
     .insert({
       campaign_id: reportData.campaign_id,
       reporter_id: reportData.reporter_id || null,
       reporter_email: reportData.reporter_email || null,
       reason: reportData.reason,
       description: reportData.description || null,
-      status: 'pending'
+      status: 'pending',
     })
     .select()
     .single()
@@ -1616,12 +1665,13 @@ export const submitCampaignReport = async (reportData: CampaignReportData): Prom
 
 // Fetch campaign reports (for admin)
 export const fetchCampaignReports = async (status?: string): Promise<CampaignReport[]> => {
-  let query = (supabase
-    .from('campaign_reports') as any)
-    .select(`
+  let query = (supabase.from('campaign_reports') as any)
+    .select(
+      `
       *,
       campaign:campaigns(id, title, slug, organization_id)
-    `)
+    `
+    )
     .order('created_at', { ascending: false })
 
   if (status) {
@@ -1647,7 +1697,7 @@ export const updateCampaignReportStatus = async (
 ): Promise<CampaignReport | null> => {
   const updates: Record<string, unknown> = {
     status,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   }
 
   if (status === 'resolved' || status === 'dismissed') {
@@ -1659,8 +1709,7 @@ export const updateCampaignReportStatus = async (
     updates.admin_notes = adminNotes
   }
 
-  const { data, error } = await (supabase
-    .from('campaign_reports') as any)
+  const { data, error } = await (supabase.from('campaign_reports') as any)
     .update(updates)
     .eq('id', reportId)
     .select()
@@ -1690,9 +1739,7 @@ export interface PlatformSetting {
 
 // Fetch all platform settings
 export const fetchPlatformSettings = async (): Promise<Record<string, any>> => {
-  const { data, error } = await (supabase
-    .from('platform_settings') as any)
-    .select('*')
+  const { data, error } = await (supabase.from('platform_settings') as any).select('*')
 
   if (error) {
     console.error('Error fetching platform settings:', error)
@@ -1728,12 +1775,11 @@ export const updatePlatformSetting = async (
 ): Promise<void> => {
   const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value)
 
-  const { error } = await (supabase
-    .from('platform_settings') as any)
+  const { error } = await (supabase.from('platform_settings') as any)
     .update({
       value: stringValue,
       updated_by: adminId,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('key', key)
 
@@ -1766,8 +1812,7 @@ export interface MonthlyDataPoint {
 
 // Fetch user growth data (users created per month)
 export const fetchUserGrowthData = async (months: number = 6): Promise<MonthlyDataPoint[]> => {
-  const { data, error } = await (supabase
-    .from('user_profiles') as any)
+  const { data, error } = await (supabase.from('user_profiles') as any)
     .select('created_at')
     .order('created_at', { ascending: true })
 
@@ -1797,21 +1842,33 @@ export const fetchUserGrowthData = async (months: number = 6): Promise<MonthlyDa
   }
 
   // Convert to array format
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const monthNames = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ]
   return Object.entries(monthCounts).map(([key, count]) => {
     const [year, month] = key.split('-').map(Number)
     return {
       month: monthNames[month - 1],
       year,
-      count
+      count,
     }
   })
 }
 
 // Fetch donation trends data (fulfilled requests per month with amounts)
 export const fetchDonationTrendsData = async (months: number = 6): Promise<MonthlyDataPoint[]> => {
-  const { data, error } = await (supabase
-    .from('requests') as any)
+  const { data, error } = await (supabase.from('requests') as any)
     .select('fulfilled_at, amount, status')
     .eq('status', 'fulfilled')
     .not('fulfilled_at', 'is', null)
@@ -1846,14 +1903,27 @@ export const fetchDonationTrendsData = async (months: number = 6): Promise<Month
   }
 
   // Convert to array format
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const monthNames = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ]
   return Object.entries(monthData).map(([key, data]) => {
     const [year, month] = key.split('-').map(Number)
     return {
       month: monthNames[month - 1],
       year,
       count: data.count,
-      amount: data.amount
+      amount: data.amount,
     }
   })
 }
@@ -1880,15 +1950,13 @@ export const logAdminActivity = async (
   entityId?: string,
   details?: Record<string, any>
 ): Promise<void> => {
-  const { error } = await (supabase
-    .from('admin_activity_log') as any)
-    .insert({
-      admin_id: adminId,
-      action,
-      entity_type: entityType,
-      entity_id: entityId,
-      details
-    })
+  const { error } = await (supabase.from('admin_activity_log') as any).insert({
+    admin_id: adminId,
+    action,
+    entity_type: entityType,
+    entity_id: entityId,
+    details,
+  })
 
   if (error) {
     console.error('Error logging admin activity:', error)
@@ -1898,8 +1966,7 @@ export const logAdminActivity = async (
 
 // Fetch recent admin activity
 export const fetchAdminActivity = async (limit: number = 20): Promise<AdminActivity[]> => {
-  const { data, error } = await (supabase
-    .from('admin_activity_log') as any)
+  const { data, error } = await (supabase.from('admin_activity_log') as any)
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit)
@@ -1912,3 +1979,184 @@ export const fetchAdminActivity = async (limit: number = 20): Promise<AdminActiv
   return data || []
 }
 
+// ============================================
+// ORGANIZATION DOCUMENTS
+// ============================================
+
+export interface OrganizationDocument {
+  id: string
+  organization_id: string
+  uploaded_by: string
+  name: string
+  type: string // 'tax_exempt' | '501c3' | 'annual_report' | 'financial_statement' | 'audit_report' | 'bylaws' | 'insurance' | 'other'
+  size: string | null
+  file_url: string | null
+  year: number | null
+  status: string
+  description: string | null
+  is_public: boolean
+  created_at: string
+  updated_at: string
+}
+
+export const ORGANIZATION_DOCUMENT_TYPES = [
+  { value: 'tax_exempt', label: 'Tax Exempt Certificate' },
+  { value: '501c3', label: '501(c)(3) Determination Letter' },
+  { value: 'annual_report', label: 'Annual Report' },
+  { value: 'financial_statement', label: 'Financial Statement' },
+  { value: 'audit_report', label: 'Audit Report' },
+  { value: 'board_minutes', label: 'Board Minutes' },
+  { value: 'bylaws', label: 'Organization Bylaws' },
+  { value: 'insurance', label: 'Insurance Certificate' },
+  { value: 'other', label: 'Other' },
+] as const
+
+/**
+ * Fetch all documents for an organization
+ */
+export const fetchOrganizationDocuments = async (
+  organizationId: string
+): Promise<OrganizationDocument[]> => {
+  const { data, error } = await (supabase.from('organization_documents') as any)
+    .select('*')
+    .eq('organization_id', organizationId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching organization documents:', error)
+    return []
+  }
+  return data || []
+}
+
+/**
+ * Upload a document for an organization
+ */
+export const uploadOrganizationDocument = async (
+  organizationId: string,
+  uploadedBy: string,
+  file: File,
+  metadata: {
+    name: string
+    type: string
+    year?: number
+    description?: string
+    is_public?: boolean
+  }
+): Promise<OrganizationDocument | null> => {
+  try {
+    // Upload file to storage
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${organizationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('organization-documents')
+      .upload(fileName, file)
+
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError)
+      throw uploadError
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage.from('organization-documents').getPublicUrl(fileName)
+
+    // Create document record
+    const { data, error } = await (supabase.from('organization_documents') as any)
+      .insert({
+        organization_id: organizationId,
+        uploaded_by: uploadedBy,
+        name: metadata.name,
+        type: metadata.type,
+        size: formatFileSize(file.size),
+        file_url: urlData.publicUrl,
+        year: metadata.year || new Date().getFullYear(),
+        status: 'ready',
+        description: metadata.description || null,
+        is_public: metadata.is_public || false,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating document record:', error)
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error uploading organization document:', error)
+    return null
+  }
+}
+
+/**
+ * Delete an organization document
+ */
+export const deleteOrganizationDocument = async (documentId: string): Promise<boolean> => {
+  try {
+    // Get the document first to get the file URL
+    const { data: doc } = await (supabase.from('organization_documents') as any)
+      .select('file_url')
+      .eq('id', documentId)
+      .single()
+
+    if (doc?.file_url) {
+      // Extract file path from URL and delete from storage
+      const url = new URL(doc.file_url)
+      const filePath = url.pathname.split('/organization-documents/')[1]
+      if (filePath) {
+        await supabase.storage.from('organization-documents').remove([filePath])
+      }
+    }
+
+    // Delete document record
+    const { error } = await (supabase.from('organization_documents') as any)
+      .delete()
+      .eq('id', documentId)
+
+    if (error) {
+      console.error('Error deleting document:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error deleting organization document:', error)
+    return false
+  }
+}
+
+/**
+ * Update document metadata
+ */
+export const updateOrganizationDocument = async (
+  documentId: string,
+  updates: Partial<
+    Pick<OrganizationDocument, 'name' | 'type' | 'year' | 'description' | 'is_public'>
+  >
+): Promise<OrganizationDocument | null> => {
+  const { data, error } = await (supabase.from('organization_documents') as any)
+    .update(updates)
+    .eq('id', documentId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating document:', error)
+    return null
+  }
+
+  return data
+}
+
+/**
+ * Helper function to format file size
+ */
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}

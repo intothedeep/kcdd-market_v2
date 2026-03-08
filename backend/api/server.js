@@ -1,8 +1,8 @@
 /**
  * KCDD Market API Server
- * 
+ *
  * Handles Stripe payment intents and webhooks
- * 
+ *
  * Documentation:
  * - Express: https://expressjs.com/
  * - Stripe API: https://stripe.com/docs/api
@@ -14,6 +14,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { generateDonationReceipt, generateAnnualSummary } from './services/pdfGenerator.js'
 
 // Load environment variables
 dotenv.config()
@@ -28,30 +29,28 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 })
 
 // Initialize Supabase (with service role key for admin access)
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-)
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+})
 
 // CORS configuration
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000']
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
-  credentials: true,
-}))
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    },
+    credentials: true,
+  })
+)
 
 // Parse JSON bodies (except for webhook route)
 app.use((req, res, next) => {
@@ -106,7 +105,7 @@ app.post('/api/stripe/connect/create-account', async (req, res) => {
     if (org.stripe_account_id) {
       return res.status(400).json({
         error: 'Organization already has a Stripe account',
-        accountId: org.stripe_account_id
+        accountId: org.stripe_account_id,
       })
     }
 
@@ -150,7 +149,7 @@ app.post('/api/stripe/connect/create-account', async (req, res) => {
 
     res.json({
       accountId: account.id,
-      message: 'Stripe Connect account created successfully'
+      message: 'Stripe Connect account created successfully',
     })
   } catch (error) {
     console.error('Error creating Connect account:', error)
@@ -201,7 +200,7 @@ app.post('/api/stripe/connect/onboarding-link', async (req, res) => {
 
     res.json({
       url: accountLink.url,
-      expiresAt: accountLink.expires_at
+      expiresAt: accountLink.expires_at,
     })
   } catch (error) {
     console.error('Error creating onboarding link:', error)
@@ -220,7 +219,9 @@ app.get('/api/stripe/connect/status/:organizationId', async (req, res) => {
     // Get organization's Stripe account
     const { data: org, error: orgError } = await supabase
       .from('organizations')
-      .select('stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled')
+      .select(
+        'stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled'
+      )
       .eq('id', organizationId)
       .single()
 
@@ -232,7 +233,7 @@ app.get('/api/stripe/connect/status/:organizationId', async (req, res) => {
       return res.json({
         connected: false,
         status: 'not_connected',
-        message: 'No Stripe account connected'
+        message: 'No Stripe account connected',
       })
     }
 
@@ -292,12 +293,14 @@ app.post('/api/payments/create-intent', async (req, res) => {
     // Verify request exists and get organization's Stripe account
     const { data: request, error: fetchError } = await supabase
       .from('requests')
-      .select(`
+      .select(
+        `
         *,
         organization:organizations(
           id, name, stripe_account_id, stripe_charges_enabled
         )
-      `)
+      `
+      )
       .eq('id', requestId)
       .single()
 
@@ -311,7 +314,7 @@ app.post('/api/payments/create-intent', async (req, res) => {
       return res.status(400).json({
         error: 'Organization not ready to accept payments',
         code: 'STRIPE_NOT_CONNECTED',
-        message: 'This organization has not completed their payment setup.'
+        message: 'This organization has not completed their payment setup.',
       })
     }
 
@@ -322,10 +325,10 @@ app.post('/api/payments/create-intent', async (req, res) => {
       .in('key', ['stripe_platform_fee_percent', 'stripe_platform_fee_fixed_cents'])
 
     const feePercent = parseFloat(
-      settings?.find(s => s.key === 'stripe_platform_fee_percent')?.value || '2.9'
+      settings?.find((s) => s.key === 'stripe_platform_fee_percent')?.value || '2.9'
     )
     const feeFixed = parseInt(
-      settings?.find(s => s.key === 'stripe_platform_fee_fixed_cents')?.value || '30'
+      settings?.find((s) => s.key === 'stripe_platform_fee_fixed_cents')?.value || '30'
     )
 
     // Calculate platform fee (amount is already in cents)
@@ -353,18 +356,16 @@ app.post('/api/payments/create-intent', async (req, res) => {
     })
 
     // Create payment transaction record
-    const { error: txError } = await supabase
-      .from('payment_transactions')
-      .insert({
-        request_id: requestId,
-        organization_id: org.id,
-        donor_id: donorId || 'anonymous',
-        stripe_payment_intent_id: paymentIntent.id,
-        amount_total: amountCents,
-        platform_fee: platformFee,
-        organization_amount: organizationAmount,
-        status: 'pending',
-      })
+    const { error: txError } = await supabase.from('payment_transactions').insert({
+      request_id: requestId,
+      organization_id: org.id,
+      donor_id: donorId || 'anonymous',
+      stripe_payment_intent_id: paymentIntent.id,
+      amount_total: amountCents,
+      platform_fee: platformFee,
+      organization_amount: organizationAmount,
+      status: 'pending',
+    })
 
     if (txError) {
       console.error('Error creating transaction record:', txError)
@@ -386,7 +387,7 @@ app.post('/api/payments/create-intent', async (req, res) => {
         total: amountCents,
         platformFee,
         organizationAmount,
-      }
+      },
     })
   } catch (error) {
     console.error('Error creating payment intent:', error)
@@ -420,12 +421,14 @@ app.post('/api/payments/create-campaign-intent', async (req, res) => {
     // Verify campaign exists and get organization's Stripe account
     const { data: campaign, error: fetchError } = await supabase
       .from('campaigns')
-      .select(`
+      .select(
+        `
         *,
         organization:organizations(
           id, name, stripe_account_id, stripe_charges_enabled
         )
-      `)
+      `
+      )
       .eq('id', campaignId)
       .single()
 
@@ -439,7 +442,7 @@ app.post('/api/payments/create-campaign-intent', async (req, res) => {
       return res.status(400).json({
         error: 'Organization not ready to accept payments',
         code: 'STRIPE_NOT_CONNECTED',
-        message: 'This organization has not completed their payment setup.'
+        message: 'This organization has not completed their payment setup.',
       })
     }
 
@@ -450,10 +453,10 @@ app.post('/api/payments/create-campaign-intent', async (req, res) => {
       .in('key', ['stripe_platform_fee_percent', 'stripe_platform_fee_fixed_cents'])
 
     const feePercent = parseFloat(
-      settings?.find(s => s.key === 'stripe_platform_fee_percent')?.value || '2.9'
+      settings?.find((s) => s.key === 'stripe_platform_fee_percent')?.value || '2.9'
     )
     const feeFixed = parseInt(
-      settings?.find(s => s.key === 'stripe_platform_fee_fixed_cents')?.value || '30'
+      settings?.find((s) => s.key === 'stripe_platform_fee_fixed_cents')?.value || '30'
     )
 
     // Calculate platform fee (amount is already in cents)
@@ -482,18 +485,16 @@ app.post('/api/payments/create-campaign-intent', async (req, res) => {
     })
 
     // Create payment transaction record
-    const { error: txError } = await supabase
-      .from('payment_transactions')
-      .insert({
-        campaign_id: campaignId,
-        organization_id: org.id,
-        donor_id: donorId || 'anonymous',
-        stripe_payment_intent_id: paymentIntent.id,
-        amount_total: amountCents,
-        platform_fee: platformFee,
-        organization_amount: organizationAmount,
-        status: 'pending',
-      })
+    const { error: txError } = await supabase.from('payment_transactions').insert({
+      campaign_id: campaignId,
+      organization_id: org.id,
+      donor_id: donorId || 'anonymous',
+      stripe_payment_intent_id: paymentIntent.id,
+      amount_total: amountCents,
+      platform_fee: platformFee,
+      organization_amount: organizationAmount,
+      status: 'pending',
+    })
 
     if (txError) {
       console.error('Error creating transaction record:', txError)
@@ -516,7 +517,7 @@ app.post('/api/payments/create-campaign-intent', async (req, res) => {
         total: amountCents,
         platformFee,
         organizationAmount,
-      }
+      },
     })
   } catch (error) {
     console.error('Error creating campaign payment intent:', error)
@@ -530,74 +531,66 @@ app.post('/api/payments/create-campaign-intent', async (req, res) => {
  *
  * Handles Stripe webhook events
  */
-app.post(
-  '/api/payments/webhook',
-  express.raw({ type: 'application/json' }),
-  async (req, res) => {
-    const sig = req.headers['stripe-signature']
-    let event
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature']
+  let event
 
-    try {
-      event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET
-      )
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err.message)
-      return res.status(400).send(`Webhook Error: ${err.message}`)
-    }
-
-    // Handle the event
-    try {
-      switch (event.type) {
-        case 'payment_intent.succeeded':
-          await handlePaymentSucceeded(event.data.object)
-          break
-
-        case 'payment_intent.payment_failed':
-          await handlePaymentFailed(event.data.object)
-          break
-
-        case 'charge.refunded':
-          await handleChargeRefunded(event.data.object)
-          break
-
-        // Stripe Connect events
-        case 'account.updated':
-          await handleAccountUpdated(event.data.object)
-          break
-
-        case 'account.application.deauthorized':
-          await handleAccountDeauthorized(event.data.object)
-          break
-
-        case 'transfer.created':
-          await handleTransferCreated(event.data.object)
-          break
-
-        default:
-          console.log(`Unhandled event type: ${event.type}`)
-      }
-
-      res.json({ received: true })
-    } catch (error) {
-      console.error('Error handling webhook:', error)
-      res.status(500).json({ error: error.message })
-    }
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET)
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message)
+    return res.status(400).send(`Webhook Error: ${err.message}`)
   }
-)
+
+  // Handle the event
+  try {
+    switch (event.type) {
+      case 'payment_intent.succeeded':
+        await handlePaymentSucceeded(event.data.object)
+        break
+
+      case 'payment_intent.payment_failed':
+        await handlePaymentFailed(event.data.object)
+        break
+
+      case 'charge.refunded':
+        await handleChargeRefunded(event.data.object)
+        break
+
+      // Stripe Connect events
+      case 'account.updated':
+        await handleAccountUpdated(event.data.object)
+        break
+
+      case 'account.application.deauthorized':
+        await handleAccountDeauthorized(event.data.object)
+        break
+
+      case 'transfer.created':
+        await handleTransferCreated(event.data.object)
+        break
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`)
+    }
+
+    res.json({ received: true })
+  } catch (error) {
+    console.error('Error handling webhook:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
 
 // ============================================
 // WEBHOOK HANDLERS
 // ============================================
 
 async function handlePaymentSucceeded(paymentIntent) {
-  const { requestId, organizationId, donorId } = paymentIntent.metadata
+  const { requestId, campaignId, organizationId, donorId } = paymentIntent.metadata
 
   console.log('Payment succeeded:', {
     paymentIntentId: paymentIntent.id,
-    requestId,
+    requestId: requestId || campaignId,
     amount: paymentIntent.amount / 100,
   })
 
@@ -615,28 +608,70 @@ async function handlePaymentSucceeded(paymentIntent) {
     console.error('Error updating transaction:', txError)
   }
 
-  // Update request status in database
-  const { error } = await supabase
-    .from('requests')
-    .update({
-      status: 'claimed',
-      claimed_at: new Date().toISOString(),
-      donor_id: donorId || null,
-    })
-    .eq('id', requestId)
+  // Update request status in database (only for request donations)
+  if (requestId) {
+    const { error } = await supabase
+      .from('requests')
+      .update({
+        status: 'claimed',
+        claimed_at: new Date().toISOString(),
+        donor_id: donorId || null,
+      })
+      .eq('id', requestId)
 
-  if (error) {
-    console.error('Error updating request:', error)
+    if (error) {
+      console.error('Error updating request:', error)
+    }
+
+    // Create notification for organization
+    await supabase.from('request_notifications').insert({
+      request_id: requestId,
+      notification_type: 'claimed',
+      title: 'Donation Received!',
+      message: `A donor has claimed your request with a $${(paymentIntent.amount / 100).toFixed(2)} donation.`,
+      recipient_id: organizationId,
+    })
   }
 
-  // Create notification for organization
-  await supabase.from('request_notifications').insert({
-    request_id: requestId,
-    notification_type: 'claimed',
-    title: 'Donation Received!',
-    message: `A donor has claimed your request with a $${(paymentIntent.amount / 100).toFixed(2)} donation.`,
-    recipient_id: organizationId,
-  })
+  // Update campaign amounts (for campaign donations)
+  if (campaignId) {
+    const amountDollars = paymentIntent.amount / 100
+    await supabase
+      .rpc('increment_campaign_amount', {
+        campaign_id: campaignId,
+        amount: amountDollars,
+      })
+      .catch(() => {
+        // RPC might not exist, fallback to manual update
+        supabase
+          .from('campaigns')
+          .select('amount_raised, supporters_count')
+          .eq('id', campaignId)
+          .single()
+          .then(({ data }) => {
+            if (data) {
+              supabase
+                .from('campaigns')
+                .update({
+                  amount_raised: (data.amount_raised || 0) + amountDollars,
+                  supporters_count: (data.supporters_count || 0) + 1,
+                })
+                .eq('id', campaignId)
+            }
+          })
+      })
+  }
+
+  // Generate tax receipt PDF automatically
+  try {
+    const receipt = await generateAndStoreReceipt(paymentIntent)
+    if (receipt) {
+      console.log('Auto-generated receipt:', receipt.receipt_number)
+    }
+  } catch (receiptError) {
+    console.error('Error auto-generating receipt:', receiptError)
+    // Don't fail the webhook - receipt generation is non-critical
+  }
 }
 
 async function handlePaymentFailed(paymentIntent) {
@@ -737,6 +772,421 @@ async function handleTransferCreated(transfer) {
 }
 
 // ============================================
+// TAX DOCUMENT ENDPOINTS
+// ============================================
+
+/**
+ * Generate Receipt Number
+ * Uses database sequence for unique sequential numbers
+ */
+async function generateReceiptNumber() {
+  const { data, error } = await supabase.rpc('generate_receipt_number')
+  if (error) {
+    // Fallback to timestamp-based number if function doesn't exist
+    const now = new Date()
+    return `KCDD-${now.getFullYear()}-${Date.now().toString().slice(-8)}`
+  }
+  return data
+}
+
+/**
+ * Generate Donation Receipt (Internal)
+ * Called automatically after successful payment
+ */
+async function generateAndStoreReceipt(paymentIntent) {
+  try {
+    const {
+      requestId,
+      campaignId,
+      organizationId,
+      organizationName,
+      donorId,
+      platformFee,
+      organizationAmount,
+    } = paymentIntent.metadata
+
+    // Get organization details
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', organizationId)
+      .single()
+
+    if (orgError || !org) {
+      console.error('Error fetching organization for receipt:', orgError)
+      return null
+    }
+
+    // Get donor details
+    let donorName = 'Anonymous Donor'
+    let donorEmail = null
+
+    if (donorId && donorId !== 'anonymous') {
+      const { data: donor } = await supabase
+        .from('user_profiles')
+        .select('first_name, last_name, email')
+        .eq('user_id', donorId)
+        .single()
+
+      if (donor) {
+        donorName = `${donor.first_name || ''} ${donor.last_name || ''}`.trim() || 'Donor'
+        donorEmail = donor.email
+      }
+    }
+
+    // Get request/campaign description
+    let description = 'Charitable donation'
+    if (requestId) {
+      const { data: request } = await supabase
+        .from('requests')
+        .select('description, item')
+        .eq('id', requestId)
+        .single()
+      if (request) {
+        description = `Donation for: ${request.item || request.description || 'Request'}`
+      }
+    } else if (campaignId) {
+      const { data: campaign } = await supabase
+        .from('campaigns')
+        .select('title')
+        .eq('id', campaignId)
+        .single()
+      if (campaign) {
+        description = `Campaign donation: ${campaign.title}`
+      }
+    }
+
+    // Generate receipt number
+    const receiptNumber = await generateReceiptNumber()
+    const donationDate = new Date().toISOString()
+    const amountDollars = paymentIntent.amount / 100
+
+    // Generate PDF
+    const pdfBuffer = await generateDonationReceipt({
+      receiptNumber,
+      donorName,
+      donorEmail,
+      amount: amountDollars,
+      donationDate,
+      description,
+      organization: {
+        name: org.name,
+        ein: org.ein,
+        address: org.address,
+        city: org.city,
+        state: org.state,
+        zipcode: org.zipcode,
+        email: org.email,
+        phone: org.phone,
+      },
+    })
+
+    // Upload to Supabase Storage
+    const fileName = `${donorId || 'anonymous'}/${receiptNumber}.pdf`
+    const { error: uploadError } = await supabase.storage
+      .from('tax-documents')
+      .upload(fileName, pdfBuffer, {
+        contentType: 'application/pdf',
+        upsert: false,
+      })
+
+    if (uploadError) {
+      console.error('Error uploading receipt PDF:', uploadError)
+      // Continue anyway - we'll store the record without file_url
+    }
+
+    // Get public URL (or signed URL)
+    const { data: urlData } = await supabase.storage
+      .from('tax-documents')
+      .createSignedUrl(fileName, 60 * 60 * 24 * 365) // 1 year expiry
+
+    const fileUrl = urlData?.signedUrl || null
+
+    // Create donor_documents record
+    const year = new Date(donationDate).getFullYear()
+    const quarter = Math.ceil((new Date(donationDate).getMonth() + 1) / 3)
+
+    const { data: docRecord, error: docError } = await supabase
+      .from('donor_documents')
+      .insert({
+        user_id: donorId || 'anonymous',
+        name: `Donation Receipt - ${org.name} - ${receiptNumber}`,
+        type: 'tax_receipt',
+        size: `${Math.round(pdfBuffer.length / 1024)} KB`,
+        file_url: fileUrl,
+        year,
+        quarter,
+        status: 'ready',
+        organization_id: organizationId,
+        organization_name: org.name,
+        organization_ein: org.ein,
+        donation_amount: amountDollars,
+        donation_date: donationDate,
+        receipt_number: receiptNumber,
+        request_id: requestId || null,
+        campaign_id: campaignId || null,
+        donor_name: donorName,
+        donor_email: donorEmail,
+      })
+      .select()
+      .single()
+
+    if (docError) {
+      console.error('Error creating document record:', docError)
+      return null
+    }
+
+    console.log('Generated receipt:', {
+      receiptNumber,
+      documentId: docRecord?.id,
+      donorId,
+      amount: amountDollars,
+    })
+
+    return docRecord
+  } catch (error) {
+    console.error('Error generating receipt:', error)
+    return null
+  }
+}
+
+/**
+ * Download Document
+ * GET /api/documents/download/:documentId
+ *
+ * Returns a signed URL for downloading the document
+ */
+app.get('/api/documents/download/:documentId', async (req, res) => {
+  try {
+    const { documentId } = req.params
+
+    // Get document record
+    const { data: doc, error: docError } = await supabase
+      .from('donor_documents')
+      .select('*')
+      .eq('id', documentId)
+      .single()
+
+    if (docError || !doc) {
+      return res.status(404).json({ error: 'Document not found' })
+    }
+
+    // If we have a file_url, return it
+    if (doc.file_url) {
+      return res.json({
+        url: doc.file_url,
+        name: doc.name,
+        type: doc.type,
+      })
+    }
+
+    // Try to generate a new signed URL from storage
+    const fileName = `${doc.user_id}/${doc.receipt_number}.pdf`
+    const { data: urlData, error: urlError } = await supabase.storage
+      .from('tax-documents')
+      .createSignedUrl(fileName, 60 * 60) // 1 hour expiry
+
+    if (urlError || !urlData?.signedUrl) {
+      return res.status(404).json({ error: 'Document file not available' })
+    }
+
+    res.json({
+      url: urlData.signedUrl,
+      name: doc.name,
+      type: doc.type,
+    })
+  } catch (error) {
+    console.error('Error downloading document:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+/**
+ * Generate Annual Summary
+ * POST /api/documents/generate-annual-summary
+ *
+ * Body:
+ * - donorId: string (Clerk user ID)
+ * - year: number
+ */
+app.post('/api/documents/generate-annual-summary', async (req, res) => {
+  try {
+    const { donorId, year } = req.body
+
+    if (!donorId || !year) {
+      return res.status(400).json({ error: 'Missing donorId or year' })
+    }
+
+    // Get donor details
+    const { data: donor } = await supabase
+      .from('user_profiles')
+      .select('first_name, last_name, email')
+      .eq('user_id', donorId)
+      .single()
+
+    const donorName = donor
+      ? `${donor.first_name || ''} ${donor.last_name || ''}`.trim() || 'Donor'
+      : 'Anonymous Donor'
+    const donorEmail = donor?.email || null
+
+    // Get all receipts for the year
+    const { data: receipts, error: receiptError } = await supabase
+      .from('donor_documents')
+      .select('*')
+      .eq('user_id', donorId)
+      .eq('type', 'tax_receipt')
+      .eq('year', year)
+      .eq('status', 'ready')
+      .order('donation_date', { ascending: true })
+
+    if (receiptError) {
+      console.error('Error fetching receipts:', receiptError)
+      return res.status(500).json({ error: 'Failed to fetch donation records' })
+    }
+
+    if (!receipts || receipts.length === 0) {
+      return res.status(404).json({ error: 'No donations found for this year' })
+    }
+
+    // Format donations for PDF
+    const donations = receipts.map((r) => ({
+      date: r.donation_date,
+      organizationName: r.organization_name,
+      receiptNumber: r.receipt_number,
+      amount: r.donation_amount,
+    }))
+
+    const totalAmount = donations.reduce((sum, d) => sum + d.amount, 0)
+
+    // Generate PDF
+    const pdfBuffer = await generateAnnualSummary({
+      donorName,
+      donorEmail,
+      year,
+      donations,
+      totalAmount,
+    })
+
+    // Upload to Supabase Storage
+    const receiptNumber = `KCDD-${year}-ANNUAL-${donorId.slice(-6)}`
+    const fileName = `${donorId}/${receiptNumber}.pdf`
+
+    await supabase.storage.from('tax-documents').upload(fileName, pdfBuffer, {
+      contentType: 'application/pdf',
+      upsert: true,
+    })
+
+    // Get signed URL
+    const { data: urlData } = await supabase.storage
+      .from('tax-documents')
+      .createSignedUrl(fileName, 60 * 60 * 24 * 365)
+
+    const fileUrl = urlData?.signedUrl || null
+
+    // Check if annual summary already exists
+    const { data: existing } = await supabase
+      .from('donor_documents')
+      .select('id')
+      .eq('user_id', donorId)
+      .eq('type', 'annual_summary')
+      .eq('year', year)
+      .single()
+
+    // Create or update donor_documents record
+    const docData = {
+      user_id: donorId,
+      name: `Annual Donation Summary - ${year}`,
+      type: 'annual_summary',
+      size: `${Math.round(pdfBuffer.length / 1024)} KB`,
+      file_url: fileUrl,
+      year,
+      quarter: null,
+      status: 'ready',
+      donation_amount: totalAmount,
+      donation_date: new Date().toISOString(),
+      receipt_number: receiptNumber,
+      donor_name: donorName,
+      donor_email: donorEmail,
+    }
+
+    let docRecord
+    if (existing) {
+      const { data, error } = await supabase
+        .from('donor_documents')
+        .update(docData)
+        .eq('id', existing.id)
+        .select()
+        .single()
+      docRecord = data
+    } else {
+      const { data, error } = await supabase
+        .from('donor_documents')
+        .insert(docData)
+        .select()
+        .single()
+      docRecord = data
+    }
+
+    console.log('Generated annual summary:', {
+      donorId,
+      year,
+      totalAmount,
+      donationCount: donations.length,
+    })
+
+    res.json({
+      success: true,
+      document: docRecord,
+      summary: {
+        year,
+        totalAmount,
+        donationCount: donations.length,
+      },
+    })
+  } catch (error) {
+    console.error('Error generating annual summary:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+/**
+ * List Donor Documents
+ * GET /api/documents/list/:donorId
+ */
+app.get('/api/documents/list/:donorId', async (req, res) => {
+  try {
+    const { donorId } = req.params
+    const { year, type } = req.query
+
+    let query = supabase
+      .from('donor_documents')
+      .select('*')
+      .eq('user_id', donorId)
+      .eq('status', 'ready')
+      .order('donation_date', { ascending: false })
+
+    if (year) {
+      query = query.eq('year', parseInt(year))
+    }
+
+    if (type) {
+      query = query.eq('type', type)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      return res.status(500).json({ error: error.message })
+    }
+
+    res.json({ documents: data || [] })
+  } catch (error) {
+    console.error('Error listing documents:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// ============================================
 // ERROR HANDLING
 // ============================================
 
@@ -766,5 +1216,7 @@ app.listen(PORT, () => {
   console.log('  POST /api/stripe/connect/create-account')
   console.log('  POST /api/stripe/connect/onboarding-link')
   console.log('  GET  /api/stripe/connect/status/:organizationId')
+  console.log('  GET  /api/documents/download/:documentId')
+  console.log('  GET  /api/documents/list/:donorId')
+  console.log('  POST /api/documents/generate-annual-summary')
 })
-

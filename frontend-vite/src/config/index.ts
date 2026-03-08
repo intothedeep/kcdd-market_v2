@@ -1,9 +1,9 @@
 /**
  * Centralized Configuration
- * 
+ *
  * All environment variables and app configuration in one place.
  * This makes it easy to validate and manage all settings.
- * 
+ *
  * Documentation:
  * - Vite env variables: https://vitejs.dev/guide/env-and-mode.html
  * - TypeScript import.meta.env: https://vitejs.dev/guide/env-and-mode.html#intellisense-for-typescript
@@ -22,8 +22,8 @@ const requiredEnvVars = [
 if (import.meta.env.DEV) {
   const missing = requiredEnvVars.filter((key) => !import.meta.env[key])
   if (missing.length > 0) {
-    console.error('❌ Missing required environment variables:', missing)
-    console.error('📝 Please copy .env.example to .env.local and fill in the values')
+    console.error('[Error] Missing required environment variables:', missing)
+    console.error('[Info] Please copy .env.example to .env.local and fill in the values')
   }
 }
 
@@ -82,14 +82,14 @@ export const appConfig = {
   name: import.meta.env.VITE_APP_NAME || 'KC Digital Drive Market',
   url: import.meta.env.VITE_APP_URL || 'http://localhost:3000',
   environment: import.meta.env.VITE_ENVIRONMENT || 'development',
-  
+
   // Feature flags
   features: {
     payments: import.meta.env.VITE_ENABLE_PAYMENTS === 'true',
     realtime: import.meta.env.VITE_ENABLE_REALTIME === 'true',
     analytics: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
   },
-  
+
   // Development mode
   isDevelopment: import.meta.env.DEV,
   isProduction: import.meta.env.PROD,
@@ -166,19 +166,16 @@ export const isConfigValid = (): boolean => {
 }
 
 export const getConfigErrors = (): string[] => {
-  return requiredEnvVars
-    .filter((key) => !import.meta.env[key])
-    .map((key) => `Missing: ${key}`)
+  return requiredEnvVars.filter((key) => !import.meta.env[key]).map((key) => `Missing: ${key}`)
 }
 
 // Log configuration status in development
 if (appConfig.isDevelopment) {
-  console.log('🔧 Configuration loaded:', {
+  console.log('[Config] Configuration loaded:', {
     environment: appConfig.environment,
     features: appConfig.features,
-    clerk: clerkConfig.publishableKey ? '✅' : '❌',
-    supabase: supabaseConfig.url ? '✅' : '❌',
-    stripe: stripeConfig.publishableKey ? '✅' : '❌',
+    clerk: clerkConfig.publishableKey ? 'OK' : 'MISSING',
+    supabase: supabaseConfig.url ? 'OK' : 'MISSING',
+    stripe: stripeConfig.publishableKey ? 'OK' : 'MISSING',
   })
 }
-

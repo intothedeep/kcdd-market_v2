@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 
 export function CBOSetup() {
   return (
-    <div className="container py-8 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-8">Organization Setup</h1>
+    <div className="container max-w-2xl py-8">
+      <h1 className="mb-8 text-3xl font-bold">Organization Setup</h1>
 
       <Card>
         <CardHeader>
@@ -18,7 +18,7 @@ export function CBOSetup() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="mb-4 text-sm text-muted-foreground">
             This form will help us verify your organization and create your profile.
           </p>
           <Button>Start Setup</Button>
@@ -27,4 +27,3 @@ export function CBOSetup() {
     </div>
   )
 }
-

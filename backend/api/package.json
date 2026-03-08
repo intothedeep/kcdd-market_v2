@@ -12,15 +12,20 @@
     "format": "prettier --write \"**/*.{js,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,json,md}\""
   },
-  "keywords": ["stripe", "payments", "api"],
+  "keywords": [
+    "stripe",
+    "payments",
+    "api"
+  ],
   "author": "KC Digital Drive",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
+    "@supabase/supabase-js": "^2.39.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
-    "stripe": "^14.14.0",
-    "@supabase/supabase-js": "^2.39.7"
+    "express": "^4.18.2",
+    "pdfkit": "^0.17.2",
+    "stripe": "^14.14.0"
   },
   "devDependencies": {
     "eslint": "^8.56.0",
@@ -28,4 +33,3 @@
     "prettier": "^3.2.4"
   }
 }
-

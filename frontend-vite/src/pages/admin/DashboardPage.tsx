@@ -72,10 +72,17 @@ import {
   logAdminActivity,
   type CampaignReport,
   type MonthlyDataPoint,
-  type SupportFAQ
+  type SupportFAQ,
 } from '@/lib/supabase'
 import { Textarea } from '@/components/ui/textarea'
-import { Flag, AlertTriangle } from 'lucide-react'
+import {
+  Flag,
+  AlertTriangle,
+  ShieldAlert,
+  Ban,
+  HelpCircle as HelpCircleIcon,
+  type LucideIcon,
+} from 'lucide-react'
 import {
   USER_TYPE_LABELS,
   ORG_TIER_LABELS,
@@ -200,7 +207,7 @@ function StatCard({
   change,
   changeType = 'neutral',
   icon: Icon,
-  loading = false
+  loading = false,
 }: {
   title: string
   value: string | number
@@ -223,15 +230,21 @@ function StatCard({
             <div className="flex items-center gap-1 text-sm">
               {changeType === 'positive' && <TrendingUp className="h-3 w-3 text-green-600" />}
               {changeType === 'negative' && <TrendingDown className="h-3 w-3 text-red-600" />}
-              <span className={
-                changeType === 'positive' ? 'text-green-600' :
-                changeType === 'negative' ? 'text-red-600' :
-                'text-[#737373]'
-              }>{change}</span>
+              <span
+                className={
+                  changeType === 'positive'
+                    ? 'text-green-600'
+                    : changeType === 'negative'
+                      ? 'text-red-600'
+                      : 'text-[#737373]'
+                }
+              >
+                {change}
+              </span>
             </div>
           )}
         </div>
-        <div className="h-10 w-10 bg-[#ea580c]/10 rounded-lg flex items-center justify-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#ea580c]/10">
           <Icon className="h-5 w-5 text-[#ea580c]" />
         </div>
       </div>
@@ -247,11 +260,7 @@ function StatusBadge({ status }: { status: string }) {
     denied: { bg: 'bg-red-100', text: 'text-red-700', label: 'Denied' },
   }
   const c = config[status] || { bg: 'bg-gray-100', text: 'text-gray-700', label: status }
-  return (
-    <Badge className={`${c.bg} ${c.text} border-0`}>
-      {c.label}
-    </Badge>
-  )
+  return <Badge className={`${c.bg} ${c.text} border-0`}>{c.label}</Badge>
 }
 
 function UrgencyBadge({ urgency }: { urgency: string }) {
@@ -261,11 +270,7 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
     low: { bg: 'bg-green-100', text: 'text-green-700' },
   }
   const c = config[urgency] || { bg: 'bg-gray-100', text: 'text-gray-700' }
-  return (
-    <Badge className={`${c.bg} ${c.text} border-0 capitalize`}>
-      {urgency}
-    </Badge>
-  )
+  return <Badge className={`${c.bg} ${c.text} border-0 capitalize`}>{urgency}</Badge>
 }
 
 function VerificationBadge({ status }: { status: VerificationStatus }) {
@@ -276,9 +281,7 @@ function VerificationBadge({ status }: { status: VerificationStatus }) {
   }
   const c = config[status] || { bg: 'bg-gray-100', text: 'text-gray-700' }
   return (
-    <Badge className={`${c.bg} ${c.text} border-0`}>
-      {VERIFICATION_STATUS_LABELS[status]}
-    </Badge>
+    <Badge className={`${c.bg} ${c.text} border-0`}>{VERIFICATION_STATUS_LABELS[status]}</Badge>
   )
 }
 
@@ -291,18 +294,20 @@ function exportToCSV(data: any[], filename: string) {
   const headers = Object.keys(data[0])
   const csvContent = [
     headers.join(','),
-    ...data.map(row =>
-      headers.map(header => {
-        const value = row[header]
-        // Handle objects, nulls, and escape commas/quotes
-        if (value === null || value === undefined) return ''
-        if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-          return `"${value.replace(/"/g, '""')}"`
-        }
-        return value
-      }).join(',')
-    )
+    ...data.map((row) =>
+      headers
+        .map((header) => {
+          const value = row[header]
+          // Handle objects, nulls, and escape commas/quotes
+          if (value === null || value === undefined) return ''
+          if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+            return `"${value.replace(/"/g, '""')}"`
+          }
+          return value
+        })
+        .join(',')
+    ),
   ].join('\n')
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -319,7 +324,7 @@ function OverviewContent({
   recentActivity,
   onRefresh,
   onNavigate,
-  onExport
+  onExport,
 }: {
   stats: DashboardStats
   loading: boolean
@@ -331,13 +336,8 @@ function OverviewContent({
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Users"
-          value={stats.totalUsers}
-          icon={Users}
-          loading={loading}
-        />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard title="Total Users" value={stats.totalUsers} icon={Users} loading={loading} />
         <StatCard
           title="Organizations"
           value={stats.totalOrgs}
@@ -363,13 +363,8 @@ function OverviewContent({
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Donors"
-          value={stats.totalDonors}
-          icon={Heart}
-          loading={loading}
-        />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard title="Donors" value={stats.totalDonors} icon={Heart} loading={loading} />
         <StatCard
           title="Verified Users"
           value={stats.verifiedUsers}
@@ -390,31 +385,33 @@ function OverviewContent({
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent Activity */}
         <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <h3 className="font-semibold">Recent Activity</h3>
             <Button variant="ghost" size="sm" onClick={onRefresh}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
           {recentActivity.length === 0 ? (
-            <div className="text-center py-8 text-[#737373]">
-              <Activity className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <div className="py-8 text-center text-[#737373]">
+              <Activity className="mx-auto mb-3 h-10 w-10 opacity-50" />
               <p>No recent activity</p>
             </div>
           ) : (
             <div className="space-y-3">
               {recentActivity.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="h-8 w-8 bg-[#ea580c]/10 rounded-full flex items-center justify-center">
+                <div key={item.id} className="flex items-start gap-3 rounded-lg bg-gray-50 p-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ea580c]/10">
                     {item.type === 'user_joined' && <Users className="h-4 w-4 text-[#ea580c]" />}
-                    {item.type === 'request_created' && <FileText className="h-4 w-4 text-[#ea580c]" />}
+                    {item.type === 'request_created' && (
+                      <FileText className="h-4 w-4 text-[#ea580c]" />
+                    )}
                     {item.type === 'donation_made' && <Heart className="h-4 w-4 text-[#ea580c]" />}
                     {item.type === 'org_verified' && <Shield className="h-4 w-4 text-[#ea580c]" />}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm">{item.description}</p>
                     <p className="text-xs text-[#737373]">
                       {new Date(item.timestamp).toLocaleString()}
@@ -428,11 +425,11 @@ function OverviewContent({
 
         {/* Quick Actions */}
         <Card className="p-6">
-          <h3 className="font-semibold mb-4">Quick Actions</h3>
+          <h3 className="mb-4 font-semibold">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
-              className="h-auto py-4 flex-col gap-2 hover:border-[#ea580c] hover:text-[#ea580c]"
+              className="h-auto flex-col gap-2 py-4 hover:border-[#ea580c] hover:text-[#ea580c]"
               onClick={() => onNavigate('users')}
             >
               <Users className="h-5 w-5" />
@@ -440,7 +437,7 @@ function OverviewContent({
             </Button>
             <Button
               variant="outline"
-              className="h-auto py-4 flex-col gap-2 hover:border-[#ea580c] hover:text-[#ea580c]"
+              className="h-auto flex-col gap-2 py-4 hover:border-[#ea580c] hover:text-[#ea580c]"
               onClick={() => onNavigate('organizations')}
             >
               <Building2 className="h-5 w-5" />
@@ -448,7 +445,7 @@ function OverviewContent({
             </Button>
             <Button
               variant="outline"
-              className="h-auto py-4 flex-col gap-2 hover:border-[#ea580c] hover:text-[#ea580c]"
+              className="h-auto flex-col gap-2 py-4 hover:border-[#ea580c] hover:text-[#ea580c]"
               onClick={() => onNavigate('requests')}
             >
               <FileText className="h-5 w-5" />
@@ -456,7 +453,7 @@ function OverviewContent({
             </Button>
             <Button
               variant="outline"
-              className="h-auto py-4 flex-col gap-2 hover:border-[#ea580c] hover:text-[#ea580c]"
+              className="h-auto flex-col gap-2 py-4 hover:border-[#ea580c] hover:text-[#ea580c]"
               onClick={onExport}
             >
               <Download className="h-5 w-5" />
@@ -475,7 +472,7 @@ function UsersContent({
   loading,
   onUpdateTier,
   onUpdateStatus,
-  onRefresh
+  onRefresh,
 }: {
   users: UserProfile[]
   loading: boolean
@@ -488,11 +485,12 @@ function UsersContent({
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = users.filter((user) => {
     const displayName = user.donor_profile?.display_name || user.organization?.name || user.id
     const email = user.donor_profile?.email || user.organization?.email || ''
 
-    const matchesSearch = !searchQuery ||
+    const matchesSearch =
+      !searchQuery ||
       displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       email.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesType = !filterType || user.user_type === filterType
@@ -520,20 +518,20 @@ function UsersContent({
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onRefresh}>
-            <RefreshCw className="h-4 w-4 mr-1" />
+            <RefreshCw className="mr-1 h-4 w-4" />
             Refresh
           </Button>
           <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-1" />
+            <Download className="mr-1 h-4 w-4" />
             Export
           </Button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[200px] max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             placeholder="Search users..."
             className="pl-9"
@@ -545,9 +543,11 @@ function UsersContent({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-1" />
-              {filterType ? USER_TYPE_LABELS[filterType as keyof typeof USER_TYPE_LABELS] : 'User Type'}
-              <ChevronDown className="h-4 w-4 ml-1" />
+              <Filter className="mr-1 h-4 w-4" />
+              {filterType
+                ? USER_TYPE_LABELS[filterType as keyof typeof USER_TYPE_LABELS]
+                : 'User Type'}
+              <ChevronDown className="ml-1 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -562,26 +562,36 @@ function UsersContent({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
-              {filterStatus ? VERIFICATION_STATUS_LABELS[filterStatus as keyof typeof VERIFICATION_STATUS_LABELS] : 'Status'}
-              <ChevronDown className="h-4 w-4 ml-1" />
+              {filterStatus
+                ? VERIFICATION_STATUS_LABELS[
+                    filterStatus as keyof typeof VERIFICATION_STATUS_LABELS
+                  ]
+                : 'Status'}
+              <ChevronDown className="ml-1 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={() => setFilterStatus(null)}>All Statuses</DropdownMenuItem>
             <DropdownMenuSeparator />
             {Object.entries(VERIFICATION_STATUS_LABELS).map(([key, label]) => (
-              <DropdownMenuItem key={key} onClick={() => setFilterStatus(key)}>{label}</DropdownMenuItem>
+              <DropdownMenuItem key={key} onClick={() => setFilterStatus(key)}>
+                {label}
+              </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
 
         {(filterType || filterStatus || searchQuery) && (
-          <Button variant="ghost" size="sm" onClick={() => {
-            setFilterType(null)
-            setFilterStatus(null)
-            setSearchQuery('')
-          }}>
-            <X className="h-4 w-4 mr-1" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setFilterType(null)
+              setFilterStatus(null)
+              setSearchQuery('')
+            }}
+          >
+            <X className="mr-1 h-4 w-4" />
             Clear
           </Button>
         )}
@@ -604,7 +614,7 @@ function UsersContent({
                       if (selectedRows.size === filteredUsers.length) {
                         setSelectedRows(new Set())
                       } else {
-                        setSelectedRows(new Set(filteredUsers.map(u => u.id)))
+                        setSelectedRows(new Set(filteredUsers.map((u) => u.id)))
                       }
                     }}
                   />
@@ -620,13 +630,14 @@ function UsersContent({
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-[#737373]">
+                  <TableCell colSpan={7} className="py-8 text-center text-[#737373]">
                     No users found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredUsers.map((user) => {
-                  const displayName = user.donor_profile?.display_name || user.organization?.name || 'Unknown'
+                  const displayName =
+                    user.donor_profile?.display_name || user.organization?.name || 'Unknown'
                   const email = user.donor_profile?.email || user.organization?.email || ''
 
                   return (
@@ -639,7 +650,7 @@ function UsersContent({
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
                             {user.user_type === 'cbo' ? (
                               <Building2 className="h-4 w-4 text-gray-600" />
                             ) : user.user_type === 'admin' ? (
@@ -655,22 +666,24 @@ function UsersContent({
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {USER_TYPE_LABELS[user.user_type]}
-                        </Badge>
+                        <Badge variant="outline">{USER_TYPE_LABELS[user.user_type]}</Badge>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-auto p-1">
-                              <Badge className={
-                                user.org_tier === 'large_org' ? 'bg-purple-100 text-purple-700' :
-                                user.org_tier === 'small_org' ? 'bg-blue-100 text-blue-700' :
-                                'bg-gray-100 text-gray-700'
-                              }>
+                              <Badge
+                                className={
+                                  user.org_tier === 'large_org'
+                                    ? 'bg-purple-100 text-purple-700'
+                                    : user.org_tier === 'small_org'
+                                      ? 'bg-blue-100 text-blue-700'
+                                      : 'bg-gray-100 text-gray-700'
+                                }
+                              >
                                 {ORG_TIER_LABELS[user.org_tier]}
                               </Badge>
-                              <ChevronDown className="h-3 w-3 ml-1" />
+                              <ChevronDown className="ml-1 h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
@@ -681,7 +694,7 @@ function UsersContent({
                                 key={key}
                                 onClick={() => onUpdateTier(user.id, value)}
                               >
-                                {user.org_tier === value && <Check className="h-4 w-4 mr-2" />}
+                                {user.org_tier === value && <Check className="mr-2 h-4 w-4" />}
                                 {ORG_TIER_LABELS[value]}
                               </DropdownMenuItem>
                             ))}
@@ -693,7 +706,7 @@ function UsersContent({
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-auto p-1">
                               <VerificationBadge status={user.verification_status} />
-                              <ChevronDown className="h-3 w-3 ml-1" />
+                              <ChevronDown className="ml-1 h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
@@ -704,7 +717,9 @@ function UsersContent({
                                 key={key}
                                 onClick={() => onUpdateStatus(user.id, value)}
                               >
-                                {user.verification_status === value && <Check className="h-4 w-4 mr-2" />}
+                                {user.verification_status === value && (
+                                  <Check className="mr-2 h-4 w-4" />
+                                )}
                                 {VERIFICATION_STATUS_LABELS[value]}
                               </DropdownMenuItem>
                             ))}
@@ -723,16 +738,16 @@ function UsersContent({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
+                              <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                              <Mail className="h-4 w-4 mr-2" />
+                              <Mail className="mr-2 h-4 w-4" />
                               Send Email
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" />
+                              <Trash2 className="mr-2 h-4 w-4" />
                               Delete User
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -755,7 +770,7 @@ function OrganizationsContent({
   organizations,
   loading,
   onRefresh,
-  onUpdateOrgStatus
+  onUpdateOrgStatus,
 }: {
   organizations: Organization[]
   loading: boolean
@@ -769,8 +784,9 @@ function OrganizationsContent({
   const [editValues, setEditValues] = useState<Partial<Organization>>({})
   const [saving, setSaving] = useState(false)
 
-  const filteredOrgs = organizations.filter(org => {
-    const matchesSearch = !searchQuery ||
+  const filteredOrgs = organizations.filter((org) => {
+    const matchesSearch =
+      !searchQuery ||
       org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       org.email?.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = !filterStatus || org.user_profile?.verification_status === filterStatus
@@ -794,7 +810,7 @@ function OrganizationsContent({
       website: org.website || '',
       city: org.city || '',
       state: org.state || '',
-      mission: org.mission || ''
+      mission: org.mission || '',
     })
   }
 
@@ -807,7 +823,7 @@ function OrganizationsContent({
         .from('organizations')
         .update({
           ...editValues,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', selectedOrg.id)
 
@@ -838,7 +854,7 @@ function OrganizationsContent({
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onRefresh}>
-            <RefreshCw className="h-4 w-4 mr-1" />
+            <RefreshCw className="mr-1 h-4 w-4" />
             Refresh
           </Button>
         </div>
@@ -846,8 +862,8 @@ function OrganizationsContent({
 
       {/* Filters */}
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             placeholder="Search organizations..."
             className="pl-9"
@@ -859,15 +875,21 @@ function OrganizationsContent({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
-              {filterStatus ? VERIFICATION_STATUS_LABELS[filterStatus as keyof typeof VERIFICATION_STATUS_LABELS] : 'Status'}
-              <ChevronDown className="h-4 w-4 ml-1" />
+              {filterStatus
+                ? VERIFICATION_STATUS_LABELS[
+                    filterStatus as keyof typeof VERIFICATION_STATUS_LABELS
+                  ]
+                : 'Status'}
+              <ChevronDown className="ml-1 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={() => setFilterStatus(null)}>All</DropdownMenuItem>
             <DropdownMenuSeparator />
             {Object.entries(VERIFICATION_STATUS_LABELS).map(([key, label]) => (
-              <DropdownMenuItem key={key} onClick={() => setFilterStatus(key)}>{label}</DropdownMenuItem>
+              <DropdownMenuItem key={key} onClick={() => setFilterStatus(key)}>
+                {label}
+              </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -880,18 +902,22 @@ function OrganizationsContent({
         </div>
       ) : filteredOrgs.length === 0 ? (
         <Card className="p-8 text-center">
-          <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <Building2 className="mx-auto mb-4 h-12 w-12 text-gray-300" />
           <p className="text-[#737373]">No organizations found</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredOrgs.map((org) => (
             <Card key={org.id} className="p-5">
-              <div className="flex items-start justify-between mb-3">
+              <div className="mb-3 flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-200">
                     {org.logo_url ? (
-                      <img src={org.logo_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                      <img
+                        src={org.logo_url}
+                        alt=""
+                        className="h-10 w-10 rounded-lg object-cover"
+                      />
                     ) : (
                       <Building2 className="h-5 w-5 text-gray-600" />
                     )}
@@ -906,7 +932,7 @@ function OrganizationsContent({
                 <VerificationBadge status={org.user_profile?.verification_status || 'unverified'} />
               </div>
 
-              <p className="text-sm text-[#737373] mb-3 line-clamp-2">
+              <p className="mb-3 line-clamp-2 text-sm text-[#737373]">
                 {org.mission || 'No mission statement'}
               </p>
 
@@ -925,14 +951,14 @@ function OrganizationsContent({
                 )}
               </div>
 
-              <div className="flex items-center gap-2 mt-4">
+              <div className="mt-4 flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   className="flex-1"
                   onClick={() => handleViewOrg(org)}
                 >
-                  <Eye className="h-4 w-4 mr-1" />
+                  <Eye className="mr-1 h-4 w-4" />
                   View
                 </Button>
                 <Button
@@ -941,7 +967,7 @@ function OrganizationsContent({
                   className="flex-1"
                   onClick={() => handleEditOrg(org)}
                 >
-                  <Edit className="h-4 w-4 mr-1" />
+                  <Edit className="mr-1 h-4 w-4" />
                   Edit
                 </Button>
               </div>
@@ -952,19 +978,23 @@ function OrganizationsContent({
 
       {/* Organization Detail/Edit Modal */}
       {selectedOrg && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
+            <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white p-6">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-200">
                   {selectedOrg.logo_url ? (
-                    <img src={selectedOrg.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                    <img
+                      src={selectedOrg.logo_url}
+                      alt=""
+                      className="h-12 w-12 rounded-lg object-cover"
+                    />
                   ) : (
                     <Building2 className="h-6 w-6 text-gray-600" />
                   )}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">
+                  <h3 className="text-lg font-semibold">
                     {editMode ? 'Edit Organization' : 'Organization Details'}
                   </h3>
                   <p className="text-sm text-[#737373]">{selectedOrg.name}</p>
@@ -980,62 +1010,74 @@ function OrganizationsContent({
                 /* Edit Mode */
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Organization Name</label>
+                    <label className="mb-1 block text-sm font-medium">Organization Name</label>
                     <Input
                       value={editValues.name || ''}
-                      onChange={(e) => setEditValues(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) => setEditValues((prev) => ({ ...prev, name: e.target.value }))}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Email</label>
+                      <label className="mb-1 block text-sm font-medium">Email</label>
                       <Input
                         type="email"
                         value={editValues.email || ''}
-                        onChange={(e) => setEditValues(prev => ({ ...prev, email: e.target.value }))}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, email: e.target.value }))
+                        }
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Phone</label>
+                      <label className="mb-1 block text-sm font-medium">Phone</label>
                       <Input
                         value={editValues.phone || ''}
-                        onChange={(e) => setEditValues(prev => ({ ...prev, phone: e.target.value }))}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, phone: e.target.value }))
+                        }
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Website</label>
+                    <label className="mb-1 block text-sm font-medium">Website</label>
                     <Input
                       value={editValues.website || ''}
-                      onChange={(e) => setEditValues(prev => ({ ...prev, website: e.target.value }))}
+                      onChange={(e) =>
+                        setEditValues((prev) => ({ ...prev, website: e.target.value }))
+                      }
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">City</label>
+                      <label className="mb-1 block text-sm font-medium">City</label>
                       <Input
                         value={editValues.city || ''}
-                        onChange={(e) => setEditValues(prev => ({ ...prev, city: e.target.value }))}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, city: e.target.value }))
+                        }
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">State</label>
+                      <label className="mb-1 block text-sm font-medium">State</label>
                       <Input
                         value={editValues.state || ''}
-                        onChange={(e) => setEditValues(prev => ({ ...prev, state: e.target.value }))}
+                        onChange={(e) =>
+                          setEditValues((prev) => ({ ...prev, state: e.target.value }))
+                        }
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Mission</label>
+                    <label className="mb-1 block text-sm font-medium">Mission</label>
                     <Textarea
                       value={editValues.mission || ''}
-                      onChange={(e) => setEditValues(prev => ({ ...prev, mission: e.target.value }))}
+                      onChange={(e) =>
+                        setEditValues((prev) => ({ ...prev, mission: e.target.value }))
+                      }
                       rows={4}
                     />
                   </div>
 
-                  <div className="flex justify-end gap-3 pt-4 border-t">
+                  <div className="flex justify-end gap-3 border-t pt-4">
                     <Button variant="outline" onClick={closeModal} disabled={saving}>
                       Cancel
                     </Button>
@@ -1046,12 +1088,12 @@ function OrganizationsContent({
                     >
                       {saving ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Saving...
                         </>
                       ) : (
                         <>
-                          <Check className="h-4 w-4 mr-2" />
+                          <Check className="mr-2 h-4 w-4" />
                           Save Changes
                         </>
                       )}
@@ -1062,11 +1104,13 @@ function OrganizationsContent({
                 /* View Mode */
                 <div className="space-y-6">
                   {/* Status */}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4">
                     <div>
                       <p className="text-sm text-[#737373]">Verification Status</p>
                       <div className="mt-1">
-                        <VerificationBadge status={selectedOrg.user_profile?.verification_status || 'unverified'} />
+                        <VerificationBadge
+                          status={selectedOrg.user_profile?.verification_status || 'unverified'}
+                        />
                       </div>
                     </div>
                     {onUpdateOrgStatus && selectedOrg.user_id && (
@@ -1074,7 +1118,7 @@ function OrganizationsContent({
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
                             Change Status
-                            <ChevronDown className="h-4 w-4 ml-1" />
+                            <ChevronDown className="ml-1 h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
@@ -1086,7 +1130,9 @@ function OrganizationsContent({
                                 closeModal()
                               }}
                             >
-                              {selectedOrg.user_profile?.verification_status === value && <Check className="h-4 w-4 mr-2" />}
+                              {selectedOrg.user_profile?.verification_status === value && (
+                                <Check className="mr-2 h-4 w-4" />
+                              )}
                               {VERIFICATION_STATUS_LABELS[value]}
                             </DropdownMenuItem>
                           ))}
@@ -1112,7 +1158,7 @@ function OrganizationsContent({
                           href={selectedOrg.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-medium text-[#ea580c] hover:underline flex items-center gap-1"
+                          className="flex items-center gap-1 font-medium text-[#ea580c] hover:underline"
                         >
                           {selectedOrg.website}
                           <ExternalLink className="h-3 w-3" />
@@ -1133,26 +1179,30 @@ function OrganizationsContent({
 
                   {/* Mission */}
                   <div>
-                    <p className="text-sm text-[#737373] mb-2">Mission</p>
-                    <p className="text-sm bg-gray-50 p-4 rounded-lg">
+                    <p className="mb-2 text-sm text-[#737373]">Mission</p>
+                    <p className="rounded-lg bg-gray-50 p-4 text-sm">
                       {selectedOrg.mission || 'No mission statement provided'}
                     </p>
                   </div>
 
                   {/* Dates */}
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                  <div className="grid grid-cols-2 gap-4 border-t pt-4">
                     <div>
                       <p className="text-sm text-[#737373]">Created</p>
-                      <p className="text-sm">{new Date(selectedOrg.created_at).toLocaleDateString()}</p>
+                      <p className="text-sm">
+                        {new Date(selectedOrg.created_at).toLocaleDateString()}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-[#737373]">Last Updated</p>
-                      <p className="text-sm">{new Date(selectedOrg.updated_at).toLocaleDateString()}</p>
+                      <p className="text-sm">
+                        {new Date(selectedOrg.updated_at).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex justify-end gap-3 pt-4 border-t">
+                  <div className="flex justify-end gap-3 border-t pt-4">
                     <Button variant="outline" onClick={closeModal}>
                       Close
                     </Button>
@@ -1160,7 +1210,7 @@ function OrganizationsContent({
                       onClick={() => handleEditOrg(selectedOrg)}
                       className="bg-[#ea580c] hover:bg-[#ea580c]/90"
                     >
-                      <Edit className="h-4 w-4 mr-2" />
+                      <Edit className="mr-2 h-4 w-4" />
                       Edit Organization
                     </Button>
                   </div>
@@ -1179,7 +1229,7 @@ function RequestsContent({
   requests,
   loading,
   onRefresh,
-  onUpdateStatus
+  onUpdateStatus,
 }: {
   requests: Request[]
   loading: boolean
@@ -1189,9 +1239,10 @@ function RequestsContent({
   const [activeTab, setActiveTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const filteredRequests = requests.filter(request => {
+  const filteredRequests = requests.filter((request) => {
     const matchesTab = activeTab === 'all' || request.status === activeTab
-    const matchesSearch = !searchQuery ||
+    const matchesSearch =
+      !searchQuery ||
       request.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.organization?.name?.toLowerCase().includes(searchQuery.toLowerCase())
 
@@ -1200,10 +1251,10 @@ function RequestsContent({
 
   const statusCounts = {
     all: requests.length,
-    open: requests.filter(r => r.status === 'open').length,
-    claimed: requests.filter(r => r.status === 'claimed').length,
-    fulfilled: requests.filter(r => r.status === 'fulfilled').length,
-    denied: requests.filter(r => r.status === 'denied').length,
+    open: requests.filter((r) => r.status === 'open').length,
+    claimed: requests.filter((r) => r.status === 'claimed').length,
+    fulfilled: requests.filter((r) => r.status === 'fulfilled').length,
+    denied: requests.filter((r) => r.status === 'denied').length,
   }
 
   return (
@@ -1214,7 +1265,7 @@ function RequestsContent({
           <p className="text-sm text-[#737373]">{requests.length} total requests</p>
         </div>
         <Button variant="outline" size="sm" onClick={onRefresh}>
-          <RefreshCw className="h-4 w-4 mr-1" />
+          <RefreshCw className="mr-1 h-4 w-4" />
           Refresh
         </Button>
       </div>
@@ -1232,7 +1283,7 @@ function RequestsContent({
         </Tabs>
 
         <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             placeholder="Search requests..."
             className="pl-9"
@@ -1265,7 +1316,7 @@ function RequestsContent({
             <TableBody>
               {filteredRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-[#737373]">
+                  <TableCell colSpan={8} className="py-8 text-center text-[#737373]">
                     No requests found
                   </TableCell>
                 </TableRow>
@@ -1276,7 +1327,7 @@ function RequestsContent({
                       <span className="font-medium">{request.organization?.name || 'Unknown'}</span>
                     </TableCell>
                     <TableCell className="max-w-[200px]">
-                      <span className="truncate block">{request.description}</span>
+                      <span className="block truncate">{request.description}</span>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{request.cause_area?.name || 'General'}</Badge>
@@ -1302,7 +1353,7 @@ function RequestsContent({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>
-                            <Eye className="h-4 w-4 mr-2" />
+                            <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -1313,7 +1364,10 @@ function RequestsContent({
                           <DropdownMenuItem onClick={() => onUpdateStatus(request.id, 'fulfilled')}>
                             Mark as Fulfilled
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onUpdateStatus(request.id, 'denied')} className="text-red-600">
+                          <DropdownMenuItem
+                            onClick={() => onUpdateStatus(request.id, 'denied')}
+                            className="text-red-600"
+                          >
                             Deny Request
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -1334,12 +1388,12 @@ function RequestsContent({
 // Simple Bar Chart Component (no external library)
 function SimpleBarChart({
   data,
-  color = '#ea580c'
+  color = '#ea580c',
 }: {
   data: { label: string; value: number }[]
   color?: string
 }) {
-  const maxValue = Math.max(...data.map(d => d.value), 1)
+  const maxValue = Math.max(...data.map((d) => d.value), 1)
 
   return (
     <div className="space-y-3">
@@ -1349,12 +1403,12 @@ function SimpleBarChart({
             <span className="text-[#737373]">{item.label}</span>
             <span className="font-medium">{item.value.toLocaleString()}</span>
           </div>
-          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-3 overflow-hidden rounded-full bg-gray-100">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${(item.value / maxValue) * 100}%`,
-                backgroundColor: color
+                backgroundColor: color,
               }}
             />
           </div>
@@ -1367,7 +1421,7 @@ function SimpleBarChart({
 // Donut Chart Component (CSS-based)
 function SimpleDonutChart({
   data,
-  total
+  total,
 }: {
   data: { label: string; value: number; color: string }[]
   total: number
@@ -1377,23 +1431,22 @@ function SimpleDonutChart({
   const getConicGradient = () => {
     if (total === 0) return 'conic-gradient(#e5e5e5 0% 100%)'
 
-    const segments = data.map(item => {
-      const percent = (item.value / total) * 100
-      const start = cumulativePercent
-      cumulativePercent += percent
-      return `${item.color} ${start}% ${cumulativePercent}%`
-    }).join(', ')
+    const segments = data
+      .map((item) => {
+        const percent = (item.value / total) * 100
+        const start = cumulativePercent
+        cumulativePercent += percent
+        return `${item.color} ${start}% ${cumulativePercent}%`
+      })
+      .join(', ')
 
     return `conic-gradient(${segments})`
   }
 
   return (
     <div className="flex items-center gap-6">
-      <div
-        className="w-32 h-32 rounded-full relative"
-        style={{ background: getConicGradient() }}
-      >
-        <div className="absolute inset-4 bg-white rounded-full flex items-center justify-center">
+      <div className="relative h-32 w-32 rounded-full" style={{ background: getConicGradient() }}>
+        <div className="absolute inset-4 flex items-center justify-center rounded-full bg-white">
           <div className="text-center">
             <p className="text-xl font-bold">{total}</p>
             <p className="text-xs text-[#737373]">Total</p>
@@ -1403,12 +1456,9 @@ function SimpleDonutChart({
       <div className="space-y-2">
         {data.map((item, index) => (
           <div key={index} className="flex items-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: item.color }}
-            />
+            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
             <span className="text-sm text-[#737373]">{item.label}</span>
-            <span className="text-sm font-medium ml-auto">{item.value}</span>
+            <span className="ml-auto text-sm font-medium">{item.value}</span>
           </div>
         ))}
       </div>
@@ -1420,41 +1470,45 @@ function AnalyticsContent({
   stats,
   loading,
   userGrowthData,
-  donationTrendsData
+  donationTrendsData,
 }: {
   stats: DashboardStats
   loading: boolean
   userGrowthData: MonthlyDataPoint[]
   donationTrendsData: MonthlyDataPoint[]
 }) {
-  // User type distribution data
+  // User type distribution data (using brand colors)
   const userTypeData = [
-    { label: 'Donors', value: stats.totalDonors, color: '#ea580c' },
-    { label: 'Organizations', value: stats.totalOrgs, color: '#3b82f6' },
-    { label: 'Admins', value: Math.max(stats.totalUsers - stats.totalDonors - stats.totalOrgs, 0), color: '#8b5cf6' },
+    { label: 'Donors', value: stats.totalDonors, color: '#ea580c' }, // Brand orange
+    { label: 'Organizations', value: stats.totalOrgs, color: '#1b5858' }, // Brand teal
+    {
+      label: 'Admins',
+      value: Math.max(stats.totalUsers - stats.totalDonors - stats.totalOrgs, 0),
+      color: '#dbf938',
+    }, // Brand lime
   ]
 
-  // Request status distribution for donut chart
+  // Request status distribution for donut chart (using brand colors)
   const requestStatusData = [
-    { label: 'Open', value: stats.openRequests, color: '#3b82f6' },
-    { label: 'Claimed', value: stats.claimedRequests, color: '#f59e0b' },
-    { label: 'Fulfilled', value: stats.fulfilledRequests, color: '#10b981' },
+    { label: 'Open', value: stats.openRequests, color: '#1b5858' }, // Brand teal
+    { label: 'Claimed', value: stats.claimedRequests, color: '#ea580c' }, // Brand orange
+    { label: 'Fulfilled', value: stats.fulfilledRequests, color: '#c4e5c1' }, // Brand light green
   ]
 
   // Transform data for charts (real data from database)
-  const userGrowthChartData = userGrowthData.map(d => ({
+  const userGrowthChartData = userGrowthData.map((d) => ({
     label: d.month,
-    value: d.count
+    value: d.count,
   }))
 
-  const donationTrendsChartData = donationTrendsData.map(d => ({
+  const donationTrendsChartData = donationTrendsData.map((d) => ({
     label: d.month,
-    value: d.amount || 0
+    value: d.amount || 0,
   }))
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#ea580c]" />
       </div>
     )
@@ -1467,92 +1521,114 @@ function AnalyticsContent({
         <p className="text-sm text-[#737373]">Platform performance and insights</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard title="Total Users" value={stats.totalUsers} icon={Users} loading={loading} />
-        <StatCard title="Total Donations" value={`$${stats.totalDonations.toLocaleString()}`} icon={DollarSign} loading={loading} />
-        <StatCard title="Requests Fulfilled" value={stats.fulfilledRequests} icon={CheckCircle2} loading={loading} />
-        <StatCard title="Organizations" value={stats.totalOrgs} icon={Building2} loading={loading} />
+        <StatCard
+          title="Total Donations"
+          value={`$${stats.totalDonations.toLocaleString()}`}
+          icon={DollarSign}
+          loading={loading}
+        />
+        <StatCard
+          title="Requests Fulfilled"
+          value={stats.fulfilledRequests}
+          icon={CheckCircle2}
+          loading={loading}
+        />
+        <StatCard
+          title="Organizations"
+          value={stats.totalOrgs}
+          icon={Building2}
+          loading={loading}
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* User Growth */}
         <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <h3 className="font-semibold">User Growth</h3>
-            <Badge variant="outline" className="text-xs">Last 6 months (Real Data)</Badge>
+            <Badge variant="outline" className="text-xs">
+              Last 6 months (Real Data)
+            </Badge>
           </div>
           {userGrowthChartData.length > 0 ? (
             <SimpleBarChart data={userGrowthChartData} color="#ea580c" />
           ) : (
-            <div className="h-32 flex items-center justify-center text-[#737373] text-sm">
+            <div className="flex h-32 items-center justify-center text-sm text-[#737373]">
               No user data available yet
             </div>
           )}
         </Card>
 
-        {/* User Type Distribution */}
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">User Distribution</h3>
-          <SimpleDonutChart
-            data={userTypeData}
-            total={stats.totalUsers}
-          />
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Donation Trends */}
         <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <h3 className="font-semibold">Donation Trends ($)</h3>
-            <Badge variant="outline" className="text-xs">Last 6 months (Real Data)</Badge>
+            <Badge variant="outline" className="text-xs">
+              Last 6 months (Real Data)
+            </Badge>
           </div>
-          {donationTrendsChartData.some(d => d.value > 0) ? (
+          {donationTrendsChartData.some((d) => d.value > 0) ? (
             <SimpleBarChart data={donationTrendsChartData} color="#10b981" />
           ) : (
-            <div className="h-32 flex items-center justify-center text-[#737373] text-sm">
+            <div className="flex h-32 items-center justify-center text-sm text-[#737373]">
               No donation data available yet
             </div>
           )}
         </Card>
-
-        {/* Request Status */}
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">Request Status</h3>
-          <SimpleDonutChart
-            data={requestStatusData}
-            total={stats.totalRequests}
-          />
-        </Card>
       </div>
+
+      {/* User & Request Distribution - Combined Card */}
+      <Card className="p-6">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          <div>
+            <h3 className="mb-4 font-semibold">User Distribution</h3>
+            <SimpleDonutChart data={userTypeData} total={stats.totalUsers} />
+          </div>
+          <div>
+            <h3 className="mb-4 font-semibold">Request Status</h3>
+            <SimpleDonutChart data={requestStatusData} total={stats.totalRequests} />
+          </div>
+        </div>
+      </Card>
 
       {/* Detailed Stats */}
       <Card className="p-6">
-        <h3 className="font-semibold mb-4">Platform Metrics</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-[#737373] mb-1">Verification Rate</p>
+        <h3 className="mb-4 font-semibold">Platform Metrics</h3>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="rounded-lg bg-gray-50 p-4">
+            <p className="mb-1 text-sm text-[#737373]">Verification Rate</p>
             <p className="text-2xl font-bold">
-              {stats.totalUsers > 0 ? Math.round((stats.verifiedUsers / stats.totalUsers) * 100) : 0}%
+              {stats.totalUsers > 0
+                ? Math.round((stats.verifiedUsers / stats.totalUsers) * 100)
+                : 0}
+              %
             </p>
             <p className="text-xs text-[#737373]">{stats.verifiedUsers} verified</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-[#737373] mb-1">Fulfillment Rate</p>
+          <div className="rounded-lg bg-gray-50 p-4">
+            <p className="mb-1 text-sm text-[#737373]">Fulfillment Rate</p>
             <p className="text-2xl font-bold">
-              {stats.totalRequests > 0 ? Math.round((stats.fulfilledRequests / stats.totalRequests) * 100) : 0}%
+              {stats.totalRequests > 0
+                ? Math.round((stats.fulfilledRequests / stats.totalRequests) * 100)
+                : 0}
+              %
             </p>
             <p className="text-xs text-[#737373]">{stats.fulfilledRequests} fulfilled</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-[#737373] mb-1">Avg. Donation</p>
+          <div className="rounded-lg bg-gray-50 p-4">
+            <p className="mb-1 text-sm text-[#737373]">Avg. Donation</p>
             <p className="text-2xl font-bold">
-              ${stats.fulfilledRequests > 0 ? Math.round(stats.totalDonations / stats.fulfilledRequests).toLocaleString() : 0}
+              $
+              {stats.fulfilledRequests > 0
+                ? Math.round(stats.totalDonations / stats.fulfilledRequests).toLocaleString()
+                : 0}
             </p>
             <p className="text-xs text-[#737373]">per request</p>
           </div>
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-[#737373] mb-1">This Month</p>
+          <div className="rounded-lg bg-gray-50 p-4">
+            <p className="mb-1 text-sm text-[#737373]">This Month</p>
             <p className="text-2xl font-bold text-[#ea580c]">
               ${stats.thisMonthDonations.toLocaleString()}
             </p>
@@ -1569,31 +1645,41 @@ function ReportsContent({
   reports,
   loading,
   onRefresh,
-  userId
+  userId,
 }: {
   reports: CampaignReport[]
   loading: boolean
   onRefresh: () => void
   userId?: string
 }) {
-  const [activeTab, setActiveTab] = useState<'pending' | 'reviewing' | 'resolved' | 'all'>('pending')
+  const [activeTab, setActiveTab] = useState<'pending' | 'reviewing' | 'resolved' | 'all'>(
+    'pending'
+  )
   const [selectedReport, setSelectedReport] = useState<CampaignReport | null>(null)
   const [adminNotes, setAdminNotes] = useState('')
   const [updating, setUpdating] = useState(false)
 
-  const filteredReports = activeTab === 'all'
-    ? reports
-    : reports.filter(r => r.status === activeTab)
+  const filteredReports =
+    activeTab === 'all' ? reports : reports.filter((r) => r.status === activeTab)
+
+  const reasonConfig: Record<string, { label: string; Icon: LucideIcon }> = {
+    fraud: { label: 'Suspected Fraud', Icon: ShieldAlert },
+    misleading: { label: 'Misleading Info', Icon: AlertTriangle },
+    inappropriate: { label: 'Inappropriate', Icon: Ban },
+    spam: { label: 'Spam', Icon: Mail },
+    other: { label: 'Other', Icon: HelpCircleIcon },
+  }
 
   const getReasonLabel = (reason: string) => {
-    const labels: Record<string, string> = {
-      fraud: '🚨 Suspected Fraud',
-      misleading: '⚠️ Misleading Info',
-      inappropriate: '🚫 Inappropriate',
-      spam: '📧 Spam',
-      other: '❓ Other'
-    }
-    return labels[reason] || reason
+    const config = reasonConfig[reason]
+    if (!config) return reason
+    const { label, Icon } = config
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <Icon className="h-4 w-4" />
+        {label}
+      </span>
+    )
   }
 
   const getStatusBadge = (status: string) => {
@@ -1611,7 +1697,10 @@ function ReportsContent({
     }
   }
 
-  const handleUpdateStatus = async (reportId: string, newStatus: 'pending' | 'reviewing' | 'resolved' | 'dismissed') => {
+  const handleUpdateStatus = async (
+    reportId: string,
+    newStatus: 'pending' | 'reviewing' | 'resolved' | 'dismissed'
+  ) => {
     setUpdating(true)
     try {
       await updateCampaignReportStatus(reportId, newStatus, userId, adminNotes)
@@ -1627,7 +1716,7 @@ function ReportsContent({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#ea580c]" />
       </div>
     )
@@ -1641,7 +1730,7 @@ function ReportsContent({
           <p className="text-sm text-[#737373]">Review and manage reported campaigns</p>
         </div>
         <Button variant="outline" size="sm" onClick={onRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
+          <RefreshCw className="mr-2 h-4 w-4" />
           Refresh
         </Button>
       </div>
@@ -1650,40 +1739,46 @@ function ReportsContent({
       <div className="grid grid-cols-4 gap-4">
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-amber-100 rounded-lg flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
               <AlertTriangle className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{reports.filter(r => r.status === 'pending').length}</p>
+              <p className="text-2xl font-bold">
+                {reports.filter((r) => r.status === 'pending').length}
+              </p>
               <p className="text-sm text-[#737373]">Pending</p>
             </div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
               <Eye className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{reports.filter(r => r.status === 'reviewing').length}</p>
+              <p className="text-2xl font-bold">
+                {reports.filter((r) => r.status === 'reviewing').length}
+              </p>
               <p className="text-sm text-[#737373]">Reviewing</p>
             </div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
               <Check className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{reports.filter(r => r.status === 'resolved').length}</p>
+              <p className="text-2xl font-bold">
+                {reports.filter((r) => r.status === 'resolved').length}
+              </p>
               <p className="text-sm text-[#737373]">Resolved</p>
             </div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
               <Flag className="h-5 w-5 text-gray-600" />
             </div>
             <div>
@@ -1699,9 +1794,9 @@ function ReportsContent({
         <TabsList>
           <TabsTrigger value="pending" className="gap-2">
             Pending
-            {reports.filter(r => r.status === 'pending').length > 0 && (
-              <Badge className="bg-amber-500 text-white text-xs px-1.5 py-0">
-                {reports.filter(r => r.status === 'pending').length}
+            {reports.filter((r) => r.status === 'pending').length > 0 && (
+              <Badge className="bg-amber-500 px-1.5 py-0 text-xs text-white">
+                {reports.filter((r) => r.status === 'pending').length}
               </Badge>
             )}
           </TabsTrigger>
@@ -1714,8 +1809,8 @@ function ReportsContent({
       {/* Reports List */}
       {filteredReports.length === 0 ? (
         <Card className="p-12 text-center">
-          <Flag className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-          <h3 className="font-semibold text-[#0a0a0a] mb-2">No Reports</h3>
+          <Flag className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+          <h3 className="mb-2 font-semibold text-[#0a0a0a]">No Reports</h3>
           <p className="text-sm text-[#737373]">
             {activeTab === 'pending' ? 'No pending reports to review' : 'No reports found'}
           </p>
@@ -1729,7 +1824,7 @@ function ReportsContent({
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="mb-2 flex items-center gap-3">
                     {getStatusBadge(report.status)}
                     <span className="text-sm font-medium">{getReasonLabel(report.reason)}</span>
                     <span className="text-xs text-[#737373]">
@@ -1738,22 +1833,22 @@ function ReportsContent({
                         day: 'numeric',
                         year: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                       })}
                     </span>
                   </div>
 
-                  <p className="text-sm font-medium text-[#0a0a0a] mb-1">
+                  <p className="mb-1 text-sm font-medium text-[#0a0a0a]">
                     Campaign: {(report as any).campaign?.title || report.campaign_id}
                   </p>
 
                   {report.description && (
-                    <p className="text-sm text-[#737373] mt-2 p-3 bg-gray-50 rounded-lg">
+                    <p className="mt-2 rounded-lg bg-gray-50 p-3 text-sm text-[#737373]">
                       "{report.description}"
                     </p>
                   )}
 
-                  <div className="flex items-center gap-4 mt-3 text-xs text-[#737373]">
+                  <div className="mt-3 flex items-center gap-4 text-xs text-[#737373]">
                     {report.reporter_email && (
                       <span className="flex items-center gap-1">
                         <Mail className="h-3 w-3" />
@@ -1769,21 +1864,23 @@ function ReportsContent({
                   </div>
 
                   {report.admin_notes && (
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                      <p className="text-xs font-medium text-blue-700 mb-1">Admin Notes:</p>
+                    <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 p-3">
+                      <p className="mb-1 text-xs font-medium text-blue-700">Admin Notes:</p>
                       <p className="text-sm text-blue-800">{report.admin_notes}</p>
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 ml-4">
+                <div className="ml-4 flex items-center gap-2">
                   {(report as any).campaign?.slug && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(`/campaign/${(report as any).campaign.slug}`, '_blank')}
+                      onClick={() =>
+                        window.open(`/campaign/${(report as any).campaign.slug}`, '_blank')
+                      }
                     >
-                      <ExternalLink className="h-4 w-4 mr-1" />
+                      <ExternalLink className="mr-1 h-4 w-4" />
                       View
                     </Button>
                   )}
@@ -1792,33 +1889,37 @@ function ReportsContent({
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm">
                         Actions
-                        <ChevronDown className="h-4 w-4 ml-1" />
+                        <ChevronDown className="ml-1 h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Update Status</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       {report.status !== 'reviewing' && (
-                        <DropdownMenuItem onClick={() => handleUpdateStatus(report.id, 'reviewing')}>
-                          <Eye className="h-4 w-4 mr-2" />
+                        <DropdownMenuItem
+                          onClick={() => handleUpdateStatus(report.id, 'reviewing')}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
                           Mark as Reviewing
                         </DropdownMenuItem>
                       )}
                       {report.status !== 'resolved' && (
                         <DropdownMenuItem onClick={() => setSelectedReport(report)}>
-                          <Check className="h-4 w-4 mr-2" />
+                          <Check className="mr-2 h-4 w-4" />
                           Resolve Report
                         </DropdownMenuItem>
                       )}
                       {report.status !== 'dismissed' && (
-                        <DropdownMenuItem onClick={() => handleUpdateStatus(report.id, 'dismissed')}>
-                          <X className="h-4 w-4 mr-2" />
+                        <DropdownMenuItem
+                          onClick={() => handleUpdateStatus(report.id, 'dismissed')}
+                        >
+                          <X className="mr-2 h-4 w-4" />
                           Dismiss Report
                         </DropdownMenuItem>
                       )}
                       {report.status !== 'pending' && (
                         <DropdownMenuItem onClick={() => handleUpdateStatus(report.id, 'pending')}>
-                          <RefreshCw className="h-4 w-4 mr-2" />
+                          <RefreshCw className="mr-2 h-4 w-4" />
                           Reopen
                         </DropdownMenuItem>
                       )}
@@ -1833,10 +1934,10 @@ function ReportsContent({
 
       {/* Resolve Modal */}
       {selectedReport && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="w-full max-w-md p-6">
-            <h3 className="font-semibold text-lg mb-4">Resolve Report</h3>
-            <p className="text-sm text-[#737373] mb-4">
+            <h3 className="mb-4 text-lg font-semibold">Resolve Report</h3>
+            <p className="mb-4 text-sm text-[#737373]">
               Add notes about how this report was resolved (optional)
             </p>
             <Textarea
@@ -1864,12 +1965,12 @@ function ReportsContent({
               >
                 {updating ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Resolving...
                   </>
                 ) : (
                   <>
-                    <Check className="h-4 w-4 mr-2" />
+                    <Check className="mr-2 h-4 w-4" />
                     Resolve
                   </>
                 )}
@@ -1900,7 +2001,7 @@ function SettingsContent({ userId }: { userId?: string }) {
     newUsers: true,
     newRequests: true,
     donationsCompleted: true,
-    weeklySummary: false
+    weeklySummary: false,
   })
 
   // Load settings from database
@@ -1911,12 +2012,13 @@ function SettingsContent({ userId }: { userId?: string }) {
         const settings = await fetchPlatformSettings()
         if (settings.platform_name) setPlatformName(settings.platform_name)
         if (settings.support_email) setSupportEmail(settings.support_email)
-        if (typeof settings.maintenance_mode === 'boolean') setMaintenanceMode(settings.maintenance_mode)
+        if (typeof settings.maintenance_mode === 'boolean')
+          setMaintenanceMode(settings.maintenance_mode)
         setNotifications({
           newUsers: settings.notify_new_users ?? true,
           newRequests: settings.notify_new_requests ?? true,
           donationsCompleted: settings.notify_donations_completed ?? true,
-          weeklySummary: settings.notify_weekly_summary ?? false
+          weeklySummary: settings.notify_weekly_summary ?? false,
         })
       } catch (err) {
         console.error('Error loading settings:', err)
@@ -1974,21 +2076,21 @@ function SettingsContent({ userId }: { userId?: string }) {
 
   const toggleNotification = async (key: keyof typeof notifications) => {
     const newValue = !notifications[key]
-    setNotifications(prev => ({ ...prev, [key]: newValue }))
+    setNotifications((prev) => ({ ...prev, [key]: newValue }))
 
     // Map notification keys to database keys
     const dbKeyMap: Record<string, string> = {
       newUsers: 'notify_new_users',
       newRequests: 'notify_new_requests',
       donationsCompleted: 'notify_donations_completed',
-      weeklySummary: 'notify_weekly_summary'
+      weeklySummary: 'notify_weekly_summary',
     }
     await saveSetting(dbKeyMap[key], newValue)
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#ea580c]" />
       </div>
     )
@@ -2016,20 +2118,29 @@ function SettingsContent({ userId }: { userId?: string }) {
       </div>
 
       <Card className="p-6">
-        <h3 className="font-semibold mb-4">General Settings</h3>
+        <h3 className="mb-4 font-semibold">General Settings</h3>
         <div className="space-y-4">
           {/* Platform Name */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
             {editingField === 'platformName' ? (
-              <div className="flex-1 flex items-center gap-3">
+              <div className="flex flex-1 items-center gap-3">
                 <Input
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
                   className="max-w-xs"
                   autoFocus
                 />
-                <Button size="sm" onClick={saveEdit} disabled={saving} className="bg-[#ea580c] hover:bg-[#ea580c]/90">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                <Button
+                  size="sm"
+                  onClick={saveEdit}
+                  disabled={saving}
+                  className="bg-[#ea580c] hover:bg-[#ea580c]/90"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button size="sm" variant="outline" onClick={cancelEdit} disabled={saving}>
                   <X className="h-4 w-4" />
@@ -2041,8 +2152,12 @@ function SettingsContent({ userId }: { userId?: string }) {
                   <p className="font-medium">Platform Name</p>
                   <p className="text-sm text-[#737373]">{platformName}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => startEditing('platformName', platformName)}>
-                  <Edit className="h-3 w-3 mr-1" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => startEditing('platformName', platformName)}
+                >
+                  <Edit className="mr-1 h-3 w-3" />
                   Edit
                 </Button>
               </>
@@ -2050,9 +2165,9 @@ function SettingsContent({ userId }: { userId?: string }) {
           </div>
 
           {/* Support Email */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
             {editingField === 'supportEmail' ? (
-              <div className="flex-1 flex items-center gap-3">
+              <div className="flex flex-1 items-center gap-3">
                 <Input
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
@@ -2060,8 +2175,17 @@ function SettingsContent({ userId }: { userId?: string }) {
                   className="max-w-xs"
                   autoFocus
                 />
-                <Button size="sm" onClick={saveEdit} disabled={saving} className="bg-[#ea580c] hover:bg-[#ea580c]/90">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                <Button
+                  size="sm"
+                  onClick={saveEdit}
+                  disabled={saving}
+                  className="bg-[#ea580c] hover:bg-[#ea580c]/90"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button size="sm" variant="outline" onClick={cancelEdit} disabled={saving}>
                   <X className="h-4 w-4" />
@@ -2073,8 +2197,12 @@ function SettingsContent({ userId }: { userId?: string }) {
                   <p className="font-medium">Support Email</p>
                   <p className="text-sm text-[#737373]">{supportEmail}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => startEditing('supportEmail', supportEmail)}>
-                  <Edit className="h-3 w-3 mr-1" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => startEditing('supportEmail', supportEmail)}
+                >
+                  <Edit className="mr-1 h-3 w-3" />
                   Edit
                 </Button>
               </>
@@ -2082,12 +2210,12 @@ function SettingsContent({ userId }: { userId?: string }) {
           </div>
 
           {/* Maintenance Mode */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
             <div>
               <p className="font-medium">Maintenance Mode</p>
               <p className="text-sm text-[#737373]">
                 {maintenanceMode ? (
-                  <span className="text-amber-600 font-medium">Currently enabled</span>
+                  <span className="font-medium text-amber-600">Currently enabled</span>
                 ) : (
                   'Currently disabled'
                 )}
@@ -2107,7 +2235,7 @@ function SettingsContent({ userId }: { userId?: string }) {
       </Card>
 
       <Card className="p-6">
-        <h3 className="font-semibold mb-4">Email Notifications</h3>
+        <h3 className="mb-4 font-semibold">Email Notifications</h3>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span>New user registrations</span>
@@ -2142,9 +2270,7 @@ function SettingsContent({ userId }: { userId?: string }) {
             />
           </div>
         </div>
-        <p className="text-xs text-[#737373] mt-4">
-          All settings are saved to the database
-        </p>
+        <p className="mt-4 text-xs text-[#737373]">All settings are saved to the database</p>
       </Card>
     </div>
   )
@@ -2201,7 +2327,7 @@ From the Overview page, you can:
 
 ### Getting Help
 Use the Help Center for FAQs or email admin@kcdd.org for support.
-      `
+      `,
     },
     'user-management': {
       title: 'User Management',
@@ -2229,7 +2355,7 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
 - Regularly review new user registrations
 - Verify CBO accounts promptly
 - Monitor user activity for suspicious behavior
-      `
+      `,
     },
     'organization-verification': {
       title: 'Organization Verification',
@@ -2262,8 +2388,8 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
 ### After Verification
 - Verified organizations can create campaigns
 - Premium organizations get featured placement
-      `
-    }
+      `,
+    },
   }
 
   return (
@@ -2275,60 +2401,68 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
 
       <div className="grid grid-cols-3 gap-4">
         <Card
-          className="p-5 text-center hover:shadow-md transition-shadow cursor-pointer hover:border-[#ea580c]"
-          onClick={() => window.location.href = 'mailto:admin@kcdd.org?subject=Admin Support Request'}
+          className="cursor-pointer p-5 text-center transition-shadow hover:border-[#ea580c] hover:shadow-md"
+          onClick={() =>
+            (window.location.href = 'mailto:admin@kcdd.org?subject=Admin Support Request')
+          }
         >
-          <Mail className="h-8 w-8 mx-auto mb-3 text-[#ea580c]" />
-          <h3 className="font-medium mb-1">Email Support</h3>
+          <Mail className="mx-auto mb-3 h-8 w-8 text-[#ea580c]" />
+          <h3 className="mb-1 font-medium">Email Support</h3>
           <p className="text-sm text-[#737373]">admin@kcdd.org</p>
         </Card>
         <Card
-          className="p-5 text-center hover:shadow-md transition-shadow cursor-pointer hover:border-[#ea580c]"
+          className="cursor-pointer p-5 text-center transition-shadow hover:border-[#ea580c] hover:shadow-md"
           onClick={() => setShowDocsModal(true)}
         >
-          <FileText className="h-8 w-8 mx-auto mb-3 text-[#ea580c]" />
-          <h3 className="font-medium mb-1">Documentation</h3>
+          <FileText className="mx-auto mb-3 h-8 w-8 text-[#ea580c]" />
+          <h3 className="mb-1 font-medium">Documentation</h3>
           <p className="text-sm text-[#737373]">View admin docs</p>
         </Card>
         <Card
-          className="p-5 text-center hover:shadow-md transition-shadow cursor-pointer hover:border-[#ea580c]"
+          className="cursor-pointer p-5 text-center transition-shadow hover:border-[#ea580c] hover:shadow-md"
           onClick={() => setShowHelpModal(true)}
         >
-          <HelpCircle className="h-8 w-8 mx-auto mb-3 text-[#ea580c]" />
-          <h3 className="font-medium mb-1">Help Center</h3>
+          <HelpCircle className="mx-auto mb-3 h-8 w-8 text-[#ea580c]" />
+          <h3 className="mb-1 font-medium">Help Center</h3>
           <p className="text-sm text-[#737373]">FAQs and guides</p>
         </Card>
       </div>
 
       {/* Quick Tips */}
       <Card className="p-6">
-        <h3 className="font-semibold mb-4">Quick Tips</h3>
+        <h3 className="mb-4 font-semibold">Quick Tips</h3>
         <div className="space-y-3">
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-            <div className="h-6 w-6 bg-[#ea580c]/10 rounded flex items-center justify-center flex-shrink-0">
+          <div className="flex items-start gap-3 rounded-lg bg-gray-50 p-3">
+            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-[#ea580c]/10">
               <span className="text-sm font-medium text-[#ea580c]">1</span>
             </div>
             <div>
               <p className="text-sm font-medium">Managing Users</p>
-              <p className="text-xs text-[#737373]">Change user roles and verification status from the Users section</p>
+              <p className="text-xs text-[#737373]">
+                Change user roles and verification status from the Users section
+              </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-            <div className="h-6 w-6 bg-[#ea580c]/10 rounded flex items-center justify-center flex-shrink-0">
+          <div className="flex items-start gap-3 rounded-lg bg-gray-50 p-3">
+            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-[#ea580c]/10">
               <span className="text-sm font-medium text-[#ea580c]">2</span>
             </div>
             <div>
               <p className="text-sm font-medium">Verifying Organizations</p>
-              <p className="text-xs text-[#737373]">Review organization details and update their verification status</p>
+              <p className="text-xs text-[#737373]">
+                Review organization details and update their verification status
+              </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-            <div className="h-6 w-6 bg-[#ea580c]/10 rounded flex items-center justify-center flex-shrink-0">
+          <div className="flex items-start gap-3 rounded-lg bg-gray-50 p-3">
+            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-[#ea580c]/10">
               <span className="text-sm font-medium text-[#ea580c]">3</span>
             </div>
             <div>
               <p className="text-sm font-medium">Handling Reports</p>
-              <p className="text-xs text-[#737373]">Review flagged campaigns and take appropriate action</p>
+              <p className="text-xs text-[#737373]">
+                Review flagged campaigns and take appropriate action
+              </p>
             </div>
           </div>
         </div>
@@ -2336,64 +2470,86 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
 
       {/* Documentation Modal */}
       {showDocsModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-2xl p-6 max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">
                 {selectedDocSection
-                  ? documentationSections[selectedDocSection as keyof typeof documentationSections].title
-                  : 'Admin Documentation'
-                }
+                  ? documentationSections[selectedDocSection as keyof typeof documentationSections]
+                      .title
+                  : 'Admin Documentation'}
               </h3>
               <div className="flex items-center gap-2">
                 {selectedDocSection && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedDocSection(null)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedDocSection(null)}>
                     Back to list
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" onClick={() => {
-                  setShowDocsModal(false)
-                  setSelectedDocSection(null)
-                }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setShowDocsModal(false)
+                    setSelectedDocSection(null)
+                  }}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
             {selectedDocSection ? (
-              <div className="overflow-y-auto flex-1 prose prose-sm max-w-none">
-                <div className="text-sm whitespace-pre-line">
-                  {documentationSections[selectedDocSection as keyof typeof documentationSections].content
+              <div className="prose prose-sm max-w-none flex-1 overflow-y-auto">
+                <div className="whitespace-pre-line text-sm">
+                  {documentationSections[
+                    selectedDocSection as keyof typeof documentationSections
+                  ].content
                     .split('\n')
                     .map((line, index) => {
                       if (line.startsWith('## ')) {
-                        return <h2 key={index} className="text-lg font-semibold mt-4 mb-2">{line.replace('## ', '')}</h2>
+                        return (
+                          <h2 key={index} className="mb-2 mt-4 text-lg font-semibold">
+                            {line.replace('## ', '')}
+                          </h2>
+                        )
                       }
                       if (line.startsWith('### ')) {
-                        return <h3 key={index} className="text-base font-medium mt-3 mb-1">{line.replace('### ', '')}</h3>
+                        return (
+                          <h3 key={index} className="mb-1 mt-3 text-base font-medium">
+                            {line.replace('### ', '')}
+                          </h3>
+                        )
                       }
                       if (line.startsWith('- **')) {
                         const match = line.match(/- \*\*(.+?)\*\*: (.+)/)
                         if (match) {
                           return (
-                            <p key={index} className="ml-4 my-1">
+                            <p key={index} className="my-1 ml-4">
                               <strong>{match[1]}</strong>: {match[2]}
                             </p>
                           )
                         }
                       }
                       if (line.startsWith('- ')) {
-                        return <p key={index} className="ml-4 my-1">{line}</p>
+                        return (
+                          <p key={index} className="my-1 ml-4">
+                            {line}
+                          </p>
+                        )
                       }
                       if (line.match(/^\d+\. /)) {
-                        return <p key={index} className="ml-4 my-1">{line}</p>
+                        return (
+                          <p key={index} className="my-1 ml-4">
+                            {line}
+                          </p>
+                        )
                       }
                       if (line.trim()) {
-                        return <p key={index} className="my-1">{line}</p>
+                        return (
+                          <p key={index} className="my-1">
+                            {line}
+                          </p>
+                        )
                       }
                       return null
                     })}
@@ -2405,14 +2561,14 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
                   <button
                     key={key}
                     onClick={() => setSelectedDocSection(key)}
-                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors w-full text-left"
+                    className="flex w-full items-center gap-3 rounded-lg bg-gray-50 p-3 text-left transition-colors hover:bg-gray-100"
                   >
                     <section.icon className="h-5 w-5 text-[#ea580c]" />
                     <div className="flex-1">
                       <p className="text-sm font-medium">{section.title}</p>
                       <p className="text-xs text-[#737373]">Click to read documentation</p>
                     </div>
-                    <ChevronDown className="h-4 w-4 text-[#737373] -rotate-90" />
+                    <ChevronDown className="h-4 w-4 -rotate-90 text-[#737373]" />
                   </button>
                 ))}
               </div>
@@ -2423,17 +2579,17 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
 
       {/* Help Center Modal with Real FAQs */}
       {showHelpModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-lg p-6 max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">Help Center</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Help Center</h3>
               <Button variant="ghost" size="icon" onClick={() => setShowHelpModal(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="space-y-4 overflow-y-auto flex-1">
+            <div className="flex-1 space-y-4 overflow-y-auto">
               <div className="border-b pb-3">
-                <p className="font-medium mb-2">Frequently Asked Questions</p>
+                <p className="mb-2 font-medium">Frequently Asked Questions</p>
                 <p className="text-xs text-[#737373]">
                   {loadingFaqs ? 'Loading...' : `${faqs.length} questions from database`}
                 </p>
@@ -2444,19 +2600,17 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
                     <Loader2 className="h-6 w-6 animate-spin text-[#ea580c]" />
                   </div>
                 ) : faqs.length === 0 ? (
-                  <p className="text-sm text-[#737373] text-center py-4">
+                  <p className="py-4 text-center text-sm text-[#737373]">
                     No FAQs available. Add them in the database.
                   </p>
                 ) : (
                   faqs.map((faq) => (
                     <details key={faq.id} className="group">
-                      <summary className="flex items-center justify-between cursor-pointer p-2 hover:bg-gray-50 rounded-lg">
-                        <span className="text-sm pr-4">{faq.question}</span>
-                        <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 flex-shrink-0" />
+                      <summary className="flex cursor-pointer items-center justify-between rounded-lg p-2 hover:bg-gray-50">
+                        <span className="pr-4 text-sm">{faq.question}</span>
+                        <ChevronDown className="h-4 w-4 flex-shrink-0 transition-transform group-open:rotate-180" />
                       </summary>
-                      <p className="text-sm text-[#737373] p-2 pt-0">
-                        {faq.answer}
-                      </p>
+                      <p className="p-2 pt-0 text-sm text-[#737373]">{faq.answer}</p>
                     </details>
                   ))
                 )}
@@ -2496,30 +2650,36 @@ export function AdminDashboard() {
       // Fetch users
       const { data: usersData } = await supabase
         .from('user_profiles')
-        .select(`
+        .select(
+          `
           *,
           donor_profile:donor_profiles(display_name, email),
           organization:organizations(name, email)
-        `)
+        `
+        )
         .order('created_at', { ascending: false })
 
       // Fetch organizations
       const { data: orgsData } = await supabase
         .from('organizations')
-        .select(`
+        .select(
+          `
           *,
           user_profile:user_profiles(verification_status, org_tier)
-        `)
+        `
+        )
         .order('created_at', { ascending: false })
 
       // Fetch requests
       const { data: requestsData } = await supabase
         .from('requests')
-        .select(`
+        .select(
+          `
           *,
           organization:organizations(name),
           cause_area:cause_areas(name)
-        `)
+        `
+        )
         .order('created_at', { ascending: false })
 
       // Fetch campaign reports
@@ -2531,7 +2691,10 @@ export function AdminDashboard() {
 
       // Calculate donations (fulfilled requests)
       const fulfilledRequests = requestsArray.filter((r: any) => r.status === 'fulfilled')
-      const totalDonations = fulfilledRequests.reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0)
+      const totalDonations = fulfilledRequests.reduce(
+        (sum: number, r: any) => sum + Number(r.amount || 0),
+        0
+      )
 
       // This month donations
       const now = new Date()
@@ -2578,18 +2741,19 @@ export function AdminDashboard() {
           timestamp: r.created_at,
         })
       })
-      setRecentActivity(activity.sort((a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      ).slice(0, 5))
+      setRecentActivity(
+        activity
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+          .slice(0, 5)
+      )
 
       // Fetch chart data for analytics
       const [growthData, trendsData] = await Promise.all([
         fetchUserGrowthData(),
-        fetchDonationTrendsData()
+        fetchDonationTrendsData(),
       ])
       setUserGrowthData(growthData)
       setDonationTrendsData(trendsData)
-
     } catch (err) {
       console.error('Error fetching admin data:', err)
     } finally {
@@ -2612,7 +2776,7 @@ export function AdminDashboard() {
         .eq('id', userId)
 
       if (error) throw error
-      setUsers(users.map(u => u.id === userId ? { ...u, org_tier: newTier } : u))
+      setUsers(users.map((u) => (u.id === userId ? { ...u, org_tier: newTier } : u)))
     } catch (err) {
       console.error('Error updating tier:', err)
     }
@@ -2626,16 +2790,22 @@ export function AdminDashboard() {
         .update({
           verification_status: newStatus,
           is_vetted: newStatus !== VERIFICATION_STATUS.UNVERIFIED,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', userId)
 
       if (error) throw error
-      setUsers(users.map(u => u.id === userId ? {
-        ...u,
-        verification_status: newStatus,
-        is_vetted: newStatus !== VERIFICATION_STATUS.UNVERIFIED
-      } : u))
+      setUsers(
+        users.map((u) =>
+          u.id === userId
+            ? {
+                ...u,
+                verification_status: newStatus,
+                is_vetted: newStatus !== VERIFICATION_STATUS.UNVERIFIED,
+              }
+            : u
+        )
+      )
     } catch (err) {
       console.error('Error updating status:', err)
     }
@@ -2646,19 +2816,18 @@ export function AdminDashboard() {
     try {
       const updates: any = {
         status: newStatus,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
       if (newStatus === 'fulfilled') {
         updates.fulfilled_at = new Date().toISOString()
       }
 
-      const { error } = await supabase
-        .from('requests')
-        .update(updates)
-        .eq('id', requestId)
+      const { error } = await supabase.from('requests').update(updates).eq('id', requestId)
 
       if (error) throw error
-      setRequests(requests.map(r => r.id === requestId ? { ...r, status: newStatus as any } : r))
+      setRequests(
+        requests.map((r) => (r.id === requestId ? { ...r, status: newStatus as any } : r))
+      )
     } catch (err) {
       console.error('Error updating request status:', err)
     }
@@ -2667,15 +2836,24 @@ export function AdminDashboard() {
   // Get header title
   const getHeaderTitle = () => {
     switch (activeSection) {
-      case 'overview': return 'Dashboard Overview'
-      case 'users': return 'User Management'
-      case 'organizations': return 'Organizations'
-      case 'requests': return 'Requests'
-      case 'reports': return 'Campaign Reports'
-      case 'analytics': return 'Analytics'
-      case 'settings': return 'Settings'
-      case 'support': return 'Support'
-      default: return 'Admin Dashboard'
+      case 'overview':
+        return 'Dashboard Overview'
+      case 'users':
+        return 'User Management'
+      case 'organizations':
+        return 'Organizations'
+      case 'requests':
+        return 'Requests'
+      case 'reports':
+        return 'Campaign Reports'
+      case 'analytics':
+        return 'Analytics'
+      case 'settings':
+        return 'Settings'
+      case 'support':
+        return 'Support'
+      default:
+        return 'Admin Dashboard'
     }
   }
 
@@ -2693,40 +2871,49 @@ export function AdminDashboard() {
             onExport={() => {
               // Export all data as separate CSV files
               if (users.length > 0) {
-                exportToCSV(users.map(u => ({
-                  id: u.id,
-                  user_type: u.user_type,
-                  org_tier: u.org_tier,
-                  verification_status: u.verification_status,
-                  is_vetted: u.is_vetted,
-                  created_at: u.created_at,
-                  display_name: u.donor_profile?.display_name || u.organization?.name || '',
-                  email: u.donor_profile?.email || u.organization?.email || ''
-                })), 'users_export')
+                exportToCSV(
+                  users.map((u) => ({
+                    id: u.id,
+                    user_type: u.user_type,
+                    org_tier: u.org_tier,
+                    verification_status: u.verification_status,
+                    is_vetted: u.is_vetted,
+                    created_at: u.created_at,
+                    display_name: u.donor_profile?.display_name || u.organization?.name || '',
+                    email: u.donor_profile?.email || u.organization?.email || '',
+                  })),
+                  'users_export'
+                )
               }
               if (organizations.length > 0) {
-                exportToCSV(organizations.map(o => ({
-                  id: o.id,
-                  name: o.name,
-                  email: o.email,
-                  phone: o.phone,
-                  city: o.city,
-                  state: o.state,
-                  mission: o.mission,
-                  created_at: o.created_at
-                })), 'organizations_export')
+                exportToCSV(
+                  organizations.map((o) => ({
+                    id: o.id,
+                    name: o.name,
+                    email: o.email,
+                    phone: o.phone,
+                    city: o.city,
+                    state: o.state,
+                    mission: o.mission,
+                    created_at: o.created_at,
+                  })),
+                  'organizations_export'
+                )
               }
               if (requests.length > 0) {
-                exportToCSV(requests.map(r => ({
-                  id: r.id,
-                  organization: r.organization?.name || '',
-                  description: r.description,
-                  amount: r.amount,
-                  status: r.status,
-                  urgency: r.urgency,
-                  cause_area: r.cause_area?.name || '',
-                  created_at: r.created_at
-                })), 'requests_export')
+                exportToCSV(
+                  requests.map((r) => ({
+                    id: r.id,
+                    organization: r.organization?.name || '',
+                    description: r.description,
+                    amount: r.amount,
+                    status: r.status,
+                    urgency: r.urgency,
+                    cause_area: r.cause_area?.name || '',
+                    created_at: r.created_at,
+                  })),
+                  'requests_export'
+                )
               }
             }}
           />
@@ -2772,7 +2959,14 @@ export function AdminDashboard() {
           />
         )
       case 'analytics':
-        return <AnalyticsContent stats={stats} loading={loading} userGrowthData={userGrowthData} donationTrendsData={donationTrendsData} />
+        return (
+          <AnalyticsContent
+            stats={stats}
+            loading={loading}
+            userGrowthData={userGrowthData}
+            donationTrendsData={donationTrendsData}
+          />
+        )
       case 'settings':
         return <SettingsContent />
       case 'support':
@@ -2792,13 +2986,15 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-[#fafafa]">
+    <div className="flex h-full bg-[#fafafa]">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-white border-r border-gray-200 p-2 flex flex-col transition-all duration-300 overflow-hidden`}>
+      <aside
+        className={`${sidebarOpen ? 'w-64' : 'w-16'} flex flex-col overflow-hidden border-r border-gray-200 bg-white p-2 transition-all duration-300`}
+      >
         {/* Logo */}
-        <div className="p-3 mb-2">
+        <div className="mb-2 p-3">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 bg-[#ea580c] rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#ea580c]">
               <Shield className="h-4 w-4 text-white" />
             </div>
             {sidebarOpen && (
@@ -2810,70 +3006,70 @@ export function AdminDashboard() {
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex-1 space-y-1 p-2 overflow-hidden">
+        <nav className="flex-1 space-y-1 overflow-hidden p-2">
           <button
             onClick={() => setActiveSection('overview')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
               activeSection === 'overview'
                 ? 'bg-[#ea580c] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
+            <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Overview</span>}
           </button>
 
           <button
             onClick={() => setActiveSection('users')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
               activeSection === 'users'
                 ? 'bg-[#ea580c] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <Users className="w-4 h-4 flex-shrink-0" />
+            <Users className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Users</span>}
           </button>
 
           <button
             onClick={() => setActiveSection('organizations')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
               activeSection === 'organizations'
                 ? 'bg-[#ea580c] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <Building2 className="w-4 h-4 flex-shrink-0" />
+            <Building2 className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Organizations</span>}
           </button>
 
           <button
             onClick={() => setActiveSection('requests')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
               activeSection === 'requests'
                 ? 'bg-[#ea580c] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <FileText className="w-4 h-4 flex-shrink-0" />
+            <FileText className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Requests</span>}
           </button>
 
           <button
             onClick={() => setActiveSection('reports')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
               activeSection === 'reports'
                 ? 'bg-[#ea580c] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <Flag className="w-4 h-4 flex-shrink-0" />
+            <Flag className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && (
-              <span className="text-sm flex items-center gap-2">
+              <span className="flex items-center gap-2 text-sm">
                 Reports
-                {reports.filter(r => r.status === 'pending').length > 0 && (
-                  <Badge className="bg-red-500 text-white text-xs px-1.5 py-0 h-5 min-w-[20px]">
-                    {reports.filter(r => r.status === 'pending').length}
+                {reports.filter((r) => r.status === 'pending').length > 0 && (
+                  <Badge className="h-5 min-w-[20px] bg-red-500 px-1.5 py-0 text-xs text-white">
+                    {reports.filter((r) => r.status === 'pending').length}
                   </Badge>
                 )}
               </span>
@@ -2882,53 +3078,53 @@ export function AdminDashboard() {
 
           <button
             onClick={() => setActiveSection('analytics')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
               activeSection === 'analytics'
                 ? 'bg-[#ea580c] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <BarChart3 className="w-4 h-4 flex-shrink-0" />
+            <BarChart3 className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Analytics</span>}
           </button>
         </nav>
 
         {/* Footer Navigation */}
-        <div className="p-2 space-y-1 border-t border-gray-200 pt-2 overflow-hidden">
+        <div className="space-y-1 overflow-hidden border-t border-gray-200 p-2 pt-2">
           <button
             onClick={() => setActiveSection('settings')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
               activeSection === 'settings'
                 ? 'bg-[#ea580c] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <Settings className="w-4 h-4 flex-shrink-0" />
+            <Settings className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Settings</span>}
           </button>
 
           <button
             onClick={() => setActiveSection('support')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
               activeSection === 'support'
                 ? 'bg-[#ea580c] text-white'
                 : 'text-[#0a0a0a] hover:bg-gray-100'
             }`}
           >
-            <HelpCircle className="w-4 h-4 flex-shrink-0" />
+            <HelpCircle className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Support</span>}
           </button>
         </div>
 
         {/* User Info */}
         {sidebarOpen && (
-          <div className="p-3 border-t border-gray-200">
+          <div className="border-t border-gray-200 p-3">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-[#ea580c]/10 flex items-center justify-center text-[#ea580c] font-medium">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ea580c]/10 font-medium text-[#ea580c]">
                 {user?.firstName?.[0] || 'A'}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#0a0a0a] truncate">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-[#0a0a0a]">
                   {user?.firstName || 'Admin'}
                 </p>
                 <p className="text-xs text-[#737373]">Administrator</p>
@@ -2939,10 +3135,10 @@ export function AdminDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-2 overflow-auto">
-        <div className="bg-white rounded-[14px] shadow-sm h-full flex flex-col">
+      <main className="flex-1 overflow-auto p-2">
+        <div className="flex h-full flex-col rounded-[14px] bg-white shadow-sm">
           {/* Header */}
-          <div className="flex items-center gap-2 px-6 h-[49px] border-b border-[#e5e5e5]">
+          <div className="flex h-[49px] items-center gap-2 border-b border-[#e5e5e5] px-6">
             <Button
               variant="ghost"
               size="icon"
@@ -2959,9 +3155,7 @@ export function AdminDashboard() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-auto p-6">
-            {renderContent()}
-          </div>
+          <div className="flex-1 overflow-auto p-6">{renderContent()}</div>
         </div>
       </main>
     </div>
