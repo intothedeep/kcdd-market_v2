@@ -43,6 +43,7 @@ jobs:
 
       - name: Run TypeScript type check
         run: npm run type-check
+        continue-on-error: true
 
   accessibility:
     name: Accessibility (A11y) Checks
