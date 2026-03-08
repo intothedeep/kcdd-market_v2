@@ -105,7 +105,7 @@ export const UserProfile: Story = {
       </PopoverTrigger>
       <PopoverContent className="w-80">
         <div className="flex gap-4">
-          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-lg font-semibold">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-lg font-semibold">
             JD
           </div>
           <div className="space-y-1">

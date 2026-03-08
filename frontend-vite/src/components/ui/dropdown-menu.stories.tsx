@@ -16,7 +16,18 @@ import {
   DropdownMenuRadioGroup,
 } from './dropdown-menu'
 import { Button } from './button'
-import { User, Settings, LogOut, CreditCard, Keyboard, Mail, MessageSquare, Plus, PlusCircle, UserPlus } from 'lucide-react'
+import {
+  User,
+  Settings,
+  LogOut,
+  CreditCard,
+  Keyboard,
+  Mail,
+  MessageSquare,
+  Plus,
+  PlusCircle,
+  UserPlus,
+} from 'lucide-react'
 
 const meta: Meta<typeof DropdownMenu> = {
   title: 'UI/DropdownMenu',
@@ -84,9 +95,7 @@ export const WithCheckboxItems: Story = {
           <MessageSquare className="mr-2 h-4 w-4" />
           Push notifications
         </DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem checked>
-          SMS notifications
-        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem checked>SMS notifications</DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
   ),

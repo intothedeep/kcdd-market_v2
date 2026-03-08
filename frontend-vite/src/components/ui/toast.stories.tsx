@@ -139,9 +139,7 @@ export const UsageExample: Story = {
       <Toast open>
         <div className="grid gap-1">
           <ToastTitle>Example Toast</ToastTitle>
-          <ToastDescription>
-            This would appear when triggered by the button above.
-          </ToastDescription>
+          <ToastDescription>This would appear when triggered by the button above.</ToastDescription>
         </div>
         <ToastClose />
       </Toast>

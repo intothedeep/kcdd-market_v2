@@ -47,8 +47,8 @@ export const Horizontal: Story = {
         {artworks.map((artwork) => (
           <figure key={artwork.title} className="shrink-0">
             <div className="overflow-hidden rounded-md">
-              <div className="h-40 w-32 bg-muted flex items-center justify-center">
-                <span className="text-muted-foreground text-xs">{artwork.title}</span>
+              <div className="flex h-40 w-32 items-center justify-center bg-muted">
+                <span className="text-xs text-muted-foreground">{artwork.title}</span>
               </div>
             </div>
             <figcaption className="pt-2 text-xs text-muted-foreground">
@@ -66,22 +66,22 @@ export const LongContent: Story = {
   render: () => (
     <ScrollArea className="h-[300px] w-[350px] rounded-md border p-4">
       <h4 className="mb-4 text-lg font-semibold">Terms of Service</h4>
-      <p className="text-sm text-muted-foreground mb-4">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt
-        ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation
-        ullamco laboris nisi ut aliquip ex ea commodo consequat.
+      <p className="mb-4 text-sm text-muted-foreground">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut
+        labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco
+        laboris nisi ut aliquip ex ea commodo consequat.
       </p>
-      <p className="text-sm text-muted-foreground mb-4">
-        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat
-        nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
-        deserunt mollit anim id est laborum.
+      <p className="mb-4 text-sm text-muted-foreground">
+        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+        pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
+        mollit anim id est laborum.
       </p>
-      <p className="text-sm text-muted-foreground mb-4">
+      <p className="mb-4 text-sm text-muted-foreground">
         Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque
         laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi
         architecto beatae vitae dicta sunt explicabo.
       </p>
-      <p className="text-sm text-muted-foreground mb-4">
+      <p className="mb-4 text-sm text-muted-foreground">
         Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia
         consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
       </p>

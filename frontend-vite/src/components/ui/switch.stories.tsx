@@ -53,7 +53,7 @@ export const WithLabel: Story = {
 
 export const SettingsExample: Story = {
   render: () => (
-    <div className="space-y-4 w-full max-w-md">
+    <div className="w-full max-w-md space-y-4">
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
           <Label htmlFor="notifications">Notifications</Label>
@@ -81,7 +81,7 @@ export const SettingsExample: Story = {
 
 export const FormExample: Story = {
   render: () => (
-    <div className="rounded-lg border p-4 space-y-4 w-full max-w-md">
+    <div className="w-full max-w-md space-y-4 rounded-lg border p-4">
       <h3 className="font-medium">Privacy Settings</h3>
       <div className="space-y-4">
         <div className="flex items-center justify-between">

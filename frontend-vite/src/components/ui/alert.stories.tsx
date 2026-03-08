@@ -45,9 +45,7 @@ export const WithIcon: Story = {
     <Alert>
       <Info className="h-4 w-4" />
       <AlertTitle>Information</AlertTitle>
-      <AlertDescription>
-        This is an informational message with an icon.
-      </AlertDescription>
+      <AlertDescription>This is an informational message with an icon.</AlertDescription>
     </Alert>
   ),
 }

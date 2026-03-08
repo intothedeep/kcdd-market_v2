@@ -60,7 +60,7 @@ export const WithDescription: Story = {
 
 export const FormExample: Story = {
   render: () => (
-    <div className="space-y-4 w-full max-w-md">
+    <div className="w-full max-w-md space-y-4">
       <div className="grid gap-1.5">
         <Label htmlFor="subject">Subject</Label>
         <input
@@ -93,14 +93,14 @@ export const CharacterCount: Story = {
         maxLength={280}
         className="resize-none"
       />
-      <p className="text-sm text-muted-foreground text-right">0 / 280</p>
+      <p className="text-right text-sm text-muted-foreground">0 / 280</p>
     </div>
   ),
 }
 
 export const FeedbackForm: Story = {
   render: () => (
-    <div className="rounded-lg border p-4 space-y-4 w-full max-w-md">
+    <div className="w-full max-w-md space-y-4 rounded-lg border p-4">
       <div>
         <h3 className="font-semibold">Share Your Feedback</h3>
         <p className="text-sm text-muted-foreground">

@@ -106,7 +106,9 @@ export const OrganizationProfile: Story = {
       <TabsContent value="campaigns" className="mt-4">
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Active Campaigns</h3>
-          <p className="text-muted-foreground">3 active campaigns raising funds for technology needs.</p>
+          <p className="text-muted-foreground">
+            3 active campaigns raising funds for technology needs.
+          </p>
         </div>
       </TabsContent>
       <TabsContent value="impact" className="mt-4">
@@ -131,7 +133,9 @@ export const OrganizationProfile: Story = {
       <TabsContent value="team" className="mt-4">
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Our Team</h3>
-          <p className="text-muted-foreground">Meet the dedicated individuals behind our mission.</p>
+          <p className="text-muted-foreground">
+            Meet the dedicated individuals behind our mission.
+          </p>
         </div>
       </TabsContent>
     </Tabs>

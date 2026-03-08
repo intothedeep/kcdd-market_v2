@@ -47,21 +47,13 @@ export const Vertical: Story = {
 export const InNavigation: Story = {
   render: () => (
     <div className="flex h-5 items-center space-x-4 text-sm">
-      <a href="#" className="font-medium">
-        Home
-      </a>
+      <span className="cursor-pointer font-medium">Home</span>
       <Separator orientation="vertical" />
-      <a href="#" className="text-muted-foreground hover:text-foreground">
-        Products
-      </a>
+      <span className="cursor-pointer text-muted-foreground hover:text-foreground">Products</span>
       <Separator orientation="vertical" />
-      <a href="#" className="text-muted-foreground hover:text-foreground">
-        About
-      </a>
+      <span className="cursor-pointer text-muted-foreground hover:text-foreground">About</span>
       <Separator orientation="vertical" />
-      <a href="#" className="text-muted-foreground hover:text-foreground">
-        Contact
-      </a>
+      <span className="cursor-pointer text-muted-foreground hover:text-foreground">Contact</span>
     </div>
   ),
 }
@@ -89,7 +81,7 @@ export const InList: Story = {
 
 export const WithDifferentColors: Story = {
   render: () => (
-    <div className="space-y-4 w-full max-w-md">
+    <div className="w-full max-w-md space-y-4">
       <Separator />
       <Separator className="bg-primary" />
       <Separator className="bg-destructive" />
