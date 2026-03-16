@@ -47,6 +47,7 @@ import {
   Heart,
   Eye,
   Edit,
+  Trash2,
   Check,
   X,
   RefreshCw,
@@ -83,6 +84,16 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   USER_TYPE_LABELS,
   ORG_TIER_LABELS,
@@ -475,6 +486,7 @@ function UsersContent({
   onUpdateTier,
   onUpdateStatus,
   onUpdateType,
+  onDeleteUser,
   onRefresh,
 }: {
   users: UserProfile[]
@@ -482,6 +494,7 @@ function UsersContent({
   onUpdateTier: (userId: string, tier: OrgTier) => void
   onUpdateStatus: (userId: string, status: VerificationStatus) => void
   onUpdateType: (userId: string, type: UserType) => void
+  onDeleteUser: (userId: string) => Promise<void>
   onRefresh: () => void
 }) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -489,6 +502,11 @@ function UsersContent({
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
+  const [userToDelete, setUserToDelete] = useState<{
+    id: string
+    name: string
+  } | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const filteredUsers = users.filter((user) => {
     const displayName = user.donor_profile?.display_name || user.organization?.name || user.id
@@ -784,6 +802,14 @@ function UsersContent({
                                 Send Email
                               </DropdownMenuItem>
                             )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => setUserToDelete({ id: user.id, name: displayName })}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete User
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -880,6 +906,48 @@ function UsersContent({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete{' '}
+              <span className="font-semibold">{userToDelete?.name}</span> and all their data? This
+              includes their profile, organizations, campaigns, donations, and requests. This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+              onClick={async (e) => {
+                e.preventDefault()
+                if (!userToDelete) return
+                setDeleting(true)
+                await onDeleteUser(userToDelete.id)
+                setDeleting(false)
+                setUserToDelete(null)
+              }}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Permanently
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -2916,6 +2984,94 @@ export function AdminDashboard() {
     }
   }
 
+  // Delete user and all related data
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      // Delete in order: dependent tables first, then user_profiles
+      // Many-to-many / junction tables
+      await supabase.from('donor_cause_areas').delete().eq('user_id', userId)
+      await supabase.from('request_notifications').delete().eq('recipient_id', userId)
+
+      // Get organization ID if user is a CBO
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (org) {
+        // Delete org-related data
+        await supabase.from('organization_cause_areas').delete().eq('organization_id', org.id)
+        await supabase.from('organization_populations').delete().eq('organization_id', org.id)
+        await supabase.from('organization_updates').delete().eq('organization_id', org.id)
+        await supabase.from('organization_team_members').delete().eq('organization_id', org.id)
+        await supabase.from('organization_documents').delete().eq('organization_id', org.id)
+        await supabase.from('campaign_reports').delete().eq('organization_id', org.id)
+
+        // Delete campaigns and their children
+        const { data: campaigns } = await supabase
+          .from('campaigns')
+          .select('id')
+          .eq('organization_id', org.id)
+        if (campaigns) {
+          const campaignIds = campaigns.map((c) => c.id)
+          if (campaignIds.length > 0) {
+            await supabase.from('campaign_questions').delete().in('campaign_id', campaignIds)
+            await supabase.from('campaign_images').delete().in('campaign_id', campaignIds)
+            await supabase.from('campaign_faqs').delete().in('campaign_id', campaignIds)
+            await supabase.from('campaign_updates').delete().in('campaign_id', campaignIds)
+            await supabase.from('campaigns').delete().in('id', campaignIds)
+          }
+        }
+
+        // Delete requests and their children
+        const { data: requests } = await supabase
+          .from('requests')
+          .select('id')
+          .eq('organization_id', org.id)
+        if (requests) {
+          const requestIds = requests.map((r) => r.id)
+          if (requestIds.length > 0) {
+            await supabase
+              .from('request_challenge_categories')
+              .delete()
+              .in('request_id', requestIds)
+            await supabase.from('request_identity_categories').delete().in('request_id', requestIds)
+            await supabase.from('request_history').delete().in('request_id', requestIds)
+            await supabase.from('fulfillment_records').delete().in('request_id', requestIds)
+            await supabase.from('payment_transactions').delete().in('request_id', requestIds)
+            await supabase.from('requests').delete().in('id', requestIds)
+          }
+        }
+
+        await supabase.from('payment_transactions').delete().eq('organization_id', org.id)
+        await supabase.from('organizations').delete().eq('user_id', userId)
+      }
+
+      // Delete donor-related data
+      await supabase.from('fulfillment_records').delete().eq('donor_id', userId)
+      await supabase.from('donor_documents').delete().eq('user_id', userId)
+      await supabase.from('donor_profiles').delete().eq('user_id', userId)
+
+      // Nullify donor references on requests (don't delete the request)
+      await supabase.from('requests').update({ donor_id: null }).eq('donor_id', userId)
+      await supabase
+        .from('request_history')
+        .update({ changed_by_id: null })
+        .eq('changed_by_id', userId)
+
+      // Delete the user profile itself
+      const { error } = await supabase.from('user_profiles').delete().eq('id', userId)
+      if (error) throw error
+
+      // Remove from local state
+      setUsers(users.filter((u) => u.id !== userId))
+      setOrganizations(organizations.filter((o) => o.user_id !== userId))
+    } catch (err) {
+      console.error('Error deleting user:', err)
+    }
+  }
+
   // Update verification status
   const handleUpdateStatus = async (userId: string, newStatus: VerificationStatus) => {
     try {
@@ -3060,6 +3216,7 @@ export function AdminDashboard() {
             onUpdateTier={handleUpdateTier}
             onUpdateStatus={handleUpdateStatus}
             onUpdateType={handleUpdateType}
+            onDeleteUser={handleDeleteUser}
             onRefresh={fetchData}
           />
         )
