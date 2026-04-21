@@ -6,16 +6,16 @@ export const footerData: FooterData = {
       title: 'Platform',
       links: [
         { label: 'Browse Requests', href: '/requests' },
-        { label: 'For Organizations', href: '/about/organizations' },
-        { label: 'For Donors', href: '/about/donors' },
+        { label: 'For Organizations', href: '/about#for-organizations' },
+        { label: 'For Donors', href: '/about#for-donors' },
       ],
     },
     {
       title: 'Resources',
       links: [
-        { label: 'How It Works', href: '/about/how-it-works' },
-        { label: 'Impact Reports', href: '/impact' },
-        { label: 'FAQs', href: '/about/faqs' },
+        { label: 'How It Works', href: '/about#how-it-works' },
+        { label: 'Impact Reports', href: '/about#impact' },
+        { label: 'FAQs', href: '/faq' },
       ],
     },
     {
@@ -23,15 +23,13 @@ export const footerData: FooterData = {
       links: [
         { label: 'About Us', href: '/about' },
         { label: 'Contact', href: '/contact' },
-        { label: 'Careers', href: '/careers' },
       ],
     },
     {
       title: 'Support',
       links: [
-        { label: 'Help Center', href: '/support' },
-        { label: 'Report an Issue', href: '/support/report' },
-        { label: 'Partner With Us', href: '/partners' },
+        { label: 'Help Center', href: '/faq' },
+        { label: 'Report an Issue', href: '/contact' },
       ],
     },
   ],
@@ -51,7 +49,7 @@ export const footerData: FooterData = {
     { label: 'Privacy Policy', href: '/legal/privacy' },
     { label: 'Terms of Service', href: '/legal/terms' },
     { label: 'Accessibility', href: '/legal/accessibility' },
-    { label: 'Cookie Policy', href: '/legal/cookies' },
+    { label: 'Cookie Policy', href: '/legal/privacy' },
   ],
   bottomSocialLinks: [
     { icon: 'facebook', href: 'https://facebook.com/kcdigitaldrive', label: 'Facebook' },

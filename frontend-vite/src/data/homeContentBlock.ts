@@ -96,7 +96,7 @@ export const homeContentBlock: ContentBlockData = {
   // Optional: CTA buttons
   buttons: [
     { label: 'Browse Requests', href: '/requests', variant: 'primary' },
-    { label: 'Learn More', href: '/about/how-it-works', variant: 'secondary' },
+    { label: 'Learn More', href: '/about', variant: 'secondary' },
   ],
 
   // Optional: Section background color (default: '#103032')

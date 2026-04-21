@@ -17,6 +17,8 @@ import { DashboardLayout } from '@/layouts/DashboardLayout'
 // Pages
 import { HomePage } from '@/pages/HomePage'
 import { AboutPage } from '@/pages/AboutPage'
+import { FaqPage } from '@/pages/FaqPage'
+import { ContactPage } from '@/pages/ContactPage'
 import { RequestsPage } from '@/pages/RequestsPage'
 import { DonorDashboard } from '@/pages/donor/DashboardPage'
 import { DonorProfile } from '@/pages/donor/ProfilePage'
@@ -37,7 +39,7 @@ import { CampaignDonatePage } from '@/pages/CampaignDonatePage'
 // RoleSelectionPage removed - now using RoleSelectionModal in App.tsx
 import { AdminDashboard } from '@/pages/admin/DashboardPage'
 import { AdminUsersPage } from '@/pages/admin/UsersPage'
-import { useUserType } from '@/hooks/useClerkSupabase'
+import { useRealUserType } from '@/hooks/useClerkSupabase'
 
 // Legal Pages
 import {
@@ -62,8 +64,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 // Admin-Only Route Component
+// Uses useRealUserType to check actual user role (ignores impersonation)
 function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
-  const { userType, loading } = useUserType()
+  const { userType, loading } = useRealUserType()
 
   if (loading) {
     return (
@@ -95,6 +98,8 @@ export function AppRoutes() {
         <Route path={routes.home} element={<HomePage />} />
         <Route path={routes.about} element={<AboutPage />} />
         <Route path={routes.requests} element={<RequestsPage />} />
+        <Route path={routes.faq} element={<FaqPage />} />
+        <Route path={routes.contact} element={<ContactPage />} />
       </Route>
 
       {/* Legal routes (public) */}

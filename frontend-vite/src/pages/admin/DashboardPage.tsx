@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -59,6 +60,7 @@ import {
   Mail,
   ExternalLink,
   User,
+  LogIn,
 } from 'lucide-react'
 import {
   supabase,
@@ -84,6 +86,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useImpersonation } from '@/contexts/ImpersonationContext'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -290,7 +293,6 @@ function VerificationBadge({ status }: { status: VerificationStatus }) {
   const config: Record<string, { bg: string; text: string }> = {
     unverified: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
     verified: { bg: 'bg-green-100', text: 'text-green-700' },
-    premium: { bg: 'bg-purple-100', text: 'text-purple-700' },
   }
   const c = config[status] || { bg: 'bg-gray-100', text: 'text-gray-700' }
   return (
@@ -487,6 +489,7 @@ function UsersContent({
   onUpdateStatus,
   onUpdateType,
   onDeleteUser,
+  onImpersonate,
   onRefresh,
 }: {
   users: UserProfile[]
@@ -495,6 +498,7 @@ function UsersContent({
   onUpdateStatus: (userId: string, status: VerificationStatus) => void
   onUpdateType: (userId: string, type: UserType) => void
   onDeleteUser: (userId: string) => Promise<void>
+  onImpersonate: (userId: string, userType: UserType, displayName: string) => void
   onRefresh: () => void
 }) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -793,6 +797,14 @@ function UsersContent({
                             <DropdownMenuItem onClick={() => setSelectedUser(user)}>
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                onImpersonate(user.id, user.user_type, displayName)
+                              }
+                            >
+                              <LogIn className="mr-2 h-4 w-4" />
+                              Impersonate
                             </DropdownMenuItem>
                             {email && (
                               <DropdownMenuItem
@@ -2551,10 +2563,8 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
 ## Verifying Organizations
 
 ### Verification Status Levels
-- **Pending**: Awaiting initial review
 - **Unverified**: Not yet verified
 - **Verified**: Confirmed legitimate organization
-- **Premium**: Top-tier verified status
 
 ### Verification Process
 1. Review organization details in the Organizations section
@@ -2574,7 +2584,6 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
 
 ### After Verification
 - Verified organizations can create campaigns
-- Premium organizations get featured placement
       `,
     },
   }
@@ -2814,6 +2823,8 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
 
 export function AdminDashboard() {
   const { user, isLoaded } = useUser()
+  const navigate = useNavigate()
+  const { startImpersonating } = useImpersonation()
 
   // State
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -3072,6 +3083,19 @@ export function AdminDashboard() {
     }
   }
 
+  // Impersonate a user
+  const handleImpersonate = (userId: string, userType: UserType, displayName: string) => {
+    startImpersonating({ userId, userType, displayName })
+    // Navigate to the appropriate dashboard
+    if (userType === 'cbo') {
+      navigate('/cbo/dashboard')
+    } else if (userType === 'admin') {
+      navigate('/admin')
+    } else {
+      navigate('/donor/dashboard')
+    }
+  }
+
   // Update verification status
   const handleUpdateStatus = async (userId: string, newStatus: VerificationStatus) => {
     try {
@@ -3217,6 +3241,7 @@ export function AdminDashboard() {
             onUpdateStatus={handleUpdateStatus}
             onUpdateType={handleUpdateType}
             onDeleteUser={handleDeleteUser}
+            onImpersonate={handleImpersonate}
             onRefresh={fetchData}
           />
         )

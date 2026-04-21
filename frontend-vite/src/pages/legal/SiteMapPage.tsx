@@ -64,7 +64,7 @@ export function SiteMapPage() {
                 </Link>
               </li>
               <li>
-                <Link to={routes.donor.donations} className="text-primary hover:underline">
+                <Link to={routes.donor.dashboard} className="text-primary hover:underline">
                   My Donations
                 </Link>
               </li>

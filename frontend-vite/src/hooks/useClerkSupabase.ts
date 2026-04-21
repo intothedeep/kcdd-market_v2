@@ -96,8 +96,74 @@ export const useClerkSupabase = () => {
 
 /**
  * Hook to get the current user's type (donor, cbo, admin)
+ * Respects impersonation context when active.
  */
 export const useUserType = () => {
+  const { userId } = useAuth()
+  const [userType, setUserType] = useState<'donor' | 'cbo' | 'admin' | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Check for impersonation in sessionStorage (avoids circular dependency with context)
+  const impersonatedType = (() => {
+    try {
+      const stored = sessionStorage.getItem('impersonation')
+      if (stored) {
+        const parsed = JSON.parse(stored) as { userType: 'donor' | 'cbo' | 'admin' }
+        return parsed.userType
+      }
+    } catch {
+      // ignore
+    }
+    return null
+  })()
+
+  useEffect(() => {
+    // If impersonating, use the impersonated user's type
+    if (impersonatedType) {
+      setUserType(impersonatedType)
+      setLoading(false)
+      return
+    }
+
+    const fetchUserType = async () => {
+      if (!userId) {
+        setUserType(null)
+        setLoading(false)
+        return
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('user_type')
+          .eq('id', userId)
+          .single()
+
+        if (error) {
+          console.error('Error fetching user type:', error)
+          setUserType('donor') // Default to donor
+        } else {
+          setUserType(data?.user_type || 'donor')
+        }
+      } catch (err) {
+        console.error('Error:', err)
+        setUserType('donor')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserType()
+  }, [userId, impersonatedType])
+
+  return { userType, loading }
+}
+
+/**
+ * Hook to get the real (non-impersonated) user type.
+ * Used by ProtectedAdminRoute to verify actual admin access.
+ */
+export const useRealUserType = () => {
   const { userId } = useAuth()
   const [userType, setUserType] = useState<'donor' | 'cbo' | 'admin' | null>(null)
   const [loading, setLoading] = useState(true)
@@ -118,8 +184,8 @@ export const useUserType = () => {
           .single()
 
         if (error) {
-          console.error('Error fetching user type:', error)
-          setUserType('donor') // Default to donor
+          console.error('Error fetching real user type:', error)
+          setUserType('donor')
         } else {
           setUserType(data?.user_type || 'donor')
         }

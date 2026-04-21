@@ -94,7 +94,7 @@ export function HeroSection() {
               <Link to={routes.about}>
                 <Button
                   size="lg"
-                  className="h-10 rounded-full border-2 border-white bg-white px-4 text-[hsl(var(--brand-primary))] transition-all duration-200 hover:border-white hover:bg-transparent hover:text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 active:scale-95"
+                  className="h-10 rounded-full border-2 border-[hsl(var(--brand-primary))] bg-transparent px-4 text-[hsl(var(--brand-primary))] transition-all duration-200 hover:bg-[hsl(var(--brand-primary))] hover:text-white focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-primary))] focus-visible:ring-offset-2 active:scale-95"
                 >
                   Learn More
                 </Button>

@@ -100,6 +100,16 @@ backend/volumes/db/data/
 backend/supabase/seed_data.sql
 
 # ============================================
+# AI / AGENT TOOLS (private, local-only)
+# ============================================
+.claude/
+.agents/
+.kiro/
+.windsurf/
+.mcp.json
+skills-lock.json
+
+# ============================================
 # MISC
 # ============================================
 .vercel

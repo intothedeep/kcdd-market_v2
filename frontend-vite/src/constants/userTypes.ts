@@ -53,13 +53,11 @@ export const ORG_TIER_LABELS = {
 export const VERIFICATION_STATUS = {
   UNVERIFIED: 'unverified',
   VERIFIED: 'verified',
-  PREMIUM: 'premium',
 } as const
 
 export const VERIFICATION_STATUS_LABELS = {
   unverified: 'Unverified',
   verified: 'Verified',
-  premium: 'Premium',
 } as const
 
 // Type exports

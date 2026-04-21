@@ -31,5 +31,5 @@ export const homeStatsContent: StatsContent = {
   description:
     'KC Digital Drive connects generous donors with community-based organizations in Kansas City. Every donation directly supports local nonprofits with their technology needs.',
   linkText: 'View Impact Reports',
-  linkHref: '/impact',
+  linkHref: '/about#impact',
 }

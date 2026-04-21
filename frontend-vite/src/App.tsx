@@ -16,6 +16,10 @@ import { AppRoutes } from '@/routes'
 import { Toaster } from '@/components/ui/toaster'
 import { useClerkSupabase } from '@/hooks/useClerkSupabase'
 import { RoleSelectionModal } from '@/components/RoleSelectionModal'
+import {
+  ImpersonationProvider,
+  ImpersonationBanner,
+} from '@/contexts/ImpersonationContext'
 
 // Initialize Stripe
 const stripePromise = getStripe()
@@ -47,9 +51,12 @@ function App() {
     <ClerkProvider publishableKey={clerkConfig.publishableKey}>
       <Elements stripe={stripePromise}>
         <BrowserRouter>
-          <AuthSync />
-          <AppRoutes />
-          <Toaster />
+          <ImpersonationProvider>
+            <ImpersonationBanner />
+            <AuthSync />
+            <AppRoutes />
+            <Toaster />
+          </ImpersonationProvider>
         </BrowserRouter>
       </Elements>
     </ClerkProvider>

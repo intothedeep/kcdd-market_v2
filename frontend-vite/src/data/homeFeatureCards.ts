@@ -7,7 +7,7 @@ export const homeFeatureCards: FeatureCardsSectionData = {
     'Our platform makes it easy to discover, fund, and track technology requests from verified 501(c)(3) organizations in the Kansas City area.',
   listItems: ['100% tax-deductible', 'Direct impact tracking', 'Verified nonprofits'],
   buttonLabel: 'Get Started',
-  buttonHref: '/register',
+  buttonHref: '/sign-up',
   cards: [
     {
       title: 'Browse Requests',
@@ -21,21 +21,21 @@ export const homeFeatureCards: FeatureCardsSectionData = {
       description:
         'Fund requests directly with secure payment processing. Your entire donation goes to the organization.',
       linkText: 'Learn More',
-      linkHref: '/about/how-it-works',
+      linkHref: '/about#how-it-works',
     },
     {
       title: 'Track Your Impact',
       description:
         'See exactly how your donations are used with proof of delivery, impact reports, and thank you messages.',
       linkText: 'View Impact',
-      linkHref: '/impact',
+      linkHref: '/about#impact',
     },
     {
       title: 'Tax Benefits',
       description:
         'Receive instant tax receipts for every donation. Download annual summaries for easy tax filing.',
       linkText: 'Tax Information',
-      linkHref: '/about/tax-benefits',
+      linkHref: '/about#tax-benefits',
     },
   ],
 }

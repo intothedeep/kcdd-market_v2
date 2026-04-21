@@ -146,7 +146,7 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <Link to={routes.cbo.dashboard}>
+              <SignInButton mode="modal">
                 <Button
                   variant="outline"
                   size="sm"
@@ -154,11 +154,11 @@ export function Navbar() {
                 >
                   For Organizations
                 </Button>
-              </Link>
+              </SignInButton>
               <SignInButton mode="modal">
                 <Button
                   size="sm"
-                  className="h-9 gap-2 rounded-full bg-[hsl(var(--brand-primary))] px-4 text-white hover:bg-[hsl(var(--brand-primary))]/90"
+                  className="h-9 gap-2 rounded-full bg-[hsl(var(--brand-primary))] px-4 text-white hover:bg-[hsl(var(--brand-primary)/0.9)]"
                 >
                   <Circle className="h-4 w-4 fill-white" />
                   Login

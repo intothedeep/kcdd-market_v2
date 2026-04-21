@@ -101,6 +101,8 @@ export const appConfig = {
 export const routes = {
   home: '/',
   about: '/about',
+  faq: '/faq',
+  contact: '/contact',
   requests: '/requests',
 
   // Authentication
