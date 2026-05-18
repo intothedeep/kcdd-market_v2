@@ -130,8 +130,10 @@ export function FeatureCardsWithImageSection({ data }: FeatureCardsWithImageSect
             ))}
         </div>
 
-        {/* Content Row */}
-        <div className="flex h-auto flex-col gap-5 lg:h-[408px] lg:flex-row">
+        {/* Content Row.
+            Use min-h instead of fixed h on lg so card content (long titles or
+            link labels) can grow without overflowing into the next section. */}
+        <div className="flex h-auto flex-col gap-5 lg:min-h-[408px] lg:flex-row">
           {/* Left: 2x2 Cards Grid */}
           <div className="grid h-full w-full grid-cols-2 gap-5 lg:w-[555px]">
             {cards.map((card, index) => (

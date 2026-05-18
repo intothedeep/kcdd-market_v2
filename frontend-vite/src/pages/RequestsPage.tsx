@@ -47,27 +47,8 @@ interface CauseArea {
   name: string
 }
 
-interface OpenRequest {
-  id: string
-  description: string
-  amount: number
-  urgency: 'low' | 'medium' | 'high'
-  zipcode: string | null
-  beneficiaries_count: number | null
-  created_at: string
-  cause_area_id: string | null
-  organization: {
-    id: string
-    name: string
-    slug: string | null
-    logo_url: string | null
-    logo_emoji: string | null
-  }
-}
-
 export function RequestsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [requests, setRequests] = useState<OpenRequest[]>([])
   const [causeAreas, setCauseAreas] = useState<CauseArea[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -77,23 +58,12 @@ export function RequestsPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load campaigns, open requests, and cause areas in parallel
-        const [campaignsData, requestsData, causeAreasData] = await Promise.all([
+        const [campaignsData, causeAreasData] = await Promise.all([
           getActiveCampaigns(50),
-          supabase
-            .from('requests')
-            .select(
-              `id, description, amount, urgency, zipcode, beneficiaries_count, created_at, cause_area_id,
-               organization:organizations(id, name, slug, logo_url, logo_emoji)`
-            )
-            .eq('status', 'open')
-            .order('created_at', { ascending: false })
-            .limit(50),
           supabase.from('cause_areas').select('id, name').order('name'),
         ])
 
         setCampaigns(campaignsData || [])
-        setRequests((requestsData.data as unknown as OpenRequest[]) || [])
         setCauseAreas(causeAreasData.data || [])
       } catch (error) {
         console.error('Error loading data:', error)
@@ -104,23 +74,6 @@ export function RequestsPage() {
 
     loadData()
   }, [])
-
-  // Filter requests by search + tags (cause_area_id)
-  const filteredRequests = requests.filter((r) => {
-    const matchesSearch =
-      !searchQuery ||
-      r.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.organization?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesTags =
-      selectedTags.length === 0 || (r.cause_area_id ? selectedTags.includes(r.cause_area_id) : false)
-    return matchesSearch && matchesTags
-  })
-
-  const urgencyStyle = (urgency: 'low' | 'medium' | 'high') => {
-    if (urgency === 'high') return 'bg-red-100 text-red-700'
-    if (urgency === 'medium') return 'bg-amber-100 text-amber-700'
-    return 'bg-green-100 text-green-700'
-  }
 
   const getCauseAreaNames = (causeAreaIds: string[]) => {
     return causeAreas
@@ -269,8 +222,7 @@ export function RequestsPage() {
 
         {/* Results Count */}
         <div className="mb-4 text-sm text-[#737373]">
-          Showing {filteredCampaigns.length} campaign{filteredCampaigns.length !== 1 ? 's' : ''} ·{' '}
-          {filteredRequests.length} open request{filteredRequests.length !== 1 ? 's' : ''}
+          Showing {filteredCampaigns.length} campaign{filteredCampaigns.length !== 1 ? 's' : ''}
         </div>
 
         {/* Campaigns Grid */}
@@ -395,100 +347,6 @@ export function RequestsPage() {
             </div>
           )}
         </div>
-
-        {/* Open Direct Requests */}
-        {filteredRequests.length > 0 && (
-          <div className="mt-14">
-            <div className="mb-6 flex items-end justify-between">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight text-[#0a0a0a]">Open Requests</h2>
-                <p className="mt-1 text-sm text-[#737373]">
-                  Single-device asks — laptops, hotspots, tablets, monitors — from a partner org or
-                  a verified individual through KC DIME Direct.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredRequests.map((req) => {
-                const causeName = causeAreas.find((c) => c.id === req.cause_area_id)?.name
-                const isDirect = req.organization?.slug === 'kcdd-direct'
-                return (
-                  <Link
-                    key={req.id}
-                    to={`/request/${req.id}`}
-                    className="group block rounded-lg border border-[#e5e5e5] bg-white p-4 transition-shadow duration-200 hover:shadow-md"
-                  >
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        {req.organization?.logo_url ? (
-                          <img
-                            src={req.organization.logo_url}
-                            alt={req.organization.name}
-                            className="h-7 w-7 rounded-full bg-[#f5f5f5] object-cover"
-                            onError={(e) => {
-                              // Clearbit returns 404 for orgs it doesn't recognize — fall back
-                              // to the emoji so we don't render a broken image icon.
-                              const img = e.currentTarget
-                              const emoji = req.organization?.logo_emoji || '🎯'
-                              const fallback = document.createElement('span')
-                              fallback.textContent = emoji
-                              fallback.className = 'text-lg'
-                              img.replaceWith(fallback)
-                            }}
-                          />
-                        ) : (
-                          <span className="text-lg">{req.organization?.logo_emoji || '🎯'}</span>
-                        )}
-                        <span className="text-xs font-medium text-[#ea580c]">
-                          {isDirect ? 'Individual recipient' : req.organization?.name}
-                        </span>
-                      </div>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${urgencyStyle(req.urgency)}`}
-                      >
-                        {req.urgency}
-                      </span>
-                    </div>
-
-                    <p
-                      className="mb-3 text-sm leading-snug text-[#404040]"
-                      dangerouslySetInnerHTML={{ __html: req.description }}
-                    />
-
-                    <div className="mb-3 flex flex-wrap gap-1.5 text-[11px] text-[#737373]">
-                      {causeName && (
-                        <Badge variant="secondary" className="bg-[#f5f5f5] text-[10px] text-[#525252]">
-                          {causeName}
-                        </Badge>
-                      )}
-                      {req.zipcode && (
-                        <Badge variant="secondary" className="bg-[#f5f5f5] text-[10px] text-[#525252]">
-                          {req.zipcode}
-                        </Badge>
-                      )}
-                      {req.beneficiaries_count && req.beneficiaries_count > 0 && (
-                        <Badge variant="secondary" className="bg-[#f5f5f5] text-[10px] text-[#525252]">
-                          {req.beneficiaries_count}{' '}
-                          {req.beneficiaries_count === 1 ? 'recipient' : 'recipients'}
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between border-t border-[#f5f5f5] pt-3">
-                      <span className="text-lg font-semibold text-[#0a0a0a]">
-                        {formatCurrency(req.amount)}
-                      </span>
-                      <span className="text-xs font-medium text-[#ea580c] group-hover:underline">
-                        Fund this request →
-                      </span>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
