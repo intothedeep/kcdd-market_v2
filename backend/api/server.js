@@ -1264,22 +1264,26 @@ app.use((err, req, res, _next) => {
 // START SERVER
 // ============================================
 
-app.listen(PORT, () => {
-  console.log('🚀 KCDD Market API Server')
-  console.log(`📡 Server running on http://localhost:${PORT}`)
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`)
-  console.log(`💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅ Connected' : '❌ Not configured'}`)
-  console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL}`)
-  console.log(`🔗 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`)
-  console.log('\n📝 Available endpoints:')
-  console.log('  GET  /health')
-  console.log('  POST /api/payments/create-intent')
-  console.log('  POST /api/payments/create-campaign-intent')
-  console.log('  POST /api/payments/webhook')
-  console.log('  POST /api/stripe/connect/create-account')
-  console.log('  POST /api/stripe/connect/onboarding-link')
-  console.log('  GET  /api/stripe/connect/status/:organizationId')
-  console.log('  GET  /api/documents/download/:documentId')
-  console.log('  GET  /api/documents/list/:donorId')
-  console.log('  POST /api/documents/generate-annual-summary')
-})
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log('🚀 KCDD Market API Server')
+    console.log(`📡 Server running on http://localhost:${PORT}`)
+    console.log(`🌍 Environment: ${process.env.NODE_ENV}`)
+    console.log(`💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅ Connected' : '❌ Not configured'}`)
+    console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL}`)
+    console.log(`🔗 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`)
+    console.log('\n📝 Available endpoints:')
+    console.log('  GET  /health')
+    console.log('  POST /api/payments/create-intent')
+    console.log('  POST /api/payments/create-campaign-intent')
+    console.log('  POST /api/payments/webhook')
+    console.log('  POST /api/stripe/connect/create-account')
+    console.log('  POST /api/stripe/connect/onboarding-link')
+    console.log('  GET  /api/stripe/connect/status/:organizationId')
+    console.log('  GET  /api/documents/download/:documentId')
+    console.log('  GET  /api/documents/list/:donorId')
+    console.log('  POST /api/documents/generate-annual-summary')
+  })
+}
+
+export default app
