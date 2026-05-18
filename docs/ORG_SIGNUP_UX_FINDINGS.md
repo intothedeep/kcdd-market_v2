@@ -120,7 +120,7 @@ Fix at `frontend-vite/src/pages/organizations/OrganizationProfilePage.tsx:253-26
 
 ## Phase 4 — Admin approval (✅ pass)
 
-Used Supabase MCP to simulate the admin action: `UPDATE user_profiles SET is_vetted = true WHERE id = 'user_3DsC7vptwUi02SCF8iYd2PqLAog'`. This is the same write the admin dashboard performs at `frontend-vite/src/pages/admin/UsersPage.tsx:126`.
+Used Supabase MCP to simulate the admin action: `UPDATE user_profiles SET is_vetted = true WHERE id = '<test-user-id>'`. This is the same write the admin dashboard performs at `frontend-vite/src/pages/admin/UsersPage.tsx:126`.
 
 ## Phase 5 — Post-approval visibility (✅ pass)
 
@@ -316,7 +316,7 @@ All four deferred items above are now done.
 
 Storage buckets `organization-documents`, `organization-logos`, `campaign-images` didn't exist on the remote project — created them with permissive RLS that works under Clerk anon. Migration applied: `storage_buckets_clerk_friendly_policies`. Bucket configs: 20 MB / 5 MB / 10 MB limits, PDF + common image MIME types.
 
-Tested upload UI live: selected a JPG → form metadata round-tripped to `organization_documents` with a public `file_url` pointing at `psskoseofieludonkekb.supabase.co/storage/v1/object/public/organization-documents/...`. Document card renders with file icon, name, type/year/size, Public badge, Download + delete.
+Tested upload UI live: selected a JPG → form metadata round-tripped to `organization_documents` with a public `file_url` pointing at `<project-ref>.supabase.co/storage/v1/object/public/organization-documents/...`. Document card renders with file icon, name, type/year/size, Public badge, Download + delete.
 
 Two minor form bugs noticed (not fixed this round):
 - Selecting a file overrides the typed Document Name with the filename (without extension).
@@ -385,9 +385,9 @@ After the previous round shipped the *code* side of the Clerk → Supabase bridg
 
 ## Steps actually completed
 
-1. **Supabase project (`psskoseofieludonkekb`) → Auth → Third Party Auth → Add provider → Clerk.** Domain: `https://tidy-dane-63.clerk.accounts.dev`. Confirmation toast: *"Successfully created a new Clerk integration."*
+1. **Supabase project → Auth → Third Party Auth → Add provider → Clerk.** Set the Clerk frontend API domain (your `<clerk-subdomain>.clerk.accounts.dev`) as the issuer. Confirmation toast: *"Successfully created a new Clerk integration."*
 2. **`.env.local`** — added `VITE_ENABLE_CLERK_SUPABASE_BRIDGE=true`.
-3. **Vercel** (`joshua-madrids-projects/kcdd-market-v2`) → Settings → Environment Variables → added the same flag for Production + Preview, then Redeployed. Toast: *"Deployment created."*
+3. **Vercel** project → Settings → Environment Variables → added the same flag for Production + Preview, then Redeployed. Toast: *"Deployment created."*
 4. **Local dev server restarted** so Vite reads the new env at boot.
 
 ## Verified end-to-end
@@ -398,12 +398,12 @@ Created a `public.whoami()` SQL function returning JWT claims and called it from
 {
   "auth_role": "anon",
   "jwt_claims": {
-    "iss": "https://tidy-dane-63.clerk.accounts.dev",
-    "sub": "user_3DsC7vptwUi02SCF8iYd2PqLAog",
+    "iss": "https://<clerk-subdomain>.clerk.accounts.dev",
+    "sub": "user_<id>",
     "exp": 1779067921,
     "iat": 1779067861,
     "azp": "http://localhost:3000",
-    "sid": "sess_3DsHDkFi9kickP7QL3KcXN3PGf2",
+    "sid": "sess_<id>",
     "role": "anon"
   }
 }
