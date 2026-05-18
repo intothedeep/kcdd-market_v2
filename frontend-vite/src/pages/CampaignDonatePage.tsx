@@ -202,8 +202,11 @@ export function CampaignDonatePage() {
     )
   }
 
-  // Check if organization can accept payments
-  if (!campaign.organization?.stripe_charges_enabled) {
+  // Check if organization can accept payments. In dev / test-mode the
+  // VITE_STRIPE_BYPASS_CONNECT flag lets us complete a fake donation against
+  // the platform Stripe account even when the org hasn't onboarded Connect.
+  const bypassConnect = import.meta.env.VITE_STRIPE_BYPASS_CONNECT === 'true'
+  if (!bypassConnect && !campaign.organization?.stripe_charges_enabled) {
     return (
       <div className="container max-w-2xl py-8">
         <h1 className="mb-8 text-3xl font-bold">Support {campaign.title}</h1>
