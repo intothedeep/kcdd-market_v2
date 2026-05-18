@@ -890,8 +890,9 @@ export const updateCampaign = async (
 }
 
 // Get active campaigns (for public listing)
-// includesPending: also show pending campaigns (for testing/preview)
-export const getActiveCampaigns = async (limit: number = 10, includePending: boolean = true) => {
+// includePending: also show pending campaigns. Default false so unapproved
+// campaigns aren't visible on the public Browse page.
+export const getActiveCampaigns = async (limit: number = 10, includePending: boolean = false) => {
   let query = supabase.from('campaigns').select(`
       *,
       organization:organizations(id, name, slug, logo_url)

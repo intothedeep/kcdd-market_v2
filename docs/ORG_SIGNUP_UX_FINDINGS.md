@@ -164,3 +164,62 @@ This would have affected any user signing up via the page route (not the modal).
 - Donor onboarding form has a left-side empty colored panel — same wasted real estate as org onboarding
 - "Phone (Optional)" field on donor onboarding placed under Website — odd grouping
 - Pre-existing TS errors in supabase.ts (`never` types) — generated types are stale
+
+---
+
+# CBO Interior Deep Dive — 2026-05-17
+
+## Pass
+
+- Filter tabs on dashboard (All / Open / In Progress / Fulfilled) actually filter the table.
+- +New Campaign opens a real 7-step wizard (Basic Info → Cause Areas → Funding → Media & Social → Your Story → FAQs → Review). Distinct from the simpler "+New Request" path under `/cbo/requests/new`.
+- Campaign create succeeded end-to-end (no equivalent of the org null-id bug here). Lands on `/campaign/<slug>` with a "Pending Approval" badge.
+- Org Profile edit save round-trips correctly: typed EIN `12-3456789`, saw "Profile saved successfully!", reloaded, value persisted, and surfaced as "EIN: 12-3456789" in the public profile sidebar.
+- Public Profile sidebar correctly shows "Verified Organization" + EIN after the approval flip + edit.
+- Profile tabs (About / Campaigns / Updates / Team) all render their empty / populated states without errors.
+
+## 🚨 Fix applied: pending campaigns leaked to public Browse page
+
+`getActiveCampaigns(limit, includePending = true)` defaulted to `true`, so every pending/unapproved campaign was being rendered on `/requests`. The comment said "for testing/preview" — but the only caller (`RequestsPage.tsx:63`) was the public page.
+
+Fix at `frontend-vite/src/lib/supabase.ts:894`: changed default to `false`. Verified:
+- Before fix: `/requests` showed 11 campaigns including our pending "Coding for Kids 2026".
+- After fix: `/requests` shows 9 campaigns; our pending one is hidden (and 2 other previously-leaking pending ones too).
+
+If we ever want admins to see pending campaigns, callers should pass `true` explicitly.
+
+## Unwired row dropdown menu items (frontend-vite/src/pages/cbo/DashboardPage.tsx)
+
+These `<DropdownMenuItem>` elements have **no onClick handlers** — they look interactive but do nothing:
+
+| Line | Items |
+|------|-------|
+| 289–294 | Customize Columns: Description, Cause Area, Urgency, Status, Amount, Date |
+| 385–387 | Row kebab: Edit, View Details, Delete |
+| 552–555 | Campaign card kebab: Edit Campaign, View Analytics, Share, Delete |
+| 414–416 | Rows-per-page selector: 10, 20, 50 |
+
+Either wire them up (View Details should open a detail modal/page; Edit should navigate to edit; Delete should soft-delete; Customize Columns should toggle column visibility) or remove the menus until they work. The Delete menu items are particularly risky as placeholder UI — a future implementation that wires Delete to a real call without a confirmation modal could destroy data silently.
+
+## Cross-role route leak
+
+A signed-in **donor** can navigate to `/cbo/dashboard` and sees the "Set Up Organization" empty state. `ProtectedRoute` only checks signed-in status, not `user_type`. Same applies in reverse for CBOs hitting `/donor/*`. Add a `user_type`-aware guard or redirect.
+
+## UX trap on Create Campaign step 3
+
+The `Funding Goal` field shows `$ 5,000` as placeholder text, which visually looks like a pre-filled default. Clicking Next without typing produces "Please enter a funding goal". Either pre-fill the field with `5000` or use placeholder copy that clearly reads as guidance (e.g., `e.g., 5000`).
+
+## Story Headline forgotten on Review
+
+The Review step shows `Story Title: Not set` because the headline field on the Your Story step is separate from the rich-text body and is optional with placeholder text. The body content I entered was saved fine, but a user could think they wrote a title when they didn't. Consider renaming "Story Headline" → "Headline (optional)" with a visible "(optional)" label.
+
+## Fixes applied in this run
+
+1. **Pending campaign leak** — `frontend-vite/src/lib/supabase.ts:894` — `includePending` default false.
+
+## Still deferred
+
+- Wire (or remove) the dashboard dropdown placeholder items.
+- Role-aware route guards (`ProtectedRoute` checks `user_type` and redirects).
+- Funding Goal placeholder UX trap.
+- Story Headline label clarity.
