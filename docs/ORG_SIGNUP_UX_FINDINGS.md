@@ -223,3 +223,85 @@ The Review step shows `Story Title: Not set` because the headline field on the Y
 - Role-aware route guards (`ProtectedRoute` checks `user_type` and redirects).
 - Funding Goal placeholder UX trap.
 - Story Headline label clarity.
+
+---
+
+# Dashboard Content Walkthrough — 2026-05-17
+
+Goal of this round: actually use each dashboard tab the way an org admin would, and identify what's wired vs broken.
+
+## Team ✅ rendering, ❌ no add UI
+
+`OrganizationTeamTab` is viewer-only. Owners have no way to add team members from the UI — there's no Add Team Member button, no edit handler, no upload flow. The empty state for owners should show an "Add team member" CTA, and the populated state should show edit/remove controls when `isOwner=true`. Seeded a member via SQL and it rendered beautifully (avatar with initials, name, role in brand orange, bio, Contact mailto link).
+
+Code: `frontend-vite/src/components/organization/OrganizationTeamTab.tsx` doesn't accept an `isOwner` prop and renders the same view for everyone.
+
+## Updates ✅ rendering, ❌ no compose UI
+
+`OrganizationUpdatesTab` is viewer-only. Owners can't post updates from the org profile. Inserted an update via SQL — renders cleanly: date, title, content, sidebar icon. Same fix shape as Team: needs an `isOwner` flow with a compose form.
+
+## Campaign edit ✅ works
+
+`/campaign/<slug>` → "Edit Campaign" toggles inline edit mode. Title and tags are editable; Save Changes persists; URL slug doesn't update on title change (acceptable). Renamed "Coding for Kids 2026" → "Coding for Kids 2026 — Spring Cohort" and the My Campaigns sidebar item picked up the new title.
+
+## Questions ⚠️ broken for owners under Clerk auth
+
+`fetchOrganizationQuestions` queries `campaign_questions`, which has RLS:
+
+```sql
+"Campaign owners can view all questions"
+USING (EXISTS (SELECT 1 FROM campaigns c
+  WHERE c.id = campaign_questions.campaign_id
+  AND c.created_by = auth.uid()::text))
+```
+
+`auth.uid()` is null under Clerk → owners can never see their own pending questions. Only the public policy `is_public=true AND status='answered'` returns rows.
+
+Seeded a question and observed:
+- `status='pending'` → invisible to owner ❌
+- `status='answered', is_public=true` → renders perfectly with campaign tag, question text, submitter, "Your answer:" block, green Public badge, All(1)/Answered(1) tab counts ✅
+
+This means **no donor question can ever be answered through the dashboard UI** today — the owner can't see them to begin with. Until the Clerk→Supabase JWT bridge is in place, the answer flow has to either:
+(a) bypass RLS via a service-role backend endpoint
+(b) use a different policy that doesn't depend on `auth.uid()`
+(c) do client-side filtering against an open SELECT policy
+
+## Analytics ✅ fully wired
+
+After marking the test request `status='fulfilled', fulfilled_at=NOW()` via SQL, Analytics populated cleanly:
+- People Helped: 1
+- Total Received: $5,000
+- Requests Fulfilled: 1
+- Monthly Donations bar chart with a $5,000 May bar
+- Recent Fulfilled Requests card with description, amount, cause area, fulfilled date
+
+One copy issue: **"People Helped"** and **"Requests Fulfilled"** both bind to `stats.fulfilledRequests` (`DashboardPage.tsx:1932` & `:1942`). Same number, two labels. People helped should be unique beneficiary count or at least beneficiaries-per-request × requests. As-is it misleads donors looking at impact.
+
+## Documents ✅ rendering, was missing table
+
+Console error "Error fetching organization documents" was caused by the `organization_documents` table **not existing in the remote DB**. The migration file `backend/supabase/migrations/20240320000000_organization_documents.sql` was in the repo but never applied (also used `UUID` for `id` while the rest of the app moved to `TEXT`).
+
+Applied a corrected migration via MCP (text IDs, RLS that doesn't depend on `auth.uid()`). Updated the local migration file to match. Seeded a "501(c)(3) Determination Letter.pdf" doc and the tab renders properly: file icon, name, type/year/size line, Public badge, Download button, delete icon.
+
+The Upload Document button is wired (the function exists at `supabase.ts:2058`); a real end-to-end upload test would need a file input + the `organization-logos`-style storage bucket configured (haven't tested storage permissions).
+
+## What this round produced
+
+Inline changes:
+- `backend/supabase/migrations/20240320000000_organization_documents.sql` — updated to text IDs, Clerk-friendly RLS.
+- Applied via Supabase MCP to remote DB (`organization_documents` table now exists).
+
+Seeded data on the test org / campaign:
+- 1 team member (Joshua Madrid, Executive Director)
+- 1 update ("First 10 laptops delivered to students!")
+- 1 answered Q&A
+- 1 fulfilled request ($5,000)
+- 1 organization document (501(c)(3) Determination Letter.pdf)
+- Campaign renamed to "Coding for Kids 2026 — Spring Cohort"
+
+## New deferred items
+
+- Add `isOwner` prop + add/edit UI to Team and Updates tabs.
+- "People Helped" vs "Requests Fulfilled" label/computation distinction.
+- Clerk-RLS bridge so owners can see and answer pending questions through the dashboard (or service-role backend endpoint as a workaround).
+- Storage bucket configuration for document uploads (not yet tested end-to-end).

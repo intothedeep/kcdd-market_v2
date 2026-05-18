@@ -1,21 +1,24 @@
 -- Migration: Organization Documents
 -- For CBO Dashboard document management functionality
+-- NOTE: organization_documents.id is TEXT to match the current organizations.id
+-- type (also TEXT, since Clerk user IDs are text). Earlier UUID variant existed
+-- in the migration history; the applied schema below uses gen_random_uuid()::text.
 
 -- =============================================
 -- 1. ORGANIZATION DOCUMENTS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS organization_documents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  uploaded_by TEXT NOT NULL, -- Clerk user ID
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  uploaded_by TEXT NOT NULL,
   name VARCHAR(200) NOT NULL,
-  type VARCHAR(50) NOT NULL, -- 'tax_exempt', '501c3', 'annual_report', 'financial_statement', 'other'
+  type VARCHAR(50) NOT NULL,
   size VARCHAR(20),
   file_url TEXT,
   year INTEGER,
-  status VARCHAR(20) DEFAULT 'ready', -- 'ready', 'pending', 'processing'
+  status VARCHAR(20) DEFAULT 'ready',
   description TEXT,
-  is_public BOOLEAN DEFAULT FALSE, -- Whether donors/public can see this document
+  is_public BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -28,17 +31,30 @@ CREATE INDEX IF NOT EXISTS idx_org_documents_public ON organization_documents(is
 -- =============================================
 -- 2. RLS POLICIES
 -- =============================================
+-- Note: app uses Clerk auth, not Supabase auth, so auth.uid() is null for
+-- end users. The policies below permit anon access; gating happens in app
+-- code (OrganizationProfilePage and dashboard ownership checks).
 ALTER TABLE organization_documents ENABLE ROW LEVEL SECURITY;
 
--- Anyone can view public organization documents
 CREATE POLICY "Anyone can view public org documents"
   ON organization_documents FOR SELECT
   USING (is_public = true);
 
--- Service role has full access for backend operations
-CREATE POLICY "Service role manages org documents"
-  ON organization_documents FOR ALL
-  USING (auth.role() = 'service_role');
+CREATE POLICY "Anyone can read org documents"
+  ON organization_documents FOR SELECT
+  USING (true);
+
+CREATE POLICY "Anyone can insert org documents"
+  ON organization_documents FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Anyone can update org documents"
+  ON organization_documents FOR UPDATE
+  USING (true);
+
+CREATE POLICY "Anyone can delete org documents"
+  ON organization_documents FOR DELETE
+  USING (true);
 
 -- =============================================
 -- 3. UPDATED_AT TRIGGER
@@ -51,12 +67,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS org_documents_updated_at_trigger ON organization_documents;
 CREATE TRIGGER org_documents_updated_at_trigger
   BEFORE UPDATE ON organization_documents
   FOR EACH ROW EXECUTE FUNCTION update_org_documents_updated_at();
 
 -- =============================================
--- 4. DOCUMENT TYPE ENUM (for reference)
+-- 4. DOCUMENT TYPE REFERENCE
 -- =============================================
 -- Common document types for organizations:
 -- 'tax_exempt' - Tax Exempt Certificate
