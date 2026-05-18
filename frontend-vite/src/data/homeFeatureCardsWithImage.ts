@@ -6,8 +6,10 @@ export const homeFeatureCardsWithImage: FeatureCardsWithImageSectionData = {
   buttonLabel: 'Register Your Organization',
   buttonHref: '/sign-up',
   imagePlaceholderColor: '#1b5858',
-  imageUrl: 'https://picsum.photos/seed/kcdd-for-orgs/1200/1400?kcdd_placeholder=1',
-  imageAlt: 'Nonprofit staff setting up donated laptops in a community room',
+  // Real Unsplash photo: diverse students gathered around a laptop in a classroom.
+  imageUrl:
+    'https://images.unsplash.com/photo-1758270705317-3ef6142d306f?w=1200&q=80&auto=format&fit=crop&kcdd_placeholder=1',
+  imageAlt: 'Diverse group of students collaborating around a laptop in a classroom',
   cards: [
     {
       title: 'Post Specific Tech Needs',

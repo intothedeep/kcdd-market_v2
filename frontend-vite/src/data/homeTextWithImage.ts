@@ -11,7 +11,9 @@ export const homeTextWithImage: TextWithImageSectionData = {
     'You pick up at our Troost warehouse or we ship locally',
     'Free 90-day support if anything breaks',
   ],
-  imageUrl: 'https://picsum.photos/seed/kcdd-direct-individuals/1400/1000?kcdd_placeholder=1',
-  imageAlt: 'A community member picking up a refurbished laptop from KC DIME Direct',
+  // Real Unsplash photo: person sitting at a laptop at home (Christin Hume).
+  imageUrl:
+    'https://images.unsplash.com/photo-1515378960530-7c0da6231fb1?w=1400&q=80&auto=format&fit=crop&kcdd_placeholder=1',
+  imageAlt: 'A person using a laptop at a home desk',
   imagePlaceholderColor: '#1b5858',
 }

@@ -36,5 +36,9 @@ export const homeBentoGrid: [BentoCardData, BentoCardData, BentoCardData, BentoC
     linkHref: '/sign-up',
     backgroundColor: '#103032',
     textColor: 'light',
+    // Real Unsplash photo: students gathered around a laptop together.
+    backgroundImageUrl:
+      'https://images.unsplash.com/photo-1758270705290-62b6294dd044?w=1400&q=80&auto=format&fit=crop&kcdd_placeholder=1',
+    backgroundImageAlt: 'Students gathered around a laptop together',
   },
 ]

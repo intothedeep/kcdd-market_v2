@@ -14,8 +14,12 @@ export const homeContentBlock: ContentBlockData = {
     { label: 'Browse Requests', href: '/requests', variant: 'primary' },
     { label: 'Learn More', href: '/about', variant: 'secondary' },
   ],
-  imageUrl: 'https://picsum.photos/seed/kcdd-how-it-works/900/900?kcdd_placeholder=1',
-  imageAlt: 'A young person using a refurbished laptop in a community space',
+  // Real Unsplash photo: father and son learning together on a laptop.
+  // Free license; kcdd_placeholder=1 keeps the "Placeholder photo" overlay
+  // until real KC DIME photos are available.
+  imageUrl:
+    'https://images.unsplash.com/photo-1758687126499-9ff30d1c5762?w=1200&q=80&auto=format&fit=crop&kcdd_placeholder=1',
+  imageAlt: 'A parent and child learning together on a laptop',
   backgroundColor: '#103032',
   imageBackgroundColor: '#DBF938',
 }

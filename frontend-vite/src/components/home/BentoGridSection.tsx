@@ -51,8 +51,12 @@ export interface BentoCardData {
   description: string
   linkText?: string
   linkHref?: string
-  backgroundColor: string // Color for now, can be image URL later
+  backgroundColor: string
   textColor: 'light' | 'dark' // 'light' = white text, 'dark' = black text
+  // Optional background image. Rendered behind the text with a darkening
+  // gradient so the copy stays legible regardless of the photo.
+  backgroundImageUrl?: string
+  backgroundImageAlt?: string
 }
 
 interface BentoGridSectionProps {
@@ -61,13 +65,35 @@ interface BentoGridSectionProps {
 
 function BentoCard({ card, className }: { card: BentoCardData; className?: string }) {
   const textColorClass = card.textColor === 'light' ? 'text-white' : 'text-black'
+  const hasImage = Boolean(card.backgroundImageUrl)
 
   return (
     <div
-      className={`flex flex-col items-start justify-end rounded-[10px] p-5 ${className}`}
+      className={`relative flex flex-col items-start justify-end overflow-hidden rounded-[10px] p-5 ${className}`}
       style={{ backgroundColor: card.backgroundColor }}
     >
-      <div className={`flex max-w-[250px] flex-col gap-1.5 ${textColorClass}`}>
+      {hasImage && (
+        <>
+          <img
+            src={card.backgroundImageUrl}
+            alt={card.backgroundImageAlt || ''}
+            className="absolute inset-0 h-full w-full object-cover"
+            aria-hidden={card.backgroundImageAlt ? undefined : true}
+          />
+          {/* Bottom-up gradient keeps text legible without hiding the photo */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/10" />
+          {card.backgroundImageUrl?.includes('kcdd_placeholder=1') && (
+            <span className="pointer-events-none absolute right-3 top-3 z-10 rounded bg-black/60 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
+              Placeholder photo
+            </span>
+          )}
+        </>
+      )}
+      <div
+        className={`relative z-10 flex max-w-[250px] flex-col gap-1.5 ${
+          hasImage ? 'text-white' : textColorClass
+        }`}
+      >
         <h3 className="text-base font-bold leading-5">{card.title}</h3>
         <p className="text-sm font-medium leading-[18px]">{card.description}</p>
         {card.linkText &&
