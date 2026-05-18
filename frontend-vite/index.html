@@ -6,6 +6,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="KC Digital Drive Market - Connecting donors with technology equipment requests from Kansas City community organizations" />
     <title>KC Digital Drive Market</title>
+
+    <!-- Maze universal snippet — captures heatmaps + click recordings during
+         Maze user-testing studies. Safe to leave on; it does nothing unless
+         a participant arrives via a Maze share link. -->
+    <script>
+      (function (m, a, z, e) {
+        var s, t, u, v;
+        try {
+          t = m.sessionStorage.getItem('maze-us');
+        } catch (err) {}
+
+        if (!t) {
+          t = new Date().getTime();
+          try {
+            m.sessionStorage.setItem('maze-us', t);
+          } catch (err) {}
+        }
+
+        u = document.currentScript || (function () {
+          var w = document.getElementsByTagName('script');
+          return w[w.length - 1];
+        })();
+        v = u && u.nonce;
+
+        s = a.createElement('script');
+        s.src = z + '?apiKey=' + e;
+        s.async = true;
+        if (v) s.setAttribute('nonce', v);
+        a.getElementsByTagName('head')[0].appendChild(s);
+        m.mazeUniversalSnippetApiKey = e;
+      })(window, document, 'https://snippet.maze.co/maze-universal-loader.js', 'bf9ce6f2-6666-4fb7-9c67-ea4e35424193');
+    </script>
   </head>
   <body>
     <div id="root"></div>
