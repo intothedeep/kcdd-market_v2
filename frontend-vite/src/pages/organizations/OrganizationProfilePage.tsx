@@ -1156,11 +1156,21 @@ export function OrganizationProfilePage() {
               </TabsContent>
 
               <TabsContent value="updates" className="mt-0">
-                <OrganizationUpdatesTab updates={updates} />
+                <OrganizationUpdatesTab
+                  updates={updates}
+                  isOwner={isOwner || false}
+                  organizationId={organization?.id}
+                  onUpdatesChanged={loadOrganizationData}
+                />
               </TabsContent>
 
               <TabsContent value="team" className="mt-0">
-                <OrganizationTeamTab members={teamMembers} />
+                <OrganizationTeamTab
+                  members={teamMembers}
+                  isOwner={isOwner || false}
+                  organizationId={organization?.id}
+                  onMembersChanged={loadOrganizationData}
+                />
               </TabsContent>
             </Tabs>
           </div>

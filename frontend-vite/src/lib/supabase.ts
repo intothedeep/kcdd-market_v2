@@ -13,25 +13,61 @@ import { createClient } from '@supabase/supabase-js'
 import { supabaseConfig } from '@/config'
 import type { Database } from '@/types/database'
 
+// Clerk-Supabase JWT bridge.
+//
+// Two-step setup:
+//  1. Code side (this file + App.tsx): wires a getter for the current Clerk
+//     session token. Always installed.
+//  2. Supabase side: in Supabase Dashboard → Auth → Third Party Auth, add
+//     Clerk as a provider so the project trusts Clerk-signed JWTs. Until
+//     that's done, sending a Clerk JWT in Authorization makes every request
+//     401 because Supabase tries to verify it and can't.
+//
+// To avoid breaking the app before TPA is configured, the bridge is gated by
+// VITE_ENABLE_CLERK_SUPABASE_BRIDGE='true'. Flip the env var on once TPA is
+// set up; the app then sends Clerk JWTs and `auth.uid()` in RLS becomes the
+// signed-in Clerk user ID.
+type ClerkTokenGetter = (() => Promise<string | null>) | null
+let clerkTokenGetter: ClerkTokenGetter = null
+
+const BRIDGE_ENABLED = import.meta.env.VITE_ENABLE_CLERK_SUPABASE_BRIDGE === 'true'
+
+export const ClerkSupabaseBridge = {
+  setTokenGetter(getter: ClerkTokenGetter) {
+    clerkTokenGetter = getter
+  },
+  isEnabled() {
+    return BRIDGE_ENABLED
+  },
+}
+
 // Create Supabase client
 export const supabase = createClient<Database>(supabaseConfig.url, supabaseConfig.anonKey, {
   auth: {
-    persistSession: false, // We use Clerk for auth
+    persistSession: false,
     autoRefreshToken: false,
   },
-})
+  // supabase-js >= 2.42 — called per-request, used as the Bearer in Authorization.
+  accessToken: async () => {
+    if (BRIDGE_ENABLED) {
+      try {
+        if (clerkTokenGetter) {
+          const token = await clerkTokenGetter()
+          if (token) return token
+        }
+      } catch {
+        // fall through to anon key
+      }
+    }
+    return supabaseConfig.anonKey
+  },
+} as any)
 
 /**
- * Set Clerk JWT token for Supabase requests
- * Call this after user signs in with Clerk
+ * @deprecated Use ClerkSupabaseBridge.setTokenGetter instead.
  */
-export const setSupabaseAuth = async (clerkToken: string | null) => {
-  // Note: With the latest Supabase client, auth is managed differently
-  // The JWT token is automatically handled when using Clerk integration
-  if (clerkToken) {
-    // For now, this is a no-op as Clerk handles the integration
-    console.log('Clerk token set')
-  }
+export const setSupabaseAuth = async (_clerkToken: string | null) => {
+  // no-op; preserved for backwards compatibility with callers
 }
 
 /**
@@ -510,6 +546,7 @@ export interface CBODashboardStats {
   activeRequests: number
   fulfilledRequests: number
   pendingRequests: number
+  beneficiariesHelped: number
 }
 
 export interface DonationRecord {
@@ -632,19 +669,18 @@ export const fetchCBODashboardStats = async (userId: string): Promise<CBODashboa
     .single()
 
   if (orgError) {
-    // No organization yet
     return {
       totalReceived: 0,
       activeRequests: 0,
       fulfilledRequests: 0,
       pendingRequests: 0,
+      beneficiariesHelped: 0,
     }
   }
 
-  // Get all requests for this organization
   const { data: requests, error } = await supabase
     .from('requests')
-    .select('id, amount, status')
+    .select('id, amount, status, beneficiaries_count')
     .eq('organization_id', org.id)
 
   if (error) throw error
@@ -658,6 +694,10 @@ export const fetchCBODashboardStats = async (userId: string): Promise<CBODashboa
     activeRequests: active.length,
     fulfilledRequests: fulfilled.length,
     pendingRequests: pending.length,
+    beneficiariesHelped: fulfilled.reduce(
+      (sum, r: any) => sum + Number(r.beneficiaries_count ?? 1),
+      0
+    ),
   }
 }
 
@@ -753,6 +793,7 @@ export const createNewRequest = async (request: {
   amount: number
   urgency: 'low' | 'medium' | 'high'
   zipcode: string
+  beneficiaries_count?: number
 }) => {
   const { data, error } = await supabase
     .from('requests')
@@ -1522,6 +1563,7 @@ export const createOrganizationUpdate = async (update: {
   const { data, error } = await (supabase.from('organization_updates') as any)
     .insert({
       ...update,
+      id: crypto.randomUUID(),
       is_published: true,
     })
     .select()
@@ -1548,6 +1590,7 @@ export const createOrganizationTeamMember = async (member: {
   const { data, error } = await (supabase.from('organization_team_members') as any)
     .insert({
       ...member,
+      id: crypto.randomUUID(),
       is_active: true,
     })
     .select()

@@ -43,6 +43,7 @@ export function NewRequestPage() {
     amount: '',
     cause_area_id: '',
     urgency: 'medium' as 'low' | 'medium' | 'high',
+    beneficiaries_count: '1',
   })
 
   useEffect(() => {
@@ -100,6 +101,7 @@ export function NewRequestPage() {
         amount: amount,
         urgency: form.urgency,
         zipcode: organization.zipcode || '64101',
+        beneficiaries_count: Math.max(1, parseInt(form.beneficiaries_count, 10) || 1),
       })
 
       setSuccess(true)
@@ -232,6 +234,21 @@ export function NewRequestPage() {
                 {form.urgency === 'high' && 'Urgent need - required within 1-2 weeks'}
                 {form.urgency === 'medium' && 'Moderate need - required within 1-2 months'}
                 {form.urgency === 'low' && 'Low urgency - flexible timeline'}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="beneficiaries">People this will help</Label>
+              <Input
+                id="beneficiaries"
+                type="number"
+                min="1"
+                value={form.beneficiaries_count}
+                onChange={(e) => setForm({ ...form, beneficiaries_count: e.target.value })}
+              />
+              <p className="text-xs text-[#737373]">
+                Estimated unique beneficiaries served when this request is fulfilled. Used in your
+                impact analytics.
               </p>
             </div>
           </CardContent>

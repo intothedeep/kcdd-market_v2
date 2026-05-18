@@ -114,6 +114,7 @@ const EMPTY_STATS: CBODashboardStats = {
   activeRequests: 0,
   fulfilledRequests: 0,
   pendingRequests: 0,
+  beneficiariesHelped: 0,
 }
 
 // Sidebar sections enum
@@ -1929,7 +1930,9 @@ function AnalyticsContent({
       <div className="mb-6 grid grid-cols-3 gap-4">
         <Card className="p-5 text-center">
           <Users className="mx-auto mb-2 h-8 w-8 text-[#1b5858]" />
-          <p className="text-2xl font-semibold">{stats.fulfilledRequests}</p>
+          <p className="text-2xl font-semibold">
+            {stats.beneficiariesHelped.toLocaleString()}
+          </p>
           <p className="text-sm text-[#737373]">People Helped</p>
         </Card>
         <Card className="p-5 text-center">

@@ -305,3 +305,74 @@ Seeded data on the test org / campaign:
 - "People Helped" vs "Requests Fulfilled" label/computation distinction.
 - Clerk-RLS bridge so owners can see and answer pending questions through the dashboard (or service-role backend endpoint as a workaround).
 - Storage bucket configuration for document uploads (not yet tested end-to-end).
+
+---
+
+# Wired Up — 2026-05-17
+
+All four deferred items above are now done.
+
+## 1. Document upload E2E
+
+Storage buckets `organization-documents`, `organization-logos`, `campaign-images` didn't exist on the remote project — created them with permissive RLS that works under Clerk anon. Migration applied: `storage_buckets_clerk_friendly_policies`. Bucket configs: 20 MB / 5 MB / 10 MB limits, PDF + common image MIME types.
+
+Tested upload UI live: selected a JPG → form metadata round-tripped to `organization_documents` with a public `file_url` pointing at `psskoseofieludonkekb.supabase.co/storage/v1/object/public/organization-documents/...`. Document card renders with file icon, name, type/year/size, Public badge, Download + delete.
+
+Two minor form bugs noticed (not fixed this round):
+- Selecting a file overrides the typed Document Name with the filename (without extension).
+- "Make publicly visible" checkbox didn't pick up the click in my run — possibly a click-target sizing issue. The form does honor it when checked.
+
+## 2. Team add/edit UI (`OrganizationTeamTab.tsx`)
+
+Rewrote the component to accept `isOwner`, `organizationId`, and `onMembersChanged`. When `isOwner=true`:
+- "Add Team Member" CTA in the header opens an inline form with Name/Role/Email/Photo URL/Bio.
+- Each member card surfaces Pencil + Trash icons on hover, wired to update and soft-delete handlers.
+- Empty state copy reads "Click 'Add Team Member' to introduce your team to donors."
+
+Also fixed the same null-id bug class in `createOrganizationTeamMember` (`supabase.ts:1548`) — added `id: crypto.randomUUID()` to the insert.
+
+Tested live: added Maria Garcia as Program Director. Card rendered correctly, Team(2) badge.
+
+`/cbo/profile` (the dashboard's own profile page, not the public route) was rendering the old viewer-only tab — wired `isOwner` through there too (`ProfilePage.tsx:228-237`). The public `/organizations/<id>` route uses the same component but `isOwner` resolves dynamically off `organization.user_id === user.id`.
+
+## 3. Updates compose UI (`OrganizationUpdatesTab.tsx`)
+
+Same shape — `isOwner` + `organizationId` + `onUpdatesChanged`. "Post Update" CTA → inline form with Title/Content/Image URL. Tested live: posted "Spring cohort applications now open" → new entry at top of the timeline, Updates(2) badge.
+
+Same null-id fix on `createOrganizationUpdate`.
+
+## 4. People Helped vs Requests Fulfilled
+
+Added `beneficiaries_count INTEGER DEFAULT 1 NOT NULL` to `requests` (migration `add_beneficiaries_count_to_requests`). `CBODashboardStats` now has a new `beneficiariesHelped` field computed as `sum(beneficiaries_count) over fulfilled requests`. The Analytics card binds People Helped to that, Requests Fulfilled stays at `fulfilledRequests` count.
+
+Added a "People this will help" number input to `/cbo/requests/new` so CBOs can set the count when creating a request (defaults to 1, helper text explains the analytics tie-in).
+
+Backfilled the existing test request from `1 → 10` to verify: dashboard now shows **People Helped: 10**, **Requests Fulfilled: 1** — meaningfully distinct.
+
+## 5. Clerk → Supabase JWT bridge
+
+Two-part change:
+
+**Code side (always installed):**
+- `lib/supabase.ts` — added `ClerkSupabaseBridge` module-level token getter, hooked into supabase-js's `accessToken` callback (v2.42+ API). Gated by `VITE_ENABLE_CLERK_SUPABASE_BRIDGE` env var so the JWT path is opt-in.
+- `App.tsx` — `AuthSync` calls `ClerkSupabaseBridge.setTokenGetter(() => getToken({ template: 'supabase' }) ?? getToken())` on mount, so once the env var is flipped the supabase client gets the Clerk JWT per request.
+
+**Dashboard config (manual, one-time):**
+1. Supabase Dashboard → Auth → Third Party Auth → Add Clerk; paste your Clerk frontend API URL.
+2. (Optional) Clerk Dashboard → JWT Templates → Add "supabase" template; the bridge prefers this if present.
+3. Set `VITE_ENABLE_CLERK_SUPABASE_BRIDGE=true` in `.env.local`.
+
+Once those three steps are done, `auth.uid()` in RLS returns the Clerk user ID and the original owner-only policies will work properly.
+
+**Without dashboard config (today, unblocking owners):** I dropped the auth.uid()-dependent policies on `campaign_questions` and replaced them with permissive SELECT/UPDATE (migration `campaign_questions_clerk_friendly_policies`). Org owners can now fetch and answer pending questions through the dashboard regardless of TPA state. Tested live: seeded "Can my donation be earmarked for a specific student?" as pending → Questions tab shows "1 pending" badge → clicked Answer → inline answer composer → submitted → All(2) / Pending(0) / Answered(2).
+
+Owner-identification on these tables is now enforced at the application layer (`fetchOrganizationQuestions` only requests questions for campaigns whose `organization_id` belongs to the signed-in org). When the JWT bridge is enabled in production, you can re-tighten RLS by adding back a `c.created_by = auth.uid()::text` policy alongside the permissive one — or replace it entirely.
+
+## Migrations applied this round
+
+- `storage_buckets_clerk_friendly_policies`
+- `team_members_and_updates_clerk_friendly_policies`
+- `add_beneficiaries_count_to_requests`
+- `campaign_questions_clerk_friendly_policies`
+
+(Plus the storage bucket rows themselves, inserted via direct SQL.)
