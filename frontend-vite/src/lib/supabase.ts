@@ -577,43 +577,78 @@ export interface RequestRecord {
   fulfilled_at: string | null
 }
 
-// Fetch donor dashboard statistics
+// Fetch donor dashboard statistics. Counts BOTH requests-style donations
+// (where this donor claimed/fulfilled a specific request row) and
+// campaign-style donations (recorded as payment_transactions).
 export const fetchDonorDashboardStats = async (donorId: string): Promise<DonorDashboardStats> => {
-  // Get all requests where this donor is involved
-  const { data: donations, error } = await supabase
-    .from('requests')
-    .select(
-      `
-      id,
-      amount,
-      status,
-      cause_area_id
-    `
-    )
-    .eq('donor_id', donorId)
+  const [requestsResult, txResult] = await Promise.all([
+    supabase.from('requests').select('id, amount, status, cause_area_id').eq('donor_id', donorId),
+    supabase
+      .from('payment_transactions')
+      .select('id, amount_total, status, campaign:campaigns(cause_area_id)')
+      .eq('donor_id', donorId),
+  ])
 
-  if (error) throw error
+  if (requestsResult.error) throw requestsResult.error
+  if (txResult.error) throw txResult.error
 
-  const fulfilled = donations?.filter((d) => d.status === 'fulfilled') || []
-  const claimed = donations?.filter((d) => d.status === 'claimed') || []
+  const requestRows = requestsResult.data || []
+  const txRows = (txResult.data || []) as any[]
 
-  // Calculate unique cause areas supported
-  const uniqueCauseAreas = new Set(donations?.map((d) => d.cause_area_id) || [])
+  const fulfilledFromRequests = requestRows.filter((d) => d.status === 'fulfilled')
+  const claimedFromRequests = requestRows.filter((d) => d.status === 'claimed')
+
+  // Campaign tx donations: 'succeeded' → counts toward fulfilled,
+  // 'pending' → counts toward claimed (intent created, awaiting webhook).
+  const fulfilledFromTx = txRows.filter((d) => d.status === 'succeeded')
+  const claimedFromTx = txRows.filter((d) => d.status === 'pending')
+
+  const totalDonations =
+    fulfilledFromRequests.reduce((sum, d) => sum + Number(d.amount), 0) +
+    fulfilledFromTx.reduce((sum, d) => sum + Number(d.amount_total || 0) / 100, 0)
+
+  const causeIds = new Set<string>()
+  requestRows.forEach((d) => d.cause_area_id && causeIds.add(d.cause_area_id))
+  txRows.forEach((d) => d.campaign?.cause_area_id && causeIds.add(d.campaign.cause_area_id))
 
   return {
-    totalDonations: fulfilled.reduce((sum, d) => sum + Number(d.amount), 0),
-    requestsFulfilled: fulfilled.length,
-    requestsClaimed: claimed.length,
-    causesSupported: uniqueCauseAreas.size,
+    totalDonations,
+    requestsFulfilled: fulfilledFromRequests.length + fulfilledFromTx.length,
+    requestsClaimed: claimedFromRequests.length + claimedFromTx.length,
+    causesSupported: causeIds.size,
   }
 }
 
 // Fetch donor's donation history
+// Donor donation history merges two parallel sources:
+// (1) `requests` rows where the donor claimed a single request directly
+// (2) `payment_transactions` rows from campaign-style donations
+// Stripe tx status is mapped onto the DonationRecord status union so the
+// dashboard filters (claimed / fulfilled / etc.) work for both shapes:
+//   tx 'succeeded' -> 'fulfilled'   (money received)
+//   tx 'pending'   -> 'claimed'     (intent created, not yet confirmed)
+//   tx 'failed'/'canceled' -> 'denied'
+const mapTxStatusToDonationStatus = (
+  txStatus: string | null
+): 'open' | 'claimed' | 'fulfilled' | 'denied' => {
+  switch (txStatus) {
+    case 'succeeded':
+      return 'fulfilled'
+    case 'failed':
+    case 'canceled':
+      return 'denied'
+    case 'pending':
+    default:
+      return 'claimed'
+  }
+}
+
 export const fetchDonorDonations = async (
   donorId: string,
   filters?: { status?: string; search?: string }
 ): Promise<DonationRecord[]> => {
-  let query = supabase
+  // Source 1: requests-style donations
+  let requestsQuery = supabase
     .from('requests')
     .select(
       `
@@ -633,18 +668,35 @@ export const fetchDonorDonations = async (
     .order('created_at', { ascending: false })
 
   if (filters?.status && filters.status !== 'all') {
-    query = query.eq('status', filters.status)
+    requestsQuery = requestsQuery.eq('status', filters.status)
   }
-
   if (filters?.search) {
-    query = query.ilike('description', `%${filters.search}%`)
+    requestsQuery = requestsQuery.ilike('description', `%${filters.search}%`)
   }
 
-  const { data, error } = await query
+  // Source 2: campaign-style donations recorded as Stripe transactions
+  const txQuery = supabase
+    .from('payment_transactions')
+    .select(
+      `
+      id,
+      amount_total,
+      status,
+      created_at,
+      completed_at,
+      campaign:campaigns(id, title, slug, cause_area:cause_areas(name)),
+      organization:organizations(name, logo_emoji)
+    `
+    )
+    .eq('donor_id', donorId)
+    .order('created_at', { ascending: false })
 
-  if (error) throw error
+  const [requestsResult, txResult] = await Promise.all([requestsQuery, txQuery])
 
-  return (data || []).map((item: any) => ({
+  if (requestsResult.error) throw requestsResult.error
+  if (txResult.error) throw txResult.error
+
+  const requestDonations: DonationRecord[] = (requestsResult.data || []).map((item: any) => ({
     id: item.id,
     description: item.description,
     amount: Number(item.amount),
@@ -657,6 +709,41 @@ export const fetchDonorDonations = async (
     claimed_at: item.claimed_at,
     fulfilled_at: item.fulfilled_at,
   }))
+
+  const campaignDonations: DonationRecord[] = (txResult.data || []).map((item: any) => {
+    const mappedStatus = mapTxStatusToDonationStatus(item.status)
+    return {
+      id: item.id,
+      description: item.campaign?.title || 'Campaign donation',
+      // payment_transactions.amount_total is stored in cents
+      amount: Number(item.amount_total || 0) / 100,
+      status: mappedStatus,
+      urgency: 'medium',
+      organization_name: item.organization?.name || 'KC DIME',
+      organization_logo_emoji: item.organization?.logo_emoji || 'building2',
+      cause_area_name: item.campaign?.cause_area?.name || 'General',
+      created_at: item.created_at,
+      claimed_at: item.created_at,
+      fulfilled_at: mappedStatus === 'fulfilled' ? item.completed_at || item.created_at : null,
+    }
+  })
+
+  // Apply search/status filters to campaign donations client-side so the
+  // shape lines up with the requests query's filters.
+  let filteredCampaigns = campaignDonations
+  if (filters?.status && filters.status !== 'all') {
+    filteredCampaigns = filteredCampaigns.filter((d) => d.status === filters.status)
+  }
+  if (filters?.search) {
+    const needle = filters.search.toLowerCase()
+    filteredCampaigns = filteredCampaigns.filter((d) =>
+      d.description.toLowerCase().includes(needle)
+    )
+  }
+
+  return [...requestDonations, ...filteredCampaigns].sort((a, b) =>
+    b.created_at.localeCompare(a.created_at)
+  )
 }
 
 // Fetch CBO dashboard statistics
