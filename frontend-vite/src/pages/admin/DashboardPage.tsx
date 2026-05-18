@@ -289,6 +289,35 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
   return <Badge className={`${c.bg} ${c.text} border-0 capitalize`}>{urgency}</Badge>
 }
 
+// Renders an org logo with graceful fallback when Clearbit returns 404
+// (common for smaller orgs that don't have a Clearbit profile).
+function OrgLogo({
+  logoUrl,
+  size = 'md',
+}: {
+  logoUrl?: string | null
+  size?: 'md' | 'lg'
+}) {
+  const [failed, setFailed] = useState(false)
+  const dims = size === 'lg' ? 'h-12 w-12' : 'h-10 w-10'
+  const iconSize = size === 'lg' ? 'h-6 w-6' : 'h-5 w-5'
+  const showImage = logoUrl && !failed
+  return (
+    <div className={`flex ${dims} items-center justify-center rounded-lg bg-gray-200`}>
+      {showImage ? (
+        <img
+          src={logoUrl}
+          alt=""
+          className={`${dims} rounded-lg object-cover`}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <Building2 className={`${iconSize} text-gray-600`} />
+      )}
+    </div>
+  )
+}
+
 function VerificationBadge({ status }: { status: VerificationStatus }) {
   const config: Record<string, { bg: string; text: string }> = {
     unverified: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
@@ -1110,17 +1139,7 @@ function OrganizationsContent({
             <Card key={org.id} className="p-5">
               <div className="mb-3 flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-200">
-                    {org.logo_url ? (
-                      <img
-                        src={org.logo_url}
-                        alt=""
-                        className="h-10 w-10 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <Building2 className="h-5 w-5 text-gray-600" />
-                    )}
-                  </div>
+                  <OrgLogo logoUrl={org.logo_url} />
                   <div>
                     <h3 className="font-medium">{org.name}</h3>
                     <p className="text-xs text-[#737373]">
@@ -1181,17 +1200,7 @@ function OrganizationsContent({
           <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
             <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white p-6">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-200">
-                  {selectedOrg.logo_url ? (
-                    <img
-                      src={selectedOrg.logo_url}
-                      alt=""
-                      className="h-12 w-12 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <Building2 className="h-6 w-6 text-gray-600" />
-                  )}
-                </div>
+                <OrgLogo logoUrl={selectedOrg.logo_url} size="lg" />
                 <div>
                   <h3 className="text-lg font-semibold">
                     {editMode ? 'Edit Organization' : 'Organization Details'}
