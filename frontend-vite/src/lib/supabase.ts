@@ -585,7 +585,7 @@ export const fetchDonorDashboardStats = async (donorId: string): Promise<DonorDa
     supabase.from('requests').select('id, amount, status, cause_area_id').eq('donor_id', donorId),
     supabase
       .from('payment_transactions')
-      .select('id, amount_total, status, campaign:campaigns(cause_area_id)')
+      .select('id, amount_total, status')
       .eq('donor_id', donorId),
   ])
 
@@ -607,9 +607,10 @@ export const fetchDonorDashboardStats = async (donorId: string): Promise<DonorDa
     fulfilledFromRequests.reduce((sum, d) => sum + Number(d.amount), 0) +
     fulfilledFromTx.reduce((sum, d) => sum + Number(d.amount_total || 0) / 100, 0)
 
+  // Campaigns aren't tagged with cause areas in the current schema, so
+  // campaign donations don't contribute to the unique-causes count.
   const causeIds = new Set<string>()
   requestRows.forEach((d) => d.cause_area_id && causeIds.add(d.cause_area_id))
-  txRows.forEach((d) => d.campaign?.cause_area_id && causeIds.add(d.campaign.cause_area_id))
 
   return {
     totalDonations,
@@ -674,7 +675,9 @@ export const fetchDonorDonations = async (
     requestsQuery = requestsQuery.ilike('description', `%${filters.search}%`)
   }
 
-  // Source 2: campaign-style donations recorded as Stripe transactions
+  // Source 2: campaign-style donations recorded as Stripe transactions.
+  // Note: campaigns has no cause_area_id column (see migrations), so we
+  // can't pull cause area from the join — donations get tagged 'General'.
   const txQuery = supabase
     .from('payment_transactions')
     .select(
@@ -684,7 +687,7 @@ export const fetchDonorDonations = async (
       status,
       created_at,
       completed_at,
-      campaign:campaigns(id, title, slug, cause_area:cause_areas(name)),
+      campaign:campaigns(id, title, slug),
       organization:organizations(name, logo_emoji)
     `
     )
@@ -721,7 +724,7 @@ export const fetchDonorDonations = async (
       urgency: 'medium',
       organization_name: item.organization?.name || 'KC DIME',
       organization_logo_emoji: item.organization?.logo_emoji || 'building2',
-      cause_area_name: item.campaign?.cause_area?.name || 'General',
+      cause_area_name: 'General',
       created_at: item.created_at,
       claimed_at: item.created_at,
       fulfilled_at: mappedStatus === 'fulfilled' ? item.completed_at || item.created_at : null,
