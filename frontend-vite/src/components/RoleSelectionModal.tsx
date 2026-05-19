@@ -43,7 +43,16 @@ export function RoleSelectionModal({ isOpen, onClose }: RoleSelectionModalProps)
     setIsSubmitting(true)
 
     try {
-      // Create user_profile with selected role (onboarding NOT complete yet)
+      // Create user_profile with selected role (onboarding NOT complete yet).
+      // Capture email + name from Clerk on this first write so we always
+      // have contact info even if the user bails before completing the
+      // donor / org-specific second step below.
+      const clerkEmail = user.primaryEmailAddress?.emailAddress || null
+      const clerkName =
+        `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+        user.username ||
+        clerkEmail ||
+        null
       const { error: profileError } = await supabase.from('user_profiles').upsert(
         {
           id: user.id,
@@ -53,6 +62,8 @@ export function RoleSelectionModal({ isOpen, onClose }: RoleSelectionModalProps)
           wants_updates: false,
           org_tier: 'individual',
           verification_status: 'unverified',
+          email: clerkEmail,
+          name: clerkName,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },

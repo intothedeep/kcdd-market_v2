@@ -133,6 +133,10 @@ interface UserProfile {
   is_vetted: boolean
   created_at: string
   updated_at: string
+  // Captured from Clerk at user_profile upsert time so orphan rows (no
+  // donor_profile / organization) still have a contact email and name.
+  email?: string | null
+  name?: string | null
   donor_profile?: {
     display_name: string
     email: string
@@ -561,8 +565,9 @@ function UsersContent({
   const [addUserError, setAddUserError] = useState<string | null>(null)
 
   const filteredUsers = users.filter((user) => {
-    const displayName = user.donor_profile?.display_name || user.organization?.name || user.id
-    const email = user.donor_profile?.email || user.organization?.email || ''
+    const displayName =
+      user.donor_profile?.display_name || user.organization?.name || user.name || user.id
+    const email = user.donor_profile?.email || user.organization?.email || user.email || ''
 
     const matchesSearch =
       !searchQuery ||
@@ -716,16 +721,21 @@ function UsersContent({
               ) : (
                 filteredUsers.map((user) => {
                   // Orphaned profiles (no donor row, no org row) still need to
-                  // be identifiable so an admin can clean them up. Surface the
-                  // Clerk/user_profile id tail in place of "Unknown" and the
-                  // tombstone-style "no email on file" for missing email.
+                  // be identifiable. Fall through: donor/org name → name
+                  // captured from Clerk → id tail. Same for email — falls back
+                  // to user_profiles.email (written at first upsert from
+                  // Clerk's primaryEmailAddress) before giving up.
                   const idTail = user.id.length > 10 ? `…${user.id.slice(-8)}` : user.id
                   const displayName =
                     user.donor_profile?.display_name ||
                     user.organization?.name ||
+                    user.name ||
                     `User ${idTail}`
                   const email =
-                    user.donor_profile?.email || user.organization?.email || 'no email on file'
+                    user.donor_profile?.email ||
+                    user.organization?.email ||
+                    user.email ||
+                    'no email on file'
 
                   return (
                     <TableRow key={user.id}>
@@ -3220,6 +3230,8 @@ export function AdminDashboard() {
         org_tier: input.org_tier,
         verification_status: input.verification_status,
         is_vetted: input.verification_status !== VERIFICATION_STATUS.UNVERIFIED,
+        email: input.email || null,
+        name: input.name || null,
         created_at: now,
         updated_at: now,
       })
