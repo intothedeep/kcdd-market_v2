@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -57,6 +57,7 @@ import {
   submitCampaignReport,
   type CampaignReportReason,
 } from '@/lib/supabase'
+import { CampaignDonateModal } from '@/components/CampaignDonateModal'
 import {
   Dialog,
   DialogContent,
@@ -178,7 +179,6 @@ interface SubmittedQuestion {
 
 export function CampaignPage() {
   const { slug } = useParams<{ slug: string }>()
-  const navigate = useNavigate()
   const { user, isSignedIn } = useUser()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [causeAreas, setCauseAreas] = useState<CauseArea[]>([])
@@ -216,6 +216,7 @@ export function CampaignPage() {
 
   // Report campaign state
   const [showReportModal, setShowReportModal] = useState(false)
+  const [showDonateModal, setShowDonateModal] = useState(false)
   const [reportReason, setReportReason] = useState<CampaignReportReason | ''>('')
   const [reportDescription, setReportDescription] = useState('')
   const [reportEmail, setReportEmail] = useState('')
@@ -679,9 +680,10 @@ export function CampaignPage() {
   }
 
   const handleSupport = () => {
-    if (campaign?.slug) {
-      navigate(`/campaign/${campaign.slug}/donate`)
-    }
+    // Open the in-page donate modal instead of navigating to the full
+    // /campaign/:slug/donate page so the donor keeps their place. The route
+    // is still available as a fallback for direct/share links.
+    if (campaign) setShowDonateModal(true)
   }
 
   const handleReportCampaign = async () => {
@@ -2030,6 +2032,13 @@ export function CampaignPage() {
         {/* Bottom Padding */}
         <div className="h-20" />
       </div>
+
+      {/* In-page donation modal */}
+      <CampaignDonateModal
+        open={showDonateModal}
+        onOpenChange={setShowDonateModal}
+        campaign={campaign}
+      />
 
       {/* Report Campaign Modal */}
       <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
