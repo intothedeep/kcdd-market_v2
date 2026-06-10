@@ -13,7 +13,7 @@
 const requiredEnvVars = [
   'VITE_CLERK_PUBLISHABLE_KEY',
   'VITE_SUPABASE_URL',
-  'VITE_SUPABASE_ANON_KEY',
+  'VITE_SUPABASE_PUBLISHABLE_KEY',
   'VITE_STRIPE_PUBLISHABLE_KEY',
   'VITE_API_URL',
 ] as const
@@ -41,7 +41,7 @@ export const clerkConfig = {
 // ============================================
 export const supabaseConfig = {
   url: import.meta.env.VITE_SUPABASE_URL || '',
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+  anonKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '',
   // Supabase Dashboard: https://app.supabase.com
   // Docs: https://supabase.com/docs/reference/javascript/introduction
 }
