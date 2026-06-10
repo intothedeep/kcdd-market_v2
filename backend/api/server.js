@@ -15,6 +15,8 @@ import dotenv from 'dotenv'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { generateDonationReceipt, generateAnnualSummary } from './services/pdfGenerator.js'
+import { clerkAuth } from './middleware/clerkAuth.js'
+import usersRouter from './routes/users.js'
 
 // Load environment variables
 dotenv.config()
@@ -69,6 +71,9 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV,
   })
 })
+
+// Mount /api/users router (Clerk JWT required)
+app.use('/api/users', clerkAuth, usersRouter)
 
 // ============================================
 // STRIPE CONNECT ENDPOINTS
@@ -282,12 +287,13 @@ app.get('/api/stripe/connect/status/:organizationId', async (req, res) => {
  *
  * Supports destination charges to transfer funds to connected accounts
  */
-app.post('/api/payments/create-intent', async (req, res) => {
+app.post('/api/payments/create-intent', clerkAuth, async (req, res) => {
   try {
-    const { requestId, amount, donorId } = req.body
+    const { requestId } = req.body
+    const donorId = req.auth.userId // from Clerk JWT, not client
 
-    if (!requestId || !amount) {
-      return res.status(400).json({ error: 'Missing requestId or amount' })
+    if (!requestId) {
+      return res.status(400).json({ error: 'Missing requestId' })
     }
 
     // Verify request exists and get organization's Stripe account
@@ -335,8 +341,8 @@ app.post('/api/payments/create-intent', async (req, res) => {
       settings?.find((s) => s.key === 'stripe_platform_fee_fixed_cents')?.value || '30'
     )
 
-    // Calculate platform fee (amount is already in cents)
-    const amountCents = Math.round(amount)
+    // Canonical amount: requests.amount is in dollars in the DB — never trust client body
+    const amountCents = Math.round(Number(request.amount) * 100)
     const platformFee = Math.round(amountCents * (feePercent / 100)) + feeFixed
     const organizationAmount = amountCents - platformFee
 
@@ -413,6 +419,7 @@ app.post('/api/payments/create-intent', async (req, res) => {
  *
  * Supports destination charges to transfer funds to connected accounts
  */
+// NOTE: campaign amounts are donor-chosen by design — client-supplied amount is intentional here.
 app.post('/api/payments/create-campaign-intent', async (req, res) => {
   try {
     const { campaignId, amount, donorId } = req.body
