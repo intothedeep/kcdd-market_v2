@@ -654,33 +654,32 @@ async function handlePaymentSucceeded(paymentIntent) {
     })
   }
 
-  // Update campaign amounts (for campaign donations)
+  // Update campaign amounts (for campaign donations). On branches without
+  // the increment_campaign_amount RPC (added in 20260605000100), fall back
+  // to a SELECT + UPDATE. supabase-js v2 returns { data, error } from .rpc()
+  // and never rejects, so we branch on `rpcError` instead of .catch().
   if (campaignId) {
     const amountDollars = paymentIntent.amount / 100
-    await supabase
-      .rpc('increment_campaign_amount', {
-        campaign_id: campaignId,
-        amount: amountDollars,
-      })
-      .catch(() => {
-        // RPC might not exist, fallback to manual update
-        supabase
+    const { error: rpcError } = await supabase.rpc('increment_campaign_amount', {
+      campaign_id: campaignId,
+      amount: amountDollars,
+    })
+    if (rpcError) {
+      const { data: campaign } = await supabase
+        .from('campaigns')
+        .select('amount_raised, supporters_count')
+        .eq('id', campaignId)
+        .single()
+      if (campaign) {
+        await supabase
           .from('campaigns')
-          .select('amount_raised, supporters_count')
-          .eq('id', campaignId)
-          .single()
-          .then(({ data }) => {
-            if (data) {
-              supabase
-                .from('campaigns')
-                .update({
-                  amount_raised: (data.amount_raised || 0) + amountDollars,
-                  supporters_count: (data.supporters_count || 0) + 1,
-                })
-                .eq('id', campaignId)
-            }
+          .update({
+            amount_raised: (campaign.amount_raised || 0) + amountDollars,
+            supporters_count: (campaign.supporters_count || 0) + 1,
           })
-      })
+          .eq('id', campaignId)
+      }
+    }
   }
 
   // Generate tax receipt PDF automatically
