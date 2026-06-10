@@ -9,7 +9,10 @@
 -- =============================================
 CREATE TABLE IF NOT EXISTS organization_documents (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  -- organization_id stays UUID here: organizations.id is still UUID at this
+  -- point in the migration history (becomes TEXT only at 20260518). Changing
+  -- to UUID is the surgical fix for the broken-on-arrival FK type mismatch.
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   uploaded_by TEXT NOT NULL,
   name VARCHAR(200) NOT NULL,
   type VARCHAR(50) NOT NULL,

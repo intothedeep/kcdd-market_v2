@@ -35,6 +35,14 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
 
+# Third-party JWT validation (Clerk)
+# Lets Supabase verify Clerk-issued JWTs via Clerk's public JWKS endpoint,
+# so RLS policies referencing public.clerk_user_id() can read the JWT sub claim.
+# See _docs/clerk-supabase-auth.md for details.
+[auth.third_party.clerk]
+enabled = true
+domain = "immense-stallion-77.clerk.accounts.dev"
+
 [realtime]
 enabled = true
 
