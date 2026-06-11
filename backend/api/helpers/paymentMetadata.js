@@ -9,8 +9,12 @@ export function hashIp(ip) {
 
 // Builds the metadata JSONB written to payment_transactions on INSERT.
 // Never includes card data, raw IP, session tokens, or other PII.
-export function buildPaymentMetadata({ paymentIntent, kind, targetSnapshot, req }) {
+export function buildPaymentMetadata({ paymentIntent, kind, targetSnapshot, req, donorId }) {
   const now = new Date().toISOString()
+  // Campaign route allows anonymous donations and does not run clerkAuth,
+  // so req.auth.userId is undefined there. Fall back to the explicit donorId
+  // arg (sourced from the request body in that path) when JWT is absent.
+  const clerkUserIdAtIntent = req?.auth?.userId || donorId || null
   return {
     stripe: {
       payment_intent: paymentIntent,
@@ -22,7 +26,7 @@ export function buildPaymentMetadata({ paymentIntent, kind, targetSnapshot, req 
     client: {
       user_agent: req?.headers?.['user-agent'] || null,
       ip_hash: hashIp(req?.ip || req?.headers?.['x-forwarded-for']?.split(',')[0]?.trim()),
-      clerk_user_id_at_intent: req?.auth?.userId || null,
+      clerk_user_id_at_intent: clerkUserIdAtIntent,
     },
     diagnostics: {
       backend_version: process.env.GIT_SHA || 'unknown',

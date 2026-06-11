@@ -534,6 +534,7 @@ app.post('/api/payments/create-campaign-intent', async (req, res) => {
           organization_name_snapshot: org?.name || null,
         },
         req,
+        donorId,
       }),
     })
 
