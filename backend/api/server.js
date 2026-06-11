@@ -18,6 +18,7 @@ import { generateDonationReceipt, generateAnnualSummary } from './services/pdfGe
 import { clerkAuth } from './middleware/clerkAuth.js'
 import usersRouter from './routes/users.js'
 import { buildPaymentMetadata, appendLifecycle } from './helpers/paymentMetadata.js'
+import { upsertDispute } from './helpers/disputes.js'
 
 // Load environment variables
 dotenv.config()
@@ -645,6 +646,98 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
       case 'transfer.created':
         await handleTransferCreated(event.data.object)
         break
+
+      case 'charge.dispute.created': {
+        const dispute = event.data.object
+        await upsertDispute(supabase, dispute)
+        await supabase
+          .from('payment_transactions')
+          .update({ status: 'disputed', error_message: `Dispute opened: ${dispute.reason}` })
+          .eq('stripe_payment_intent_id', dispute.payment_intent)
+        await appendLifecycle(supabase, dispute.payment_intent, {
+          at: new Date().toISOString(),
+          event: 'charge.dispute.created',
+          event_id: event.id,
+          dispute_id: dispute.id,
+          reason: dispute.reason,
+        })
+        break
+      }
+
+      case 'charge.dispute.funds_withdrawn': {
+        const dispute = event.data.object
+        await upsertDispute(supabase, dispute)
+        // status stays 'disputed' — funds withdrawn is a sub-state, not the resolution
+        await appendLifecycle(supabase, dispute.payment_intent, {
+          at: new Date().toISOString(),
+          event: 'charge.dispute.funds_withdrawn',
+          event_id: event.id,
+          dispute_id: dispute.id,
+        })
+        break
+      }
+
+      case 'charge.dispute.funds_reinstated': {
+        const dispute = event.data.object
+        await upsertDispute(supabase, dispute)
+        // funds back but dispute may still be open — don't flip to 'succeeded' yet;
+        // wait for .closed with outcome
+        await appendLifecycle(supabase, dispute.payment_intent, {
+          at: new Date().toISOString(),
+          event: 'charge.dispute.funds_reinstated',
+          event_id: event.id,
+          dispute_id: dispute.id,
+        })
+        break
+      }
+
+      case 'charge.dispute.closed': {
+        const dispute = event.data.object
+        await upsertDispute(supabase, dispute)
+        const newStatus = dispute.status === 'won' ? 'dispute_won'
+          : dispute.status === 'lost' ? 'dispute_lost'
+          : 'disputed'
+        await supabase
+          .from('payment_transactions')
+          .update({ status: newStatus })
+          .eq('stripe_payment_intent_id', dispute.payment_intent)
+        if (newStatus === 'dispute_lost') {
+          // Compensating UPDATE on campaign: dispute_lost means we ultimately lost
+          // the funds, so the campaign tally was overstated. Read current values,
+          // decrement by the dispute amount (in dollars). Same fallback pattern
+          // the succeeded handler uses for the increment side.
+          const { data: tx } = await supabase
+            .from('payment_transactions')
+            .select('campaign_id')
+            .eq('stripe_payment_intent_id', dispute.payment_intent)
+            .single()
+          if (tx?.campaign_id) {
+            const amountDollars = (dispute.amount || 0) / 100
+            const { data: campaign } = await supabase
+              .from('campaigns')
+              .select('amount_raised, supporters_count')
+              .eq('id', tx.campaign_id)
+              .single()
+            if (campaign) {
+              await supabase
+                .from('campaigns')
+                .update({
+                  amount_raised: Math.max(0, (campaign.amount_raised || 0) - amountDollars),
+                  supporters_count: Math.max(0, (campaign.supporters_count || 0) - 1),
+                })
+                .eq('id', tx.campaign_id)
+            }
+          }
+        }
+        await appendLifecycle(supabase, dispute.payment_intent, {
+          at: new Date().toISOString(),
+          event: 'charge.dispute.closed',
+          event_id: event.id,
+          dispute_id: dispute.id,
+          outcome: dispute.status,
+        })
+        break
+      }
 
       default:
         console.log(`Unhandled event type: ${event.type}`)
