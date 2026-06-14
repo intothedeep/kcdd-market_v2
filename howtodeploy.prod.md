@@ -131,7 +131,18 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 PORT=4000
 ALLOWED_ORIGINS=https://your-frontend.vercel.app
 NODE_ENV=production
+
+# Required for payment metadata (PH-2). Without these, IP hashes are reversible
+# and the build-version diagnostic shows 'unknown'.
+IP_HASH_SALT=                # `openssl rand -hex 32` output. NEVER set this to
+                             # the dev fallback in production.
+GIT_SHA=${VERCEL_GIT_COMMIT_SHA}   # Vercel auto-injects this. For other
+                                   # hosts: use the deploy commit SHA.
 ```
+
+> **`IP_HASH_SALT` 보안 메모**: backend는 도너 IP를 `payment_transactions.metadata.client.ip_hash`에 raw가 아닌 SHA-256 hash 앞 16자로 저장합니다 (`backend/api/helpers/paymentMetadata.js`의 `hashIp`). salt 없이는 공격자가 IPv4 주소 공간(~43억) 전체에 대해 사전 계산된 rainbow table로 IP를 역추정할 수 있습니다. dev에선 코드 fallback `'dev-only-replace-in-prod'`가 동작하지만 **프로덕션 배포 전 반드시 교체**.
+>
+> **`GIT_SHA` 디버깅 가치**: `metadata.diagnostics.backend_version`에 들어가서 "이 결제는 어느 빌드가 처리했는가"를 추적할 수 있습니다. 특정 빌드부터 영수증이 안 나오는 회귀를 디버깅할 때 metadata만 보면 즉시 어느 커밋의 코드가 실행됐는지 확인 가능. 미설정 시 `"unknown"`이 저장됨.
 
 ### Same code, different env vars
 

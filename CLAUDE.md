@@ -2,19 +2,25 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Branch note (`feat/pnpm-jwt-integration`)**: this CLAUDE.md was copied from
-> `feat/taek`. Sections describing Phase 8 / 8.5 / 9 / 10 features (in-kind
-> pledges, donor cause-area match alerts, tax receipts pipeline, public impact
-> page, etc.) and their tables, migrations, RLS policies, views, and RPCs do
-> **not** yet apply to this branch. This branch is intentionally a clean
-> `main` base + the pnpm + Clerk JWT bridge + Clerk-aware RLS reconcile +
-> server-side `/api/payments/create-intent` integration. See
-> `_docs/pnpm-jwt-integration-plan.md` for the phased plan and
-> `_docs/auth-strategy-decision.md` for the rationale.
+> **Branch state (as of 2026-06-12)**: This CLAUDE.md describes the branch family
+> `feat/pnpm-jwt-integration` → `feat/payment-hardening`, both CLOSED with all in-scope
+> work landed. Phase 8 / 8.5 / 9 / 10 features (in-kind pledges, match alerts,
+> tax cron, public impact page) from `feat/taek` are intentionally NOT in
+> this branch family — see `_docs/tasks.md` "Backlog — Later work" for the
+> deferred items.
 >
-> As each phase of the integration plan lands, the corresponding section here
-> becomes accurate. Until then, treat Phase 8+ content as forward-looking
-> reference, not current state.
+> **Landed on `feat/pnpm-jwt-integration`** (12 commits): pnpm migration,
+> Clerk JWT bridge (frontend `accessToken` getter + backend `clerkAuth` +
+> `/api/users/sync`), Clerk-aware RLS reconcile, server-side amount on
+> `POST /api/payments/create-intent`, campaigns-only mock seed, donor-read
+> RLS on `payment_transactions` + `donor_documents`, `tax-documents` storage
+> bucket, campaign detail-page + donate-modal bug fixes.
+>
+> **Landed on `feat/payment-hardening`** (5 commits): `stripe_events`
+> idempotency wiring at webhook entry (PH-1), `payment_transactions.metadata`
+> snapshot + `appendLifecycle` (PH-2), `stripe_disputes` table + 4 dispute
+> webhook handlers (PH-3). PH-4 (storage adapter) explicitly deferred —
+> `supabase.storage` API covers Supabase Cloud dev/prod without abstraction.
 
 ## Project Overview
 
@@ -41,7 +47,7 @@ cd backend/api && pnpm dev
 cd frontend-vite && pnpm dev
 ```
 
-> `pnpm db:start` runs the full Supabase stack via the Supabase CLI (managed by `backend/supabase/config.toml`). The legacy `backend/x_docker-compose.yml.legacy` is kept for reference only — do not use.
+> `pnpm db:start` runs the full Supabase stack via the Supabase CLI (managed by `backend/supabase/config.toml`). The legacy `backend/x_docker-compose.yml.legacy` and `backend/x_volumes/` are kept for archival reference only — do not use.
 
 ### Frontend (`frontend-vite/`)
 
@@ -146,29 +152,35 @@ frontend-vite/src/
 
 backend/
 ├── api/
-│   ├── server.js                  # Express server: payments + Stripe Connect + webhook (Vercel serverless export)
-│   ├── middleware/clerkAuth.js    # Clerk JWT verification (@clerk/backend)
-│   ├── services/pdfGenerator.js   # PDF donation receipts + annual summaries (pdfkit)
+│   ├── server.js                       # Express server: payments + Stripe Connect + webhook (Vercel serverless export)
+│   ├── middleware/clerkAuth.js         # Clerk JWT verification (@clerk/backend)
+│   ├── helpers/
+│   │   ├── paymentMetadata.js          # PH-2: hashIp + buildPaymentMetadata + appendLifecycle
+│   │   └── disputes.js                 # PH-3: upsertDispute for stripe_disputes table
+│   ├── services/pdfGenerator.js        # PDF donation receipts (pdfkit)
 │   └── routes/
-│       ├── requests.js            # POST /fulfill, /deny, /confirm-in-kind-receipt
-│       ├── inKind.js              # POST /pledge, /accept, /reject (Phase 8.5)
-│       └── users.js               # POST /become-cbo, /sync (bypasses RLS trigger)
+│       └── users.js                    # POST /become-cbo, /sync (bypasses RLS trigger)
 └── supabase/
     ├── migrations/      # SQL migration files (run in order)
     ├── config.toml      # Supabase CLI config (Clerk registered as third-party auth)
-    └── seed.sql         # DB seed data (taxonomy + mock orgs/donors/requests/campaigns)
+    └── seed.sql         # Mock orgs/donors/campaigns + tax-documents bucket + cause-area taxonomy
 
-_docs/                   # Project documentation and history (canonical doc folder)
-├── status.md            # Implementation status by phase
-├── plan.md              # Feature roadmap and phase definitions
-├── tasks.md             # Task list with acceptance criteria
-├── architecture.md      # Architecture decisions
-├── setup.md             # Local dev setup guide
-├── deployment.md        # Deployment notes
-├── stripe-webhook.md    # Stripe webhook flow documentation
-├── clerk-supabase-auth.md  # Clerk JWT validation in Supabase (Third-Party Auth)
-└── debug-payment-flow.md   # Debug walkthrough: BUG-8 → BUG-11 cascade
+_docs/                                 # Project documentation (gitignored — local only)
+├── plan.md                            # Feature roadmap; branch + Backlog sections at end
+├── tasks.md                           # Branch task tracking + Backlog "Later work"
+├── architecture.md                    # Architecture decisions
+├── stripe-webhook.md                  # Webhook flow + PH-1 idempotency implementation record
+├── clerk-supabase-auth.md             # Clerk Third-Party Auth setup for Supabase RLS
+├── debug-payment-flow.md              # Postmortem: BUG-8 → BUG-11 cascade
+├── auth-strategy-decision.md          # Why Clerk + Supabase TPA over alternatives
+├── glossary.ko.md                     # Korean glossary of project terms
+├── 00.tasks.md                        # feat/pnpm-jwt-integration task tracker (CLOSED)
+├── 00.payment-hardening.tasks.md      # feat/payment-hardening task tracker (CLOSED)
+├── pnpm-jwt-integration-plan.md       # Original integration plan (CLOSED)
+└── archive/                           # Old planning docs, feat/taek merge artifacts
 ```
+
+The root also has `howtoexecute.local.md` (local dev guide) and `howtodeploy.prod.md` (production deployment), which are the canonical user-facing setup docs — these are tracked in git, unlike `_docs/`.
 
 ### Authentication Flow
 
@@ -217,8 +229,9 @@ Campaigns (from main):
 
 Payments / Stripe Connect:
 
-- `payment_transactions` — full ledger of donations including fee splits
-- `stripe_events`, `stripe_connect_events` — idempotency guards for webhook events
+- `payment_transactions` — full ledger of donations including fee splits + `metadata` JSONB snapshot (PH-2: stripe / lifecycle / target / client / diagnostics sections)
+- `stripe_events`, `stripe_connect_events` — webhook event idempotency. PH-1 wires `stripe_events` INSERT at webhook entry so Stripe retries (network failure, our 5xx) hit the PK conflict and return `{received: true, duplicate: true}` instead of double-processing side effects
+- `stripe_disputes` — PH-3 dispute lifecycle (`dispute_id PK, payment_intent_id, status, reason, amount, evidence_due_by, ...`). Service-role-only (no public RLS policies — intent documented in migration `20260611000000_stripe_disputes.sql`). Webhook handlers in `server.js` for `charge.dispute.created` / `funds_withdrawn` / `funds_reinstated` / `closed` upsert by `dispute_id` (idempotent under PH-1 replay)
 - `platform_settings` — platform fee configuration
 
 Documents:
@@ -299,9 +312,15 @@ SUPABASE_SECRET_KEY=
 CLERK_SECRET_KEY=
 PORT=4000
 ALLOWED_ORIGINS=http://localhost:3000
+
+# Payment metadata (PH-2). Dev fallback exists; PRODUCTION must set IP_HASH_SALT.
+IP_HASH_SALT=                    # `openssl rand -hex 32` — salts SHA-256 IP hash
+GIT_SHA=                         # backend version stamp in payment_transactions.metadata.diagnostics
 ```
 
 `STRIPE_BYPASS_CONNECT=true` lets the `/api/payments/create-intent` route create test-mode PaymentIntents against the platform account instead of requiring each organization to have a connected Stripe account (`stripe_account_id` + `stripe_charges_enabled`). Without it, every donation 400s with `code: STRIPE_NOT_CONNECTED` until the org completes Connect onboarding. Never set in production.
+
+`IP_HASH_SALT` MUST be set in production (32+ bytes from `openssl rand -hex 32`). Without it, the code fallback (`'dev-only-replace-in-prod'`) is used and donor IP hashes become reversible via rainbow table. `GIT_SHA` is recommended; on Vercel set it to `${VERCEL_GIT_COMMIT_SHA}` so `payment_transactions.metadata.diagnostics.backend_version` traces which build processed each payment.
 
 All frontend env vars are accessed through `frontend-vite/src/config/index.ts`.
 
