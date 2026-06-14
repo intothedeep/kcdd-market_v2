@@ -17,7 +17,7 @@
 
 | Software              | Check command                    | Min version |
 | --------------------- | -------------------------------- | ----------- |
-| Node.js               | `node -v`                        | 18+         |
+| Node.js               | `node -v`                        | 22.13+      |
 | pnpm                  | `pnpm -v`                        | 11+         |
 | Docker (Desktop or Colima) | `docker ps`                 | latest      |
 | Supabase CLI          | `cd backend && pnpx supabase -v` | latest      |
