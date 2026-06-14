@@ -13,6 +13,6 @@
     "supabase": "2.98.2"
   },
   "pnpm": {
-    "allowedBuildScripts": ["supabase"]
+    "onlyBuiltDependencies": ["supabase"]
   }
 }

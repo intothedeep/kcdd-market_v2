@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@11.1.2",
   "pnpm": {
-    "allowedBuildScripts": ["esbuild", "chromedriver"]
+    "onlyBuiltDependencies": ["esbuild", "chromedriver"]
   },
   "scripts": {
     "dev": "vite",
