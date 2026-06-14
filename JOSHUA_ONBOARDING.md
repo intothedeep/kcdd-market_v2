@@ -33,7 +33,7 @@ Three PRs stacked on top of each other:
 
 ### 2.1 Tooling
 
-- Node.js 20+ (`node --version`)
+- Node.js 22.13+ (`node --version`) — pnpm 11.x requires Node 22.13 or newer
 - **pnpm 11.1.2 or later** (this PR series requires it):
   ```bash
   corepack enable
