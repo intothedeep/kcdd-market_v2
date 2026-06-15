@@ -66,45 +66,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Flag } from 'lucide-react'
+import {
+  buildPublishedCampaignView,
+  type PublishedCampaignSnapshot,
+  type PublishedCampaignView,
+} from '@/types/PublishedCampaignView'
 
-interface Campaign {
-  id: string
-  title: string
-  creator_name: string
-  creator_role: string
-  cause_area_ids: string[]
-  funding_goal: number
-  amount_raised: number
-  supporters_count: number
-  short_description: string
-  story_title: string
-  story_content: string
-  image_url: string | null
-  logo_url: string | null
-  contact_email: string
-  status: string
-  slug: string
-  created_at: string
-  created_by?: string
-  organization_id?: string
-  // Social links
-  facebook_url?: string
-  twitter_url?: string
-  instagram_url?: string
-  linkedin_url?: string
-  youtube_url?: string
-  tiktok_url?: string
-  website_url?: string
-  phone?: string
-  organization: {
-    id: string
-    name: string
-    slug: string
-    mission: string
-    logo_url: string | null
-    stripe_charges_enabled?: boolean
-  }
-}
+// `Campaign` interface superseded by `PublishedCampaignView` (A7a).
+// The page state and JSX now consume the view adapter so donor-visible
+// content is sourced from the published revision snapshot per D-public-page.
 
 interface CampaignImage {
   id: string
@@ -181,7 +151,7 @@ interface SubmittedQuestion {
 export function CampaignPage() {
   const { slug } = useParams<{ slug: string }>()
   const { user, isSignedIn } = useUser()
-  const [campaign, setCampaign] = useState<Campaign | null>(null)
+  const [campaign, setCampaign] = useState<PublishedCampaignView | null>(null)
   const [causeAreas, setCauseAreas] = useState<CauseArea[]>([])
   const [allCauseAreas, setAllCauseAreas] = useState<CauseArea[]>([])
   const [faqs, setFaqs] = useState<FAQ[]>([])
@@ -631,7 +601,7 @@ export function CampaignPage() {
       const query = supabase.from('campaigns').select(
         `
           *,
-          organization:organizations(id, name, mission, logo_url, stripe_charges_enabled)
+          organization:organizations(id, name, slug, mission, logo_url, stripe_charges_enabled)
         `
       )
       const { data, error } = await (
@@ -640,14 +610,37 @@ export function CampaignPage() {
 
       if (error) throw error
 
-      setCampaign(data)
+      // D-public-page: render content from the published revision snapshot,
+      // not from the live campaigns row. The live row still sources identity
+      // + runtime counters (amount_raised, supporters_count, approval_status,
+      // organization join). Falls back to the live row when no snapshot
+      // exists (defensive: backfill should make this impossible).
+      let snapshot: PublishedCampaignSnapshot | null = null
+      const publishedRevisionId = (data as { published_revision_id?: string | null })
+        .published_revision_id
+      if (publishedRevisionId) {
+        const { data: revision, error: revisionError } = await supabase
+          .from('campaign_revisions')
+          .select('snapshot')
+          .eq('id', publishedRevisionId)
+          .maybeSingle()
+        if (!revisionError && revision) {
+          snapshot = (revision as { snapshot: PublishedCampaignSnapshot }).snapshot
+        }
+      }
 
-      // Fetch cause area names
-      if (data.cause_area_ids && data.cause_area_ids.length > 0) {
+      const view = buildPublishedCampaignView(
+        data as Record<string, unknown>,
+        snapshot
+      )
+      setCampaign(view)
+
+      // Fetch cause area names from the (snapshot-sourced) view
+      if (view.cause_area_ids && view.cause_area_ids.length > 0) {
         const { data: causes, error: causesError } = await supabase
           .from('cause_areas')
           .select('id, name')
-          .in('id', data.cause_area_ids)
+          .in('id', view.cause_area_ids)
 
         if (!causesError && causes) {
           setCauseAreas(causes)
