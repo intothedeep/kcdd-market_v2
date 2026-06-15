@@ -13,7 +13,7 @@
  * Public surface:
  *   - STATES, ACTIONS, TRANSITIONS
  *   - nextState(currentState, action)
- *   - synthesizeDedupeKey({ kind, entity_id, revision_number })
+ *   - synthesizeDedupeKey({ kind, entity_id, version })
  *   - getAdminUserIds(supabase)
  *   - emitNotification(supabase, params)
  */
@@ -91,22 +91,22 @@ export function nextState(currentState, action) {
  * Synthesize the deterministic dedupe_key used by the notifications
  * partial UNIQUE index `(recipient_clerk_user_id, dedupe_key)`.
  *
- * Format: `"<kind>:<entity_id>:<revision_number>"`.
+ * Format: `"<kind>:<entity_id>:<version>"`.
  *
  * @param {object} params
  * @param {string} params.kind
  * @param {string} params.entity_id
- * @param {number|string} params.revision_number
+ * @param {number|string} params.version
  * @returns {string}
  * @throws {Error} when any required field is missing.
  */
-export function synthesizeDedupeKey({ kind, entity_id, revision_number } = {}) {
+export function synthesizeDedupeKey({ kind, entity_id, version } = {}) {
   if (!kind) throw new Error('synthesizeDedupeKey: kind is required')
   if (!entity_id) throw new Error('synthesizeDedupeKey: entity_id is required')
-  if (revision_number === undefined || revision_number === null) {
-    throw new Error('synthesizeDedupeKey: revision_number is required')
+  if (version === undefined || version === null) {
+    throw new Error('synthesizeDedupeKey: version is required')
   }
-  return `${kind}:${entity_id}:${revision_number}`
+  return `${kind}:${entity_id}:${version}`
 }
 
 /**
@@ -130,7 +130,7 @@ export async function getAdminUserIds(supabase) {
  * `(recipient_clerk_user_id, dedupe_key)` index. Duplicate emits
  * (Postgres 23505) are swallowed and treated as success.
  *
- * `dedupe_key` is synthesized from kind/entity_id/revision_number.
+ * `dedupe_key` is synthesized from kind/entity_id/version.
  * `payload` defaults to `{}`. `link_url` is optional but recommended
  * for actionable kinds.
  *
@@ -140,7 +140,7 @@ export async function getAdminUserIds(supabase) {
  * @param {string} params.kind
  * @param {string} params.entity_type
  * @param {string} params.entity_id
- * @param {number|string} params.revision_number
+ * @param {number|string} params.version
  * @param {object} [params.payload]
  * @param {string} [params.link_url]
  * @returns {Promise<{inserted: boolean}>}
@@ -151,7 +151,7 @@ export async function emitNotification(supabase, params) {
     kind,
     entity_type,
     entity_id,
-    revision_number,
+    version,
     payload = {},
     link_url = null,
   } = params
@@ -163,7 +163,7 @@ export async function emitNotification(supabase, params) {
   if (!entity_type) throw new Error('emitNotification: entity_type is required')
   if (!entity_id) throw new Error('emitNotification: entity_id is required')
 
-  const dedupe_key = synthesizeDedupeKey({ kind, entity_id, revision_number })
+  const dedupe_key = synthesizeDedupeKey({ kind, entity_id, version })
 
   const { error } = await supabase.from('notifications').insert({
     recipient_clerk_user_id,

@@ -102,7 +102,7 @@ function escapeXml(s) {
 
 /**
  * GET /sitemap.xml
- * Public, no auth. Lists all donor-visible campaigns (published_revision_id
+ * Public, no auth. Lists all donor-visible campaigns (published_detail_id
  * IS NOT NULL). Uses last_edit_approved_at (fallback created_at) for <lastmod>.
  */
 app.get('/sitemap.xml', async (req, res) => {
@@ -110,7 +110,7 @@ app.get('/sitemap.xml', async (req, res) => {
     const { data, error } = await supabase
       .from('campaigns')
       .select('slug, last_edit_approved_at, created_at')
-      .not('published_revision_id', 'is', null)
+      .not('published_detail_id', 'is', null)
     if (error) throw error
     const base = process.env.FRONTEND_BASE_URL || 'http://localhost:5173'
     const urls = (data ?? [])
@@ -147,10 +147,10 @@ app.get('/api/campaigns/:slug/public-meta', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('campaigns')
-      .select('slug, last_edit_approved_at, created_at, published_revision_id')
+      .select('slug, last_edit_approved_at, created_at, published_detail_id')
       .eq('slug', req.params.slug)
       .single()
-    if (error || !data || !data.published_revision_id) {
+    if (error || !data || !data.published_detail_id) {
       return res.status(404).json({ error: 'Not found' })
     }
     const lm = new Date(data.last_edit_approved_at || data.created_at)
@@ -1042,9 +1042,10 @@ async function handleTransferCreated(transfer) {
  * POST /api/campaigns/:id/submit-edit
  *
  * Auth: Clerk JWT — caller must own the campaign's organization.
- * Body: { snapshot: object, change_summary: string|null }
- *   `snapshot` is the FULL proposed campaign row as JSONB. The
- *   frontend merges current campaign + form changes before posting.
+ * Body: { content: object, change_summary: string|null }
+ *   `content` is the JSONB content blob for `campaign_details.content`
+ *   (title, description, story, etc.). The frontend posts the full
+ *   proposed content for this version.
  *
  * Behavior:
  *   - status in (draft, rejected) → action=submit_initial
@@ -1052,7 +1053,7 @@ async function handleTransferCreated(transfer) {
  *   - otherwise                   → 409 (edit already pending / archived)
  *
  * Side effects:
- *   1. INSERT campaign_revisions row (revision_number = max+1).
+ *   1. INSERT campaign_details row (version = max+1).
  *   2. UPDATE campaigns.approval_status + last_edited_at.
  *   3. Fan-out notifications to every admin user.
  */
@@ -1060,10 +1061,10 @@ app.post('/api/campaigns/:id/submit-edit', clerkAuth, async (req, res) => {
   try {
     const campaignId = req.params.id
     const callerUserId = req.auth.userId
-    const { snapshot, change_summary = null } = req.body || {}
+    const { content, change_summary = null } = req.body || {}
 
-    if (!snapshot || typeof snapshot !== 'object') {
-      return res.status(400).json({ error: 'Missing or invalid snapshot' })
+    if (!content || typeof content !== 'object') {
+      return res.status(400).json({ error: 'Missing or invalid content' })
     }
 
     // 1. Load campaign + owning organization for auth + state read.
@@ -1105,35 +1106,35 @@ app.post('/api/campaigns/:id/submit-edit', clerkAuth, async (req, res) => {
       return res.status(409).json({ error: err.message, code: 'INVALID_TRANSITION' })
     }
 
-    // 4. Compute next revision_number.
+    // 4. Compute next version.
     const { data: maxRow, error: maxErr } = await supabase
-      .from('campaign_revisions')
-      .select('revision_number')
+      .from('campaign_details')
+      .select('version')
       .eq('campaign_id', campaignId)
-      .order('revision_number', { ascending: false })
+      .order('version', { ascending: false })
       .limit(1)
       .maybeSingle()
 
     if (maxErr) throw maxErr
-    const nextRevisionNumber = (maxRow?.revision_number ?? 0) + 1
+    const nextVersion = (maxRow?.version ?? 0) + 1
 
-    // 5. INSERT campaign_revisions row.
-    const revisionApprovalStatus =
+    // 5. INSERT campaign_details row.
+    const detailStatus =
       newStatus === 'pending_initial_approval'
         ? 'pending_initial_approval'
         : 'pending_edit_approval'
 
-    const { data: revision, error: insertErr } = await supabase
-      .from('campaign_revisions')
+    const { data: detail, error: insertErr } = await supabase
+      .from('campaign_details')
       .insert({
         campaign_id: campaignId,
-        revision_number: nextRevisionNumber,
-        snapshot,
+        version: nextVersion,
+        content,
         changed_by: callerUserId,
         change_summary,
-        approval_status: revisionApprovalStatus,
+        status: detailStatus,
       })
-      .select('id, revision_number')
+      .select('id, version')
       .single()
 
     if (insertErr) throw insertErr
@@ -1157,9 +1158,9 @@ app.post('/api/campaigns/:id/submit-edit', clerkAuth, async (req, res) => {
           emitNotification(supabase, {
             recipient_clerk_user_id: adminId,
             kind: 'campaign_edit_pending',
-            entity_type: 'campaign_revision',
-            entity_id: revision.id,
-            revision_number: revision.revision_number,
+            entity_type: 'campaign_detail',
+            entity_id: detail.id,
+            version: detail.version,
             payload: {
               campaign_id: campaignId,
               campaign_title: campaign.title,
@@ -1174,8 +1175,8 @@ app.post('/api/campaigns/:id/submit-edit', clerkAuth, async (req, res) => {
     }
 
     return res.json({
-      revision_id: revision.id,
-      revision_number: revision.revision_number,
+      detail_id: detail.id,
+      version: detail.version,
       status: newStatus,
     })
   } catch (err) {
@@ -1185,25 +1186,25 @@ app.post('/api/campaigns/:id/submit-edit', clerkAuth, async (req, res) => {
 })
 
 /**
- * Approve a pending campaign revision.
- * POST /api/admin/campaigns/:campaignId/revisions/:revisionId/approve
+ * Approve a pending campaign detail.
+ * POST /api/admin/campaigns/:campaignId/details/:detailId/approve
  *
  * Auth: Clerk JWT — caller must have user_profiles.user_type='admin'.
  * Body: none.
  *
  * Side effects:
- *   - UPDATE revision row: approved + approved_by + approved_at.
+ *   - UPDATE detail row: approved + approved_by + approved_at.
  *   - UPDATE campaign: approval_status='active',
- *     published_revision_id=revisionId, last_edit_approved_at=now(),
+ *     published_detail_id=detailId, last_edit_approved_at=now(),
  *     first_approved_at=now() if previously NULL.
  *   - Emit notification to CBO (campaigns.created_by).
  */
 app.post(
-  '/api/admin/campaigns/:campaignId/revisions/:revisionId/approve',
+  '/api/admin/campaigns/:campaignId/details/:detailId/approve',
   clerkAuth,
   async (req, res) => {
     try {
-      const { campaignId, revisionId } = req.params
+      const { campaignId, detailId } = req.params
       const callerUserId = req.auth.userId
 
       // 1. Admin auth.
@@ -1216,17 +1217,17 @@ app.post(
         return res.status(403).json({ error: 'Forbidden: admin only' })
       }
 
-      // 2. Load revision + campaign.
-      const { data: revision, error: revErr } = await supabase
-        .from('campaign_revisions')
-        .select('id, campaign_id, revision_number, approval_status')
-        .eq('id', revisionId)
+      // 2. Load detail + campaign.
+      const { data: detail, error: detailErr } = await supabase
+        .from('campaign_details')
+        .select('id, campaign_id, version, status')
+        .eq('id', detailId)
         .single()
-      if (revErr || !revision) {
-        return res.status(404).json({ error: 'Revision not found' })
+      if (detailErr || !detail) {
+        return res.status(404).json({ error: 'Detail not found' })
       }
-      if (revision.campaign_id !== campaignId) {
-        return res.status(400).json({ error: 'Revision does not belong to campaign' })
+      if (detail.campaign_id !== campaignId) {
+        return res.status(400).json({ error: 'Detail does not belong to campaign' })
       }
 
       const { data: campaign, error: campErr } = await supabase
@@ -1248,22 +1249,22 @@ app.post(
 
       const nowIso = new Date().toISOString()
 
-      // 4. UPDATE revision row.
-      const { error: revUpdErr } = await supabase
-        .from('campaign_revisions')
+      // 4. UPDATE detail row.
+      const { error: detailUpdErr } = await supabase
+        .from('campaign_details')
         .update({
-          approval_status: 'approved',
+          status: 'approved',
           approved_by: callerUserId,
           approved_at: nowIso,
         })
-        .eq('id', revisionId)
-      if (revUpdErr) throw revUpdErr
+        .eq('id', detailId)
+      if (detailUpdErr) throw detailUpdErr
 
-      // 5. UPDATE campaign — set published snapshot + timestamps.
+      // 5. UPDATE campaign — set published detail pointer + timestamps.
       const isFirstApproval = !campaign.first_approved_at
       const campaignPatch = {
         approval_status: newStatus,
-        published_revision_id: revisionId,
+        published_detail_id: detailId,
         last_edit_approved_at: nowIso,
       }
       if (isFirstApproval) {
@@ -1284,7 +1285,7 @@ app.post(
             kind: isFirstApproval ? 'campaign_first_approved' : 'campaign_edit_approved',
             entity_type: 'campaign',
             entity_id: campaign.id,
-            revision_number: revision.revision_number,
+            version: detail.version,
             payload: {
               campaign_id: campaign.id,
               campaign_title: campaign.title,
@@ -1298,33 +1299,33 @@ app.post(
 
       return res.json({
         status: newStatus,
-        published_revision_id: revisionId,
+        published_detail_id: detailId,
       })
     } catch (err) {
-      console.error('Error in revision approve:', err)
+      console.error('Error in detail approve:', err)
       return res.status(500).json({ error: err.message })
     }
   }
 )
 
 /**
- * Reject a pending campaign revision.
- * POST /api/admin/campaigns/:campaignId/revisions/:revisionId/reject
+ * Reject a pending campaign detail.
+ * POST /api/admin/campaigns/:campaignId/details/:detailId/reject
  *
  * Auth: Clerk JWT — admin only.
  * Body: { review_note: string }  (required, min length 1)
  *
  * Side effects:
- *   - UPDATE revision: rejected + approved_by + approved_at + review_note.
- *   - UPDATE campaign.approval_status only (published_revision_id stays).
+ *   - UPDATE detail: rejected + approved_by + approved_at + review_note.
+ *   - UPDATE campaign.approval_status only (published_detail_id stays).
  *   - Emit `campaign_edit_rejected` notification to the CBO.
  */
 app.post(
-  '/api/admin/campaigns/:campaignId/revisions/:revisionId/reject',
+  '/api/admin/campaigns/:campaignId/details/:detailId/reject',
   clerkAuth,
   async (req, res) => {
     try {
-      const { campaignId, revisionId } = req.params
+      const { campaignId, detailId } = req.params
       const callerUserId = req.auth.userId
       const reviewNote = typeof req.body?.review_note === 'string' ? req.body.review_note : ''
 
@@ -1342,17 +1343,17 @@ app.post(
         return res.status(403).json({ error: 'Forbidden: admin only' })
       }
 
-      // 2. Load revision + campaign.
-      const { data: revision, error: revErr } = await supabase
-        .from('campaign_revisions')
-        .select('id, campaign_id, revision_number, approval_status')
-        .eq('id', revisionId)
+      // 2. Load detail + campaign.
+      const { data: detail, error: detailErr } = await supabase
+        .from('campaign_details')
+        .select('id, campaign_id, version, status')
+        .eq('id', detailId)
         .single()
-      if (revErr || !revision) {
-        return res.status(404).json({ error: 'Revision not found' })
+      if (detailErr || !detail) {
+        return res.status(404).json({ error: 'Detail not found' })
       }
-      if (revision.campaign_id !== campaignId) {
-        return res.status(400).json({ error: 'Revision does not belong to campaign' })
+      if (detail.campaign_id !== campaignId) {
+        return res.status(400).json({ error: 'Detail does not belong to campaign' })
       }
 
       const { data: campaign, error: campErr } = await supabase
@@ -1375,20 +1376,20 @@ app.post(
 
       const nowIso = new Date().toISOString()
 
-      // 4. UPDATE revision row.
-      const { error: revUpdErr } = await supabase
-        .from('campaign_revisions')
+      // 4. UPDATE detail row.
+      const { error: detailUpdErr } = await supabase
+        .from('campaign_details')
         .update({
-          approval_status: 'rejected',
+          status: 'rejected',
           approved_by: callerUserId,
           approved_at: nowIso,
           review_note: reviewNote,
         })
-        .eq('id', revisionId)
-      if (revUpdErr) throw revUpdErr
+        .eq('id', detailId)
+      if (detailUpdErr) throw detailUpdErr
 
       // 5. UPDATE campaign approval_status ONLY. Do NOT touch
-      //    published_revision_id — the last approved snapshot stays live.
+      //    published_detail_id — the last approved detail stays live.
       const { error: campUpdErr } = await supabase
         .from('campaigns')
         .update({ approval_status: newStatus })
@@ -1403,7 +1404,7 @@ app.post(
             kind: 'campaign_edit_rejected',
             entity_type: 'campaign',
             entity_id: campaign.id,
-            revision_number: revision.revision_number,
+            version: detail.version,
             payload: {
               campaign_id: campaign.id,
               campaign_title: campaign.title,
@@ -1418,7 +1419,7 @@ app.post(
 
       return res.json({ status: newStatus })
     } catch (err) {
-      console.error('Error in revision reject:', err)
+      console.error('Error in detail reject:', err)
       return res.status(500).json({ error: err.message })
     }
   }
@@ -1433,12 +1434,12 @@ app.post(
 // user_profiles.user_type === 'admin'.
 
 /**
- * List pending campaign revisions (initial + edit) for admin review.
+ * List pending campaign details (initial + edit) for admin review.
  * GET /api/admin/pending-edits
  *
  * Auth: Clerk JWT — caller must be user_profiles.user_type='admin'.
  *
- * Returns the latest pending revision per campaign, oldest first.
+ * Returns the latest pending detail per campaign, oldest first.
  * Pagination is intentionally out of scope (admin volume small).
  */
 app.get('/api/admin/pending-edits', clerkAuth, async (req, res) => {
@@ -1455,27 +1456,27 @@ app.get('/api/admin/pending-edits', clerkAuth, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden: admin only' })
     }
 
-    // 2. Pull every pending revision joined to its campaign + org.
+    // 2. Pull every pending detail joined to its campaign + org.
     //    Sorted oldest-first so admins burn down the queue FIFO.
-    const { data: revisions, error: revErr } = await supabase
-      .from('campaign_revisions')
+    const { data: details, error: detailErr } = await supabase
+      .from('campaign_details')
       .select(
-        'id, revision_number, approval_status, change_summary, changed_by, created_at, campaign_id, ' +
+        'id, version, status, change_summary, changed_by, created_at, campaign_id, ' +
           'campaigns!inner(id, title, slug, approval_status, organization_id, organizations(id, name))'
       )
-      .in('approval_status', ['pending_initial_approval', 'pending_edit_approval'])
+      .in('status', ['pending_initial_approval', 'pending_edit_approval'])
       .order('created_at', { ascending: true })
-    if (revErr) throw revErr
+    if (detailErr) throw detailErr
 
     // 3. Collapse to one row per campaign (latest pending wins) — a
     //    second pending row should not exist (state machine forbids
     //    submit_edit while pending), but be defensive.
     const seen = new Set()
     const rows = []
-    for (const r of revisions ?? []) {
-      if (seen.has(r.campaign_id)) continue
-      seen.add(r.campaign_id)
-      const c = r.campaigns || {}
+    for (const d of details ?? []) {
+      if (seen.has(d.campaign_id)) continue
+      seen.add(d.campaign_id)
+      const c = d.campaigns || {}
       const org = c.organizations || {}
       rows.push({
         campaign_id: c.id,
@@ -1483,14 +1484,14 @@ app.get('/api/admin/pending-edits', clerkAuth, async (req, res) => {
         campaign_slug: c.slug,
         organization_id: c.organization_id,
         organization_name: org.name ?? null,
-        revision_id: r.id,
-        revision_number: r.revision_number,
-        revision_approval_status: r.approval_status,
-        change_summary: r.change_summary,
-        submitted_by: r.changed_by,
-        submitted_at: r.created_at,
+        detail_id: d.id,
+        version: d.version,
+        detail_status: d.status,
+        change_summary: d.change_summary,
+        submitted_by: d.changed_by,
+        submitted_at: d.created_at,
         campaign_approval_status: c.approval_status,
-        is_initial: r.approval_status === 'pending_initial_approval',
+        is_initial: d.status === 'pending_initial_approval',
       })
     }
 
@@ -1502,20 +1503,20 @@ app.get('/api/admin/pending-edits', clerkAuth, async (req, res) => {
 })
 
 /**
- * Fetch a single revision's snapshot for admin preview.
- * GET /api/campaigns/:campaignId/revisions/:revisionId/preview
+ * Fetch a single detail's content for admin preview.
+ * GET /api/campaigns/:campaignId/details/:detailId/preview
  *
  * Auth: Clerk JWT — admin only.
- * Returns: { campaign, revision }
+ * Returns: { campaign, detail }
  *
  * No diff visualization — A5 owns that.
  */
 app.get(
-  '/api/campaigns/:campaignId/revisions/:revisionId/preview',
+  '/api/campaigns/:campaignId/details/:detailId/preview',
   clerkAuth,
   async (req, res) => {
     try {
-      const { campaignId, revisionId } = req.params
+      const { campaignId, detailId } = req.params
       const callerUserId = req.auth.userId
 
       // 1. Admin auth.
@@ -1528,19 +1529,19 @@ app.get(
         return res.status(403).json({ error: 'Forbidden: admin only' })
       }
 
-      // 2. Load revision.
-      const { data: revision, error: revErr } = await supabase
-        .from('campaign_revisions')
+      // 2. Load detail.
+      const { data: detail, error: detailErr } = await supabase
+        .from('campaign_details')
         .select(
-          'id, campaign_id, revision_number, snapshot, change_summary, approval_status, created_at, changed_by'
+          'id, campaign_id, version, content, change_summary, status, created_at, changed_by'
         )
-        .eq('id', revisionId)
+        .eq('id', detailId)
         .single()
-      if (revErr || !revision) {
-        return res.status(404).json({ error: 'Revision not found' })
+      if (detailErr || !detail) {
+        return res.status(404).json({ error: 'Detail not found' })
       }
-      if (revision.campaign_id !== campaignId) {
-        return res.status(400).json({ error: 'Revision does not belong to campaign' })
+      if (detail.campaign_id !== campaignId) {
+        return res.status(400).json({ error: 'Detail does not belong to campaign' })
       }
 
       // 3. Load current campaign row (used as the 'before' side).
@@ -1555,18 +1556,18 @@ app.get(
 
       return res.json({
         campaign,
-        revision: {
-          id: revision.id,
-          revision_number: revision.revision_number,
-          snapshot: revision.snapshot,
-          change_summary: revision.change_summary,
-          approval_status: revision.approval_status,
-          created_at: revision.created_at,
-          changed_by: revision.changed_by,
+        detail: {
+          id: detail.id,
+          version: detail.version,
+          content: detail.content,
+          change_summary: detail.change_summary,
+          status: detail.status,
+          created_at: detail.created_at,
+          changed_by: detail.changed_by,
         },
       })
     } catch (err) {
-      console.error('Error in revision preview:', err)
+      console.error('Error in detail preview:', err)
       return res.status(500).json({ error: err.message })
     }
   }
