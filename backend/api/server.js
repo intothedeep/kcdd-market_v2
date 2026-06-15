@@ -1343,6 +1343,211 @@ app.post(
 )
 
 // ============================================
+// PENDING REVIEWS + NOTIFICATIONS ENDPOINTS
+// ============================================
+// Phase A, Tasks A4 + A9 — admin pending-edits queue, revision
+// preview, and the in-app notification inbox.  All four routes
+// require a Clerk JWT; admin-only routes additionally verify
+// user_profiles.user_type === 'admin'.
+
+/**
+ * List pending campaign revisions (initial + edit) for admin review.
+ * GET /api/admin/pending-edits
+ *
+ * Auth: Clerk JWT — caller must be user_profiles.user_type='admin'.
+ *
+ * Returns the latest pending revision per campaign, oldest first.
+ * Pagination is intentionally out of scope (admin volume small).
+ */
+app.get('/api/admin/pending-edits', clerkAuth, async (req, res) => {
+  try {
+    const callerUserId = req.auth.userId
+
+    // 1. Admin auth.
+    const { data: profile, error: profileErr } = await supabase
+      .from('user_profiles')
+      .select('user_type')
+      .eq('id', callerUserId)
+      .single()
+    if (profileErr || !profile || profile.user_type !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin only' })
+    }
+
+    // 2. Pull every pending revision joined to its campaign + org.
+    //    Sorted oldest-first so admins burn down the queue FIFO.
+    const { data: revisions, error: revErr } = await supabase
+      .from('campaign_revisions')
+      .select(
+        'id, revision_number, approval_status, change_summary, changed_by, created_at, campaign_id, ' +
+          'campaigns!inner(id, title, slug, approval_status, organization_id, organizations(id, name))'
+      )
+      .in('approval_status', ['pending_initial_approval', 'pending_edit_approval'])
+      .order('created_at', { ascending: true })
+    if (revErr) throw revErr
+
+    // 3. Collapse to one row per campaign (latest pending wins) — a
+    //    second pending row should not exist (state machine forbids
+    //    submit_edit while pending), but be defensive.
+    const seen = new Set()
+    const rows = []
+    for (const r of revisions ?? []) {
+      if (seen.has(r.campaign_id)) continue
+      seen.add(r.campaign_id)
+      const c = r.campaigns || {}
+      const org = c.organizations || {}
+      rows.push({
+        campaign_id: c.id,
+        campaign_title: c.title,
+        campaign_slug: c.slug,
+        organization_id: c.organization_id,
+        organization_name: org.name ?? null,
+        revision_id: r.id,
+        revision_number: r.revision_number,
+        revision_approval_status: r.approval_status,
+        change_summary: r.change_summary,
+        submitted_by: r.changed_by,
+        submitted_at: r.created_at,
+        campaign_approval_status: c.approval_status,
+        is_initial: r.approval_status === 'pending_initial_approval',
+      })
+    }
+
+    return res.json({ rows, total: rows.length })
+  } catch (err) {
+    console.error('Error in GET /api/admin/pending-edits:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * Fetch a single revision's snapshot for admin preview.
+ * GET /api/campaigns/:campaignId/revisions/:revisionId/preview
+ *
+ * Auth: Clerk JWT — admin only.
+ * Returns: { campaign, revision }
+ *
+ * No diff visualization — A5 owns that.
+ */
+app.get(
+  '/api/campaigns/:campaignId/revisions/:revisionId/preview',
+  clerkAuth,
+  async (req, res) => {
+    try {
+      const { campaignId, revisionId } = req.params
+      const callerUserId = req.auth.userId
+
+      // 1. Admin auth.
+      const { data: profile, error: profileErr } = await supabase
+        .from('user_profiles')
+        .select('user_type')
+        .eq('id', callerUserId)
+        .single()
+      if (profileErr || !profile || profile.user_type !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden: admin only' })
+      }
+
+      // 2. Load revision.
+      const { data: revision, error: revErr } = await supabase
+        .from('campaign_revisions')
+        .select(
+          'id, campaign_id, revision_number, snapshot, change_summary, approval_status, created_at, changed_by'
+        )
+        .eq('id', revisionId)
+        .single()
+      if (revErr || !revision) {
+        return res.status(404).json({ error: 'Revision not found' })
+      }
+      if (revision.campaign_id !== campaignId) {
+        return res.status(400).json({ error: 'Revision does not belong to campaign' })
+      }
+
+      // 3. Load current campaign row (used as the 'before' side).
+      const { data: campaign, error: campErr } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', campaignId)
+        .single()
+      if (campErr || !campaign) {
+        return res.status(404).json({ error: 'Campaign not found' })
+      }
+
+      return res.json({
+        campaign,
+        revision: {
+          id: revision.id,
+          revision_number: revision.revision_number,
+          snapshot: revision.snapshot,
+          change_summary: revision.change_summary,
+          approval_status: revision.approval_status,
+          created_at: revision.created_at,
+          changed_by: revision.changed_by,
+        },
+      })
+    } catch (err) {
+      console.error('Error in revision preview:', err)
+      return res.status(500).json({ error: err.message })
+    }
+  }
+)
+
+/**
+ * List the caller's in-app notifications (newest first, capped at 50).
+ * GET /api/notifications
+ *
+ * Auth: Clerk JWT.
+ * Returns: { rows, unread_count }
+ */
+app.get('/api/notifications', clerkAuth, async (req, res) => {
+  try {
+    const callerUserId = req.auth.userId
+
+    const { data: rows, error } = await supabase
+      .from('notifications')
+      .select('id, recipient_clerk_user_id, kind, payload, link_url, entity_type, entity_id, read_at, created_at')
+      .eq('recipient_clerk_user_id', callerUserId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (error) throw error
+
+    const unread_count = (rows ?? []).filter((r) => r.read_at === null).length
+    return res.json({ rows: rows ?? [], unread_count })
+  } catch (err) {
+    console.error('Error in GET /api/notifications:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * Mark a single notification as read.
+ * POST /api/notifications/:id/read
+ *
+ * Auth: Clerk JWT — caller must own the notification.
+ * Returns: { updated: boolean } — false when the row was already read
+ *   or did not match (idempotent for client retries).
+ */
+app.post('/api/notifications/:id/read', clerkAuth, async (req, res) => {
+  try {
+    const callerUserId = req.auth.userId
+    const { id } = req.params
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('recipient_clerk_user_id', callerUserId)
+      .is('read_at', null)
+      .select('id')
+    if (error) throw error
+
+    return res.json({ updated: Array.isArray(data) && data.length > 0 })
+  } catch (err) {
+    console.error('Error in POST /api/notifications/:id/read:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+
+// ============================================
 // TAX DOCUMENT ENDPOINTS
 // ============================================
 

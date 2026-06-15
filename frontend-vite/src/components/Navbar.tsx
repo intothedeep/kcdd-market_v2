@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ChevronDown, LayoutDashboard, Heart, Building2, Shield } from 'lucide-react'
 import { useUserType } from '@/hooks/useClerkSupabase'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 export function Navbar() {
   const { isSignedIn } = useUser()
@@ -142,6 +143,11 @@ export function Navbar() {
                   </Button>
                 </Link>
               )}
+              {/* In-app notification inbox — mounted for every signed-in user.
+                  The bell hides itself when the inbox is empty for donors; the
+                  current notification kinds (campaign_*) only fan out to
+                  admins and CBOs, so donors will simply see an empty inbox. */}
+              <NotificationBell />
               <UserButton afterSignOutUrl={routes.home} />
             </>
           ) : (

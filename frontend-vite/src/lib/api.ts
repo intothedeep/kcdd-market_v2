@@ -26,4 +26,22 @@ export const api = {
 
     return response.json()
   },
+
+  async get<T>(path: string, getToken: GetToken): Promise<T> {
+    const token = await getToken({ template: 'supabase' })
+
+    const response = await fetch(`${apiConfig.baseUrl}${path}`, {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: response.statusText }))
+      throw new Error(err.error || `Request failed: ${response.status}`)
+    }
+
+    return response.json()
+  },
 }

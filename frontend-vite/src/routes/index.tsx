@@ -40,6 +40,7 @@ import { CampaignDonatePage } from '@/pages/CampaignDonatePage'
 // RoleSelectionPage removed - now using RoleSelectionModal in App.tsx
 import { AdminDashboard } from '@/pages/admin/DashboardPage'
 import { AdminUsersPage } from '@/pages/admin/UsersPage'
+import { PendingEditsPage } from '@/pages/admin/PendingEditsPage'
 import { useRealUserType } from '@/hooks/useClerkSupabase'
 
 // Legal Pages
@@ -266,6 +267,16 @@ export function AppRoutes() {
             <ProtectedRoute>
               <ProtectedAdminRoute>
                 <AdminUsersPage />
+              </ProtectedAdminRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/pending-edits"
+          element={
+            <ProtectedRoute>
+              <ProtectedAdminRoute>
+                <PendingEditsPage />
               </ProtectedAdminRoute>
             </ProtectedRoute>
           }
