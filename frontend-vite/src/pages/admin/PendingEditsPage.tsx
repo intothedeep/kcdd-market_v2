@@ -1,9 +1,9 @@
 /**
  * Admin — Pending Campaign Reviews (Phase A, Task A4).
  *
- * Lists pending campaign revisions in two tabs (new vs. edits), with
+ * Lists pending campaign details in two tabs (new vs. edits), with
  * Preview / Approve / Reject actions per row. Diff visualization is
- * deferred to A5; the preview modal renders the raw JSON snapshot.
+ * deferred to A5; the preview modal renders the raw JSON content.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -32,9 +32,9 @@ type PendingRow = {
   campaign_slug: string
   organization_id: string
   organization_name: string | null
-  revision_id: string
-  revision_number: number
-  revision_approval_status: 'pending_initial_approval' | 'pending_edit_approval'
+  detail_id: string
+  version: number
+  detail_status: 'pending_initial_approval' | 'pending_edit_approval'
   change_summary: string | null
   submitted_by: string
   submitted_at: string
@@ -47,14 +47,14 @@ type ListResponse = {
   total: number
 }
 
-type RevisionPreview = {
+type DetailPreview = {
   campaign: Record<string, unknown>
-  revision: {
+  detail: {
     id: string
-    revision_number: number
-    snapshot: Record<string, unknown>
+    version: number
+    content: Record<string, unknown>
     change_summary: string | null
-    approval_status: string
+    status: string
     created_at: string
     changed_by: string
   }
@@ -76,7 +76,7 @@ export function PendingEditsPage() {
   const [rows, setRows] = useState<PendingRow[]>([])
   const [loading, setLoading] = useState(true)
   const [previewRow, setPreviewRow] = useState<PendingRow | null>(null)
-  const [previewData, setPreviewData] = useState<RevisionPreview | null>(null)
+  const [previewData, setPreviewData] = useState<DetailPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [rejectRow, setRejectRow] = useState<PendingRow | null>(null)
   const [reviewNote, setReviewNote] = useState('')
@@ -117,8 +117,8 @@ export function PendingEditsPage() {
     setPreviewData(null)
     setPreviewLoading(true)
     try {
-      const data = await api.get<RevisionPreview>(
-        `/api/campaigns/${row.campaign_id}/revisions/${row.revision_id}/preview`,
+      const data = await api.get<DetailPreview>(
+        `/api/campaigns/${row.campaign_id}/details/${row.detail_id}/preview`,
         getToken
       )
       setPreviewData(data)
@@ -153,7 +153,7 @@ export function PendingEditsPage() {
     setActionPending(true)
     try {
       await api.post(
-        `/api/admin/campaigns/${row.campaign_id}/revisions/${row.revision_id}/approve`,
+        `/api/admin/campaigns/${row.campaign_id}/details/${row.detail_id}/approve`,
         {},
         getToken
       )
@@ -185,7 +185,7 @@ export function PendingEditsPage() {
     setActionPending(true)
     try {
       await api.post(
-        `/api/admin/campaigns/${rejectRow.campaign_id}/revisions/${rejectRow.revision_id}/reject`,
+        `/api/admin/campaigns/${rejectRow.campaign_id}/details/${rejectRow.detail_id}/reject`,
         { review_note: note },
         getToken
       )
@@ -210,7 +210,7 @@ export function PendingEditsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Pending Campaign Reviews</h1>
           <p className="text-sm text-[#737373]">
-            {rows.length} pending revision{rows.length === 1 ? '' : 's'} awaiting action.
+            {rows.length} pending detail{rows.length === 1 ? '' : 's'} awaiting action.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchList} disabled={loading}>
@@ -250,7 +250,7 @@ export function PendingEditsPage() {
       ) : (
         <div className="space-y-3">
           {visibleRows.map((row) => (
-            <Card key={row.revision_id} className="p-4">
+            <Card key={row.detail_id} className="p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center gap-2">
@@ -262,7 +262,7 @@ export function PendingEditsPage() {
                           : 'bg-amber-100 text-amber-700'
                       }
                     >
-                      rev #{row.revision_number}
+                      v{row.version}
                     </Badge>
                   </div>
                   <p className="text-xs text-[#737373]">
@@ -307,7 +307,7 @@ export function PendingEditsPage() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>
-              {previewRow?.campaign_title} — rev #{previewRow?.revision_number}
+              {previewRow?.campaign_title} — v{previewRow?.version}
             </DialogTitle>
           </DialogHeader>
           {previewLoading ? (
@@ -316,18 +316,18 @@ export function PendingEditsPage() {
             </div>
           ) : previewData ? (
             <div className="space-y-4">
-              {previewData.revision.change_summary && (
+              {previewData.detail.change_summary && (
                 <div>
                   <p className="text-xs font-medium uppercase text-[#737373]">Change summary</p>
-                  <p className="text-sm">{previewData.revision.change_summary}</p>
+                  <p className="text-sm">{previewData.detail.change_summary}</p>
                 </div>
               )}
               <div>
                 <p className="text-xs font-medium uppercase text-[#737373]">
-                  Proposed snapshot (raw JSON — diff view coming in A5)
+                  Proposed content (raw JSON — diff view coming in A5)
                 </p>
                 <pre className="mt-1 max-h-[50vh] overflow-auto rounded-lg bg-gray-50 p-3 text-xs">
-                  {JSON.stringify(previewData.revision.snapshot, null, 2)}
+                  {JSON.stringify(previewData.detail.content, null, 2)}
                 </pre>
               </div>
             </div>
@@ -358,7 +358,7 @@ export function PendingEditsPage() {
       <Dialog open={!!rejectRow} onOpenChange={(open) => !open && closeReject()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject revision</DialogTitle>
+            <DialogTitle>Reject detail</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <p className="text-sm text-[#737373]">
@@ -368,7 +368,7 @@ export function PendingEditsPage() {
               value={reviewNote}
               onChange={(e) => setReviewNote(e.target.value)}
               rows={5}
-              placeholder="Explain why this revision is being rejected…"
+              placeholder="Explain why this detail is being rejected…"
             />
           </div>
           <DialogFooter>

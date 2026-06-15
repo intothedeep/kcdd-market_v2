@@ -68,13 +68,13 @@ import {
 import { Flag } from 'lucide-react'
 import {
   buildPublishedCampaignView,
-  type PublishedCampaignSnapshot,
+  type PublishedCampaignContent,
   type PublishedCampaignView,
 } from '@/types/PublishedCampaignView'
 
 // `Campaign` interface superseded by `PublishedCampaignView` (A7a).
 // The page state and JSX now consume the view adapter so donor-visible
-// content is sourced from the published revision snapshot per D-public-page.
+// content is sourced from the published campaign_details row per D-public-page.
 
 interface CampaignImage {
   id: string
@@ -618,7 +618,8 @@ export function CampaignPage() {
       const query = supabase.from('campaigns').select(
         `
           *,
-          organization:organizations(id, name, slug, mission, logo_url, stripe_charges_enabled)
+          organization:organizations(id, name, slug, mission, logo_url, stripe_charges_enabled),
+          published_detail:campaign_details!campaigns_published_detail_id_fkey(content)
         `
       )
       const { data, error } = await (
@@ -627,32 +628,22 @@ export function CampaignPage() {
 
       if (error) throw error
 
-      // D-public-page: render content from the published revision snapshot,
+      // D-public-page: render content from the published campaign_details row,
       // not from the live campaigns row. The live row still sources identity
       // + runtime counters (amount_raised, supporters_count, approval_status,
-      // organization join). Falls back to the live row when no snapshot
-      // exists (defensive: backfill should make this impossible).
-      let snapshot: PublishedCampaignSnapshot | null = null
-      const publishedRevisionId = (data as { published_revision_id?: string | null })
-        .published_revision_id
-      if (publishedRevisionId) {
-        const { data: revision, error: revisionError } = await supabase
-          .from('campaign_revisions')
-          .select('snapshot')
-          .eq('id', publishedRevisionId)
-          .maybeSingle()
-        if (!revisionError && revision) {
-          snapshot = (revision as { snapshot: PublishedCampaignSnapshot }).snapshot
-        }
-      }
+      // organization join). Falls back to the live row when no published
+      // content exists (defensive: backfill should make this impossible).
+      const content =
+        (data as { published_detail?: { content?: PublishedCampaignContent } | null })
+          .published_detail?.content ?? null
 
       const view = buildPublishedCampaignView(
         data as Record<string, unknown>,
-        snapshot
+        content
       )
       setCampaign(view)
 
-      // Fetch cause area names from the (snapshot-sourced) view
+      // Fetch cause area names from the (content-sourced) view
       if (view.cause_area_ids && view.cause_area_ids.length > 0) {
         const { data: causes, error: causesError } = await supabase
           .from('cause_areas')

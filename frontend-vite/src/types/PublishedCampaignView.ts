@@ -3,17 +3,17 @@
  *
  * Adapter type for the public campaign detail page. Per locked decision
  * D-public-page, the donor-facing campaign render is driven by the
- * `published_revision_id` snapshot, NOT by the live `campaigns` row content.
+ * `published_detail_id` content, NOT by the live `campaigns` row content.
  *
  * Data flow:
  *   1. SELECT * FROM campaigns      → runtime row (live counters + identity)
- *   2. SELECT snapshot FROM campaign_revisions WHERE id = published_revision_id
+ *   2. SELECT content FROM campaign_details WHERE id = published_detail_id
  *                                   → frozen content at last approval
- *   3. buildPublishedCampaignView() → overlays snapshot CONTENT fields on top
+ *   3. buildPublishedCampaignView() → overlays content fields on top
  *                                     of the live row, then overrides identity
  *                                     + runtime counters from the live row.
  *
- * The snapshot is `to_jsonb(c.*)` from migration 20260615000001 — i.e. a
+ * The content is `to_jsonb(c.*)` captured at the time of approval — i.e. a
  * full campaigns row at the time of approval. Field-level types here mirror
  * the columns the CampaignPage component actually renders.
  *
@@ -23,7 +23,7 @@
  * cascade refactor.
  */
 
-export interface PublishedCampaignSnapshot {
+export interface PublishedCampaignContent {
   // Content fields — overlay onto the view
   title?: string
   slug?: string
@@ -45,7 +45,7 @@ export interface PublishedCampaignSnapshot {
   tiktok_url?: string | null
   website_url?: string | null
   phone?: string | null
-  // Snapshot may contain any other column from the campaigns row.
+  // Content may contain any other column from the campaigns row.
   [key: string]: unknown
 }
 
@@ -59,19 +59,19 @@ export interface PublishedCampaignViewOrganization {
 }
 
 export interface PublishedCampaignView {
-  // ----- Identity + runtime counters (live, NOT from snapshot) -----
+  // ----- Identity + runtime counters (live, NOT from content) -----
   id: string
   organization_id: string | null
   amount_raised: number
   supporters_count: number
   approval_status: string
-  published_revision_id: string | null
+  published_detail_id: string | null
   created_at: string
   created_by?: string | null
   status?: string
   last_edit_approved_at: string | null
 
-  // ----- Content (overlay from snapshot) -----
+  // ----- Content (overlay from published detail) -----
   title: string
   slug: string
   short_description: string | null
@@ -101,33 +101,34 @@ export interface PublishedCampaignView {
 }
 
 /**
- * Build a PublishedCampaignView by overlaying snapshot content onto the live
- * campaigns row. Runtime counters + identity always win over the snapshot.
+ * Build a PublishedCampaignView by overlaying published-detail content onto
+ * the live campaigns row. Runtime counters + identity always win over the
+ * content.
  *
- * Defensive fallback: if `snapshot` is null (legacy campaign whose
- * `published_revision_id` is somehow NULL — should not happen post-backfill),
+ * Defensive fallback: if `content` is null (legacy campaign whose
+ * `published_detail_id` is somehow NULL — should not happen post-backfill),
  * we spread the live `campaign` row directly so the page still renders.
  *
  * Pure: no side effects, no I/O.
  */
 export function buildPublishedCampaignView(
   campaign: Record<string, unknown> & {
-    published_revision?: { snapshot?: PublishedCampaignSnapshot } | null
+    published_detail?: { content?: PublishedCampaignContent } | null
   },
-  snapshot: PublishedCampaignSnapshot | null
+  content: PublishedCampaignContent | null
 ): PublishedCampaignView {
-  const base: Record<string, unknown> = snapshot
-    ? { ...snapshot }
+  const base: Record<string, unknown> = content
+    ? { ...content }
     : { ...campaign }
 
-  // Live-row fields that MUST NOT come from the snapshot.
+  // Live-row fields that MUST NOT come from the content.
   const liveOverrides: Record<string, unknown> = {
     id: campaign.id,
     organization_id: campaign.organization_id,
     amount_raised: campaign.amount_raised,
     supporters_count: campaign.supporters_count,
     approval_status: campaign.approval_status,
-    published_revision_id: campaign.published_revision_id,
+    published_detail_id: campaign.published_detail_id,
     created_at: campaign.created_at,
     created_by: campaign.created_by,
     status: campaign.status,
