@@ -176,107 +176,48 @@ UPDATE organizations SET
 WHERE id = '00000000-0000-0000-0004-000000000003';
 
 -- STEP M5: campaigns (6 active + 1 pending, spread across the 3 CBOs)
+-- After REFA6, campaigns table holds only identity + runtime counters + status +
+-- approval lifecycle columns. All editorial content lives in campaign_details.content
+-- (JSONB), inserted in the A13-* steps below.
 INSERT INTO campaigns (
-  id, organization_id, created_by, title, slug, creator_name, creator_role,
-  funding_goal, amount_raised, supporters_count,
-  short_description, story_title, story_content,
-  contact_email, phone, image_url, logo_url,
-  facebook_url, instagram_url, status
+  id, organization_id, created_by, slug,
+  amount_raised, supporters_count, status, created_at
 ) VALUES
-  ('00000000-0000-0000-0009-000000000001', '00000000-0000-0000-0004-000000000001',
+  ('00000000-0000-0000-0009-000000000001',
+   '00000000-0000-0000-0004-000000000001',
    '00000000-0000-0000-0002-000000000001',
-   'Laptops for the Roots After-School Program',
    'laptops-for-roots-afterschool',
-   'Amara Johnson', 'Program Director',
-   12000.00, 7350.00, 47,
-   'Help us put 25 refurbished laptops into the hands of middle-schoolers in our weekday after-school cohort.',
-   'Why this matters',
-   '<h2>Why this matters</h2><p>Last semester, 18 of our 25 enrolled students had to share a single shelf of Chromebooks. Homework went home unfinished, and our retention dropped from 82% to 64% in the spring.</p><p>With <strong>$12,000</strong> we can buy 25 refurbished Lenovo ThinkPads, accessory bundles, and a year of break/fix support.</p>',
-   'campaigns@connectingroots.org', '+1-816-555-0111',
-   'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&q=80',
-   'https://example.com/img/connecting-roots-logo.png',
-   'https://facebook.com/connectingrootskc', 'https://instagram.com/connectingrootskc',
-   'active'),
-  ('00000000-0000-0000-0009-000000000002', '00000000-0000-0000-0004-000000000003',
+   7350.00, 47, 'active', NOW()),
+  ('00000000-0000-0000-0009-000000000002',
+   '00000000-0000-0000-0004-000000000003',
    '00000000-0000-0000-0002-000000000003',
-   'Digital Futures Mobile Lab',
    'digital-futures-mobile-lab',
-   'Devon Park', 'Executive Director',
-   45000.00, 18900.00, 121,
-   'A retrofitted van + 15 workstations brings basic computer skills to underserved Northland neighborhoods.',
-   'A classroom on wheels',
-   '<h2>A classroom on wheels</h2><p>Our fixed-site classes have a 4-month waitlist while seniors in the Northland tell us they cannot reach our downtown office. This mobile lab — a 2018 Ford Transit retrofitted with 15 laptop stations and Starlink uplink — will bring 6 weekly classes to 4 community centers north of the river.</p>',
-   'campaigns@digitalfutureskc.org', '+1-816-555-0133',
-   'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&q=80',
-   'https://example.com/img/digital-futures-logo.png',
-   NULL, 'https://instagram.com/digitalfutureskc',
-   'active'),
-  ('00000000-0000-0000-0009-000000000003', '00000000-0000-0000-0004-000000000002',
+   18900.00, 121, 'active', NOW()),
+  ('00000000-0000-0000-0009-000000000003',
+   '00000000-0000-0000-0004-000000000002',
    '00000000-0000-0000-0002-000000000002',
-   'Tech Bridge Senior Cohort (Spring 2026)',
    'tech-bridge-senior-cohort-spring-2026',
-   'Lin Chen', 'Programs Lead',
-   8500.00, 0.00, 0,
-   'Funding 30 tablets + accessibility kits for our spring cohort serving adults 65+.',
-   'Reaching the last mile',
-   '<p>Our spring cohort opens in February. Hardware lead time means we need committed funding by January 15.</p>',
-   'campaigns@kctechbridge.org', '+1-816-555-0122',
-   NULL, NULL, NULL, NULL,
-   'pending'),
-  ('00000000-0000-0000-0009-000000000004', '00000000-0000-0000-0004-000000000002',
+   0.00, 0, 'pending', NOW()),
+  ('00000000-0000-0000-0009-000000000004',
+   '00000000-0000-0000-0004-000000000002',
    '00000000-0000-0000-0002-000000000002',
-   'Workforce Computer Lab — Tech Bridge',
    'workforce-computer-lab-tech-bridge',
-   'Lin Chen', 'Programs Lead',
-   18000.00, 4250.00, 19,
-   'Outfit a 12-station job-readiness lab for adults transitioning out of shelters and re-entry programs.',
-   'A doorway to a paycheck',
-   '<p>Our partners refer 80–90 adults a year who need entry-level digital skills. We currently rent lab time at the library — limited to 2 hours per week. A dedicated 12-station lab unlocks evening and weekend training.</p>',
-   'campaigns@kctechbridge.org', '+1-816-555-0122',
-   'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80',
-   NULL, NULL, NULL,
-   'active'),
-  ('00000000-0000-0000-0009-000000000005', '00000000-0000-0000-0004-000000000001',
+   4250.00, 19, 'active', NOW()),
+  ('00000000-0000-0000-0009-000000000005',
+   '00000000-0000-0000-0004-000000000001',
    '00000000-0000-0000-0002-000000000001',
-   'Arts Studio Tablets for Roots Teens',
    'arts-studio-tablets-roots-teens',
-   'Amara Johnson', 'Program Director',
-   5000.00, 4200.00, 38,
-   '10 iPad + Apple Pencil bundles for our Saturday teen arts studio.',
-   'Where pencils meet pixels',
-   '<p>Our Saturday teens have been making zines for 3 years. Half now ask about digital art and beat production. Hardware is the only thing standing between them and a portfolio they can take to art school.</p>',
-   'campaigns@connectingroots.org', '+1-816-555-0111',
-   'https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=1200&q=80',
-   NULL,
-   'https://facebook.com/connectingrootskc', NULL,
-   'active'),
-  ('00000000-0000-0000-0009-000000000006', '00000000-0000-0000-0004-000000000003',
+   4200.00, 38, 'active', NOW()),
+  ('00000000-0000-0000-0009-000000000006',
+   '00000000-0000-0000-0004-000000000003',
    '00000000-0000-0000-0002-000000000003',
-   'Stay-Connected Phones for Housing Stability',
    'stay-connected-phones-housing-stability',
-   'Devon Park', 'Executive Director',
-   6500.00, 6500.00, 73,
-   '50 prepaid smartphones + 6-month service for clients transitioning out of shelter into permanent housing.',
-   'A working phone IS housing stability',
-   '<p>Caseworkers report 3 in 10 housing placements fail in the first 90 days because clients cannot be reached for utility setup, employer call-backs, or appointments. A phone changes that.</p>',
-   'campaigns@digitalfutureskc.org', '+1-816-555-0133',
-   'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&q=80',
-   NULL, NULL, 'https://instagram.com/digitalfutureskc',
-   'active'),
-  ('00000000-0000-0000-0009-000000000007', '00000000-0000-0000-0004-000000000001',
+   6500.00, 73, 'active', NOW()),
+  ('00000000-0000-0000-0009-000000000007',
+   '00000000-0000-0000-0004-000000000001',
    '00000000-0000-0000-0002-000000000001',
-   'Health-Tech Kiosk at the Roots Community Hub',
    'health-tech-kiosk-roots-community-hub',
-   'Amara Johnson', 'Program Director',
-   9200.00, 1850.00, 12,
-   'A telehealth kiosk + Bluetooth BP cuff station in our lobby — open to neighbors during business hours.',
-   'Closing the last appointment-mile',
-   '<p>Our community hub already hosts 200+ visits per month. A self-serve telehealth booth lets neighbors talk to a nurse without a doctor visit.</p>',
-   'campaigns@connectingroots.org', '+1-816-555-0111',
-   NULL,
-   'https://example.com/img/connecting-roots-logo.png',
-   NULL, NULL,
-   'active')
+   1850.00, 12, 'active', NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage bucket for receipt PDFs (local dev only — main's policy says
@@ -286,9 +227,9 @@ VALUES ('tax-documents', 'tax-documents', false, 10485760, ARRAY['application/pd
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- A13 / approval-lifecycle mock data — admin user, revisions,
--- published states, mock notifications. So `pnpm db:reset`
--- yields a UI-visible setup out of the box.
+-- A13 / approval-lifecycle mock data — admin user, campaign_details
+-- (the JSONB content store after REFA1 rename), published states, mock
+-- notifications. So `pnpm db:reset` yields a UI-visible setup out of the box.
 -- ============================================================
 
 -- STEP A13-1: Admin user_profile.
@@ -303,43 +244,133 @@ VALUES (
   NOW()
 ) ON CONFLICT (id) DO NOTHING;
 
--- STEP A13-2a: Approved revision #1 for the 5 "previously approved" campaigns
--- (1, 2, 4, 5, 7). Campaign 7 will then get an additional pending rev #2 below.
-INSERT INTO campaign_revisions (
-  campaign_id, revision_number, snapshot, changed_by,
-  approval_status, approved_by, approved_at, change_summary, created_at
-)
-SELECT
-  c.id,
-  1,
-  to_jsonb(c.*),
-  COALESCE(c.created_by, 'system'),
-  'approved',
-  '00000000-0000-0000-0001-000000000001',  -- admin
-  NOW() - INTERVAL '7 days',
-  NULL,
-  NOW() - INTERVAL '7 days'
-FROM campaigns c
-WHERE c.id IN (
-  '00000000-0000-0000-0009-000000000001',
-  '00000000-0000-0000-0009-000000000002',
-  '00000000-0000-0000-0009-000000000004',
-  '00000000-0000-0000-0009-000000000005',
-  '00000000-0000-0000-0009-000000000007'
-)
-ON CONFLICT (campaign_id, revision_number) DO NOTHING;
+-- STEP A13-2a: Approved campaign_detail v1 for the 5 "previously approved"
+-- campaigns (1, 2, 4, 5, 7). Campaign 7 will then get an additional pending
+-- v2 below. Content is built literally per-row because the campaigns table
+-- no longer carries the content columns (REFA6).
+INSERT INTO campaign_details (
+  campaign_id, version, content, changed_by,
+  status, approved_by, approved_at, change_summary, created_at
+) VALUES
+  ('00000000-0000-0000-0009-000000000001',
+   1,
+   jsonb_build_object(
+     'title', 'Laptops for the Roots After-School Program',
+     'creator_name', 'Amara Johnson',
+     'creator_role', 'Program Director',
+     'funding_goal', 12000.00,
+     'short_description', 'Help us put 25 refurbished laptops into the hands of middle-schoolers in our weekday after-school cohort.',
+     'story_title', 'Why this matters',
+     'story_content', '<h2>Why this matters</h2><p>Last semester, 18 of our 25 enrolled students had to share a single shelf of Chromebooks. Homework went home unfinished, and our retention dropped from 82% to 64% in the spring.</p><p>With <strong>$12,000</strong> we can buy 25 refurbished Lenovo ThinkPads, accessory bundles, and a year of break/fix support.</p>',
+     'contact_email', 'campaigns@connectingroots.org',
+     'phone', '+1-816-555-0111',
+     'image_url', 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&q=80',
+     'logo_url', 'https://example.com/img/connecting-roots-logo.png',
+     'facebook_url', 'https://facebook.com/connectingrootskc',
+     'instagram_url', 'https://instagram.com/connectingrootskc'
+   ),
+   '00000000-0000-0000-0002-000000000001',
+   'approved',
+   '00000000-0000-0000-0001-000000000001',
+   NOW() - INTERVAL '7 days',
+   NULL,
+   NOW() - INTERVAL '7 days'),
+  ('00000000-0000-0000-0009-000000000002',
+   1,
+   jsonb_build_object(
+     'title', 'Digital Futures Mobile Lab',
+     'creator_name', 'Devon Park',
+     'creator_role', 'Executive Director',
+     'funding_goal', 45000.00,
+     'short_description', 'A retrofitted van + 15 workstations brings basic computer skills to underserved Northland neighborhoods.',
+     'story_title', 'A classroom on wheels',
+     'story_content', '<h2>A classroom on wheels</h2><p>Our fixed-site classes have a 4-month waitlist while seniors in the Northland tell us they cannot reach our downtown office. This mobile lab — a 2018 Ford Transit retrofitted with 15 laptop stations and Starlink uplink — will bring 6 weekly classes to 4 community centers north of the river.</p>',
+     'contact_email', 'campaigns@digitalfutureskc.org',
+     'phone', '+1-816-555-0133',
+     'image_url', 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&q=80',
+     'logo_url', 'https://example.com/img/digital-futures-logo.png',
+     'instagram_url', 'https://instagram.com/digitalfutureskc'
+   ),
+   '00000000-0000-0000-0002-000000000003',
+   'approved',
+   '00000000-0000-0000-0001-000000000001',
+   NOW() - INTERVAL '7 days',
+   NULL,
+   NOW() - INTERVAL '7 days'),
+  ('00000000-0000-0000-0009-000000000004',
+   1,
+   jsonb_build_object(
+     'title', 'Workforce Computer Lab — Tech Bridge',
+     'creator_name', 'Lin Chen',
+     'creator_role', 'Programs Lead',
+     'funding_goal', 18000.00,
+     'short_description', 'Outfit a 12-station job-readiness lab for adults transitioning out of shelters and re-entry programs.',
+     'story_title', 'A doorway to a paycheck',
+     'story_content', '<p>Our partners refer 80–90 adults a year who need entry-level digital skills. We currently rent lab time at the library — limited to 2 hours per week. A dedicated 12-station lab unlocks evening and weekend training.</p>',
+     'contact_email', 'campaigns@kctechbridge.org',
+     'phone', '+1-816-555-0122',
+     'image_url', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80'
+   ),
+   '00000000-0000-0000-0002-000000000002',
+   'approved',
+   '00000000-0000-0000-0001-000000000001',
+   NOW() - INTERVAL '7 days',
+   NULL,
+   NOW() - INTERVAL '7 days'),
+  ('00000000-0000-0000-0009-000000000005',
+   1,
+   jsonb_build_object(
+     'title', 'Arts Studio Tablets for Roots Teens',
+     'creator_name', 'Amara Johnson',
+     'creator_role', 'Program Director',
+     'funding_goal', 5000.00,
+     'short_description', '10 iPad + Apple Pencil bundles for our Saturday teen arts studio.',
+     'story_title', 'Where pencils meet pixels',
+     'story_content', '<p>Our Saturday teens have been making zines for 3 years. Half now ask about digital art and beat production. Hardware is the only thing standing between them and a portfolio they can take to art school.</p>',
+     'contact_email', 'campaigns@connectingroots.org',
+     'phone', '+1-816-555-0111',
+     'image_url', 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=1200&q=80',
+     'facebook_url', 'https://facebook.com/connectingrootskc'
+   ),
+   '00000000-0000-0000-0002-000000000001',
+   'approved',
+   '00000000-0000-0000-0001-000000000001',
+   NOW() - INTERVAL '7 days',
+   NULL,
+   NOW() - INTERVAL '7 days'),
+  ('00000000-0000-0000-0009-000000000007',
+   1,
+   jsonb_build_object(
+     'title', 'Health-Tech Kiosk at the Roots Community Hub',
+     'creator_name', 'Amara Johnson',
+     'creator_role', 'Program Director',
+     'funding_goal', 9200.00,
+     'short_description', 'A telehealth kiosk + Bluetooth BP cuff station in our lobby — open to neighbors during business hours.',
+     'story_title', 'Closing the last appointment-mile',
+     'story_content', '<p>Our community hub already hosts 200+ visits per month. A self-serve telehealth booth lets neighbors talk to a nurse without a doctor visit.</p>',
+     'contact_email', 'campaigns@connectingroots.org',
+     'phone', '+1-816-555-0111',
+     'logo_url', 'https://example.com/img/connecting-roots-logo.png'
+   ),
+   '00000000-0000-0000-0002-000000000001',
+   'approved',
+   '00000000-0000-0000-0001-000000000001',
+   NOW() - INTERVAL '7 days',
+   NULL,
+   NOW() - INTERVAL '7 days')
+ON CONFLICT (campaign_id, version) DO NOTHING;
 
--- STEP A13-2b: Mark campaigns 1, 2, 4, 5 active and point published_revision_id
--- at their rev #1. Campaign 7 is handled in 2c (it gets a pending rev #2).
+-- STEP A13-2b: Mark campaigns 1, 2, 4, 5 active and point published_detail_id
+-- at their v1. Campaign 7 is handled in 2c (it gets a pending v2).
 UPDATE campaigns c
 SET
   approval_status = 'active',
   first_approved_at = NOW() - INTERVAL '7 days',
   last_edit_approved_at = NOW() - INTERVAL '7 days',
-  published_revision_id = r.id
-FROM campaign_revisions r
-WHERE r.campaign_id = c.id
-  AND r.revision_number = 1
+  published_detail_id = d.id
+FROM campaign_details d
+WHERE d.campaign_id = c.id
+  AND d.version = 1
   AND c.id IN (
     '00000000-0000-0000-0009-000000000001',
     '00000000-0000-0000-0009-000000000002',
@@ -347,61 +378,92 @@ WHERE r.campaign_id = c.id
     '00000000-0000-0000-0009-000000000005'
   );
 
--- STEP A13-2c: Campaign 7 (Health-Tech Kiosk) — publish rev #1 first so we
--- have a baseline, then create pending rev #2 with a visible title tweak, then
--- flip campaign to pending_edit_approval (published_revision_id still points
--- at rev #1).
+-- STEP A13-2c: Campaign 7 (Health-Tech Kiosk) — publish v1 first so we
+-- have a baseline, then create pending v2 with a visible title tweak, then
+-- flip campaign to pending_edit_approval (published_detail_id still points
+-- at v1).
 UPDATE campaigns c
 SET
   approval_status = 'active',
   first_approved_at = NOW() - INTERVAL '7 days',
   last_edit_approved_at = NOW() - INTERVAL '7 days',
-  published_revision_id = r.id
-FROM campaign_revisions r
-WHERE r.campaign_id = c.id
-  AND r.revision_number = 1
+  published_detail_id = d.id
+FROM campaign_details d
+WHERE d.campaign_id = c.id
+  AND d.version = 1
   AND c.id = '00000000-0000-0000-0009-000000000007';
 
-INSERT INTO campaign_revisions (
-  campaign_id, revision_number, snapshot, changed_by,
-  approval_status, change_summary, created_at
-)
-SELECT
-  c.id,
-  2,
-  jsonb_set(to_jsonb(c.*), '{title}', '"Health-Tech Kiosk at the Roots Community Hub — Updated"'::jsonb),
-  c.created_by,
-  'pending_edit_approval',
-  'Renamed to clarify scope; raised funding goal',
-  NOW() - INTERVAL '2 hours'
-FROM campaigns c
-WHERE c.id = '00000000-0000-0000-0009-000000000007'
-ON CONFLICT (campaign_id, revision_number) DO NOTHING;
+INSERT INTO campaign_details (
+  campaign_id, version, content, changed_by,
+  status, change_summary, created_at
+) VALUES
+  ('00000000-0000-0000-0009-000000000007',
+   2,
+   jsonb_build_object(
+     'title', 'Health-Tech Kiosk at the Roots Community Hub — Updated',
+     'creator_name', 'Amara Johnson',
+     'creator_role', 'Program Director',
+     'funding_goal', 9200.00,
+     'short_description', 'A telehealth kiosk + Bluetooth BP cuff station in our lobby — open to neighbors during business hours.',
+     'story_title', 'Closing the last appointment-mile',
+     'story_content', '<p>Our community hub already hosts 200+ visits per month. A self-serve telehealth booth lets neighbors talk to a nurse without a doctor visit.</p>',
+     'contact_email', 'campaigns@connectingroots.org',
+     'phone', '+1-816-555-0111',
+     'logo_url', 'https://example.com/img/connecting-roots-logo.png'
+   ),
+   '00000000-0000-0000-0002-000000000001',
+   'pending_edit_approval',
+   'Renamed to clarify scope; raised funding goal',
+   NOW() - INTERVAL '2 hours')
+ON CONFLICT (campaign_id, version) DO NOTHING;
 
 UPDATE campaigns
 SET approval_status = 'pending_edit_approval',
     last_edited_at = NOW() - INTERVAL '2 hours'
 WHERE id = '00000000-0000-0000-0009-000000000007';
 
--- STEP A13-2d: Campaigns 3 + 6 — pending_initial_approval (no published rev).
-INSERT INTO campaign_revisions (
-  campaign_id, revision_number, snapshot, changed_by,
-  approval_status, change_summary, created_at
-)
-SELECT
-  c.id,
-  1,
-  to_jsonb(c.*),
-  COALESCE(c.created_by, 'system'),
-  'pending_initial_approval',
-  'Initial submission',
-  NOW() - INTERVAL '1 day'
-FROM campaigns c
-WHERE c.id IN (
-  '00000000-0000-0000-0009-000000000003',
-  '00000000-0000-0000-0009-000000000006'
-)
-ON CONFLICT (campaign_id, revision_number) DO NOTHING;
+-- STEP A13-2d: Campaigns 3 + 6 — pending_initial_approval (no published detail).
+INSERT INTO campaign_details (
+  campaign_id, version, content, changed_by,
+  status, change_summary, created_at
+) VALUES
+  ('00000000-0000-0000-0009-000000000003',
+   1,
+   jsonb_build_object(
+     'title', 'Tech Bridge Senior Cohort (Spring 2026)',
+     'creator_name', 'Lin Chen',
+     'creator_role', 'Programs Lead',
+     'funding_goal', 8500.00,
+     'short_description', 'Funding 30 tablets + accessibility kits for our spring cohort serving adults 65+.',
+     'story_title', 'Reaching the last mile',
+     'story_content', '<p>Our spring cohort opens in February. Hardware lead time means we need committed funding by January 15.</p>',
+     'contact_email', 'campaigns@kctechbridge.org',
+     'phone', '+1-816-555-0122'
+   ),
+   '00000000-0000-0000-0002-000000000002',
+   'pending_initial_approval',
+   'Initial submission',
+   NOW() - INTERVAL '1 day'),
+  ('00000000-0000-0000-0009-000000000006',
+   1,
+   jsonb_build_object(
+     'title', 'Stay-Connected Phones for Housing Stability',
+     'creator_name', 'Devon Park',
+     'creator_role', 'Executive Director',
+     'funding_goal', 6500.00,
+     'short_description', '50 prepaid smartphones + 6-month service for clients transitioning out of shelter into permanent housing.',
+     'story_title', 'A working phone IS housing stability',
+     'story_content', '<p>Caseworkers report 3 in 10 housing placements fail in the first 90 days because clients cannot be reached for utility setup, employer call-backs, or appointments. A phone changes that.</p>',
+     'contact_email', 'campaigns@digitalfutureskc.org',
+     'phone', '+1-816-555-0133',
+     'image_url', 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&q=80',
+     'instagram_url', 'https://instagram.com/digitalfutureskc'
+   ),
+   '00000000-0000-0000-0002-000000000003',
+   'pending_initial_approval',
+   'Initial submission',
+   NOW() - INTERVAL '1 day')
+ON CONFLICT (campaign_id, version) DO NOTHING;
 
 UPDATE campaigns
 SET approval_status = 'pending_initial_approval',
@@ -412,7 +474,7 @@ WHERE id IN (
 );
 
 -- STEP A13-3: Notifications. 3 unread campaign_edit_pending for the admin
--- (campaigns 3, 6, and 7's rev #2), plus 1 already-read campaign_first_approved
+-- (campaigns 3, 6, and 7's v2), plus 1 already-read campaign_first_approved
 -- for the CBO of campaign 1 so the bell shows mixed read/unread state.
 -- ON CONFLICT clause matches the partial unique index
 -- idx_notifications_recipient_dedupe_key (WHERE dedupe_key IS NOT NULL).
@@ -424,19 +486,18 @@ SELECT
   '00000000-0000-0000-0001-000000000001',
   'campaign_edit_pending',
   jsonb_build_object(
-    'campaign_id', r.campaign_id,
-    'campaign_title', c.title,
-    'revision_id', r.id
+    'campaign_id', d.campaign_id,
+    'campaign_title', d.content->>'title',
+    'detail_id', d.id
   ),
-  '/admin/pending-edits/' || r.campaign_id,
-  'campaign_revision',
-  r.id,
-  'campaign_edit_pending:' || r.id || ':' || r.revision_number,
+  '/admin/pending-edits/' || d.campaign_id,
+  'campaign_detail',
+  d.id,
+  'campaign_edit_pending:' || d.id || ':' || d.version,
   NULL,
-  r.created_at
-FROM campaign_revisions r
-JOIN campaigns c ON c.id = r.campaign_id
-WHERE r.approval_status IN ('pending_initial_approval', 'pending_edit_approval')
+  d.created_at
+FROM campaign_details d
+WHERE d.status IN ('pending_initial_approval', 'pending_edit_approval')
 ON CONFLICT (recipient_clerk_user_id, dedupe_key) WHERE dedupe_key IS NOT NULL
   DO NOTHING;
 
@@ -449,7 +510,7 @@ SELECT
   'campaign_first_approved',
   jsonb_build_object(
     'campaign_id', c.id,
-    'campaign_title', c.title
+    'campaign_title', d.content->>'title'
   ),
   '/campaign/' || c.slug,
   'campaign',
@@ -458,11 +519,10 @@ SELECT
   NOW() - INTERVAL '6 days',
   NOW() - INTERVAL '7 days'
 FROM campaigns c
+JOIN campaign_details d
+  ON d.campaign_id = c.id AND d.version = 1
 WHERE c.id = '00000000-0000-0000-0009-000000000001'
 ON CONFLICT (recipient_clerk_user_id, dedupe_key) WHERE dedupe_key IS NOT NULL
   DO NOTHING;
 
 COMMIT;
-
-
-
