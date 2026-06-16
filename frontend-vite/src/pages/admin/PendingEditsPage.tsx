@@ -25,6 +25,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { api } from '@/lib/api'
 import { formatRelativeTime, truncate } from '@/lib/utils'
+import { RevisionDiff } from '@/components/admin/RevisionDiff'
 
 type PendingRow = {
   campaign_id: string
@@ -57,6 +58,12 @@ type DetailPreview = {
     created_at: string
     changed_by: string
   }
+  current_approved_detail: {
+    id: string
+    version: number
+    content: Record<string, unknown>
+    created_at: string
+  } | null
 }
 
 type DeletedRow = {
@@ -94,6 +101,7 @@ export function PendingEditsPage() {
   const [rejectRow, setRejectRow] = useState<PendingRow | null>(null)
   const [reviewNote, setReviewNote] = useState('')
   const [actionPending, setActionPending] = useState(false)
+  const [showRawJson, setShowRawJson] = useState(false)
   const [showDeleted, setShowDeleted] = useState(false)
   const [deletedRows, setDeletedRows] = useState<DeletedRow[]>([])
   const [deletedLoading, setDeletedLoading] = useState(false)
@@ -171,6 +179,7 @@ export function PendingEditsPage() {
   const openPreview = async (row: PendingRow) => {
     setPreviewRow(row)
     setPreviewData(null)
+    setShowRawJson(false)
     setPreviewLoading(true)
     try {
       const data = await api.get<DetailPreview>(
@@ -385,12 +394,30 @@ export function PendingEditsPage() {
                 </div>
               )}
               <div>
-                <p className="text-xs font-medium uppercase text-[#737373]">
-                  Proposed content (raw JSON — diff view coming in A5)
-                </p>
-                <pre className="mt-1 max-h-[50vh] overflow-auto rounded-lg bg-gray-50 p-3 text-xs">
-                  {JSON.stringify(previewData.detail.content, null, 2)}
-                </pre>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium uppercase text-[#737373]">
+                    {showRawJson ? 'Raw JSON' : 'Proposed changes'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowRawJson((v) => !v)}
+                    className="text-xs text-[#737373] underline hover:text-[#0a0a0a]"
+                  >
+                    {showRawJson ? 'View diff' : 'View raw JSON'}
+                  </button>
+                </div>
+                <div className="mt-1 max-h-[50vh] overflow-auto">
+                  {showRawJson ? (
+                    <pre className="rounded-lg bg-gray-50 p-3 text-xs">
+                      {JSON.stringify(previewData.detail.content, null, 2)}
+                    </pre>
+                  ) : (
+                    <RevisionDiff
+                      before={previewData.current_approved_detail?.content ?? null}
+                      after={previewData.detail.content}
+                    />
+                  )}
+                </div>
               </div>
             </div>
           ) : null}

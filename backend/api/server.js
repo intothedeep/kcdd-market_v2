@@ -1811,6 +1811,19 @@ app.get(
         return res.status(404).json({ error: 'Campaign not found' })
       }
 
+      // 4. Load latest approved detail (for client-side diff vs. this pending).
+      const { data: approvedDetail, error: approvedErr } = await supabase
+        .from('campaign_details')
+        .select('id, version, content, created_at')
+        .eq('campaign_id', campaignId)
+        .eq('status', 'approved')
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (approvedErr) {
+        return res.status(500).json({ error: approvedErr.message })
+      }
+
       return res.json({
         campaign,
         detail: {
@@ -1822,6 +1835,14 @@ app.get(
           created_at: detail.created_at,
           changed_by: detail.changed_by,
         },
+        current_approved_detail: approvedDetail
+          ? {
+              id: approvedDetail.id,
+              version: approvedDetail.version,
+              content: approvedDetail.content,
+              created_at: approvedDetail.created_at,
+            }
+          : null,
       })
     } catch (err) {
       console.error('Error in detail preview:', err)
