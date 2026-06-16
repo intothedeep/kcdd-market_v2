@@ -97,6 +97,10 @@ export interface PublishedCampaignView {
 
   // Indexer so existing JSX accessing legacy fields keeps compiling.
   [key: string]: unknown
+
+  // Sentinel flag the caller can read to render a "no published detail"
+  // placeholder. True only when there is no approved content overlay.
+  hasContent: boolean
 }
 
 /**
@@ -104,10 +108,13 @@ export interface PublishedCampaignView {
  * the live campaigns row. Runtime counters + identity always win over the
  * content.
  *
- * Defensive fallback: if `content` is null (no approved detail row exists
- * — should not happen for donor-visible campaigns post-REFB because the RLS
- * predicate requires at least one approved row), we spread the live
- * `campaign` row directly so the page still renders.
+ * Post-REFB, the live `campaigns` row carries NO content columns (title,
+ * funding_goal, story_content, etc. were dropped — see migration
+ * 20260616000002_campaigns_drop_content_columns.sql). The legacy
+ * "fallback: spread the live row when content is null" path therefore
+ * produced an all-undefined view. We now signal the null-content case
+ * explicitly via `hasContent: false` so callers can render a placeholder
+ * instead of an undefined page.
  *
  * Pure: no side effects, no I/O.
  */
@@ -115,9 +122,7 @@ export function buildPublishedCampaignView(
   campaign: Record<string, unknown>,
   content: PublishedCampaignContent | null
 ): PublishedCampaignView {
-  const base: Record<string, unknown> = content
-    ? { ...content }
-    : { ...campaign }
+  const base: Record<string, unknown> = content ? { ...content } : {}
 
   // Live-row fields that MUST NOT come from the content.
   const liveOverrides: Record<string, unknown> = {
@@ -131,5 +136,9 @@ export function buildPublishedCampaignView(
     organization: campaign.organization,
   }
 
-  return { ...base, ...liveOverrides } as PublishedCampaignView
+  return {
+    ...base,
+    ...liveOverrides,
+    hasContent: content !== null,
+  } as PublishedCampaignView
 }

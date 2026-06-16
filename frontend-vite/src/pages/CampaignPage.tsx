@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useUser } from '@clerk/clerk-react'
+import { useUser, useAuth } from '@clerk/clerk-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -52,11 +52,11 @@ import {
 } from 'lucide-react'
 import {
   supabase,
-  updateCampaign,
   fetchCauseAreas,
   submitCampaignReport,
   type CampaignReportReason,
 } from '@/lib/supabase'
+import { api } from '@/lib/api'
 import { CampaignDonateModal } from '@/components/CampaignDonateModal'
 import {
   Dialog,
@@ -128,7 +128,7 @@ function parseYouTubeId(src: string): string | null {
   return null
 }
 
-// Render trusted story HTML stored in campaigns.story_content.
+// Render trusted story HTML stored in campaign_details.content.story_content (post-REFB).
 // We render markdown-y story bodies and rich-text-editor HTML the same way:
 // the field is HTML so we pass it through, but we only convert newline-only
 // content (no tags) into <br> so plain-text stories still look right.
@@ -151,6 +151,7 @@ interface SubmittedQuestion {
 export function CampaignPage() {
   const { slug } = useParams<{ slug: string }>()
   const { user, isSignedIn } = useUser()
+  const { getToken } = useAuth()
   const [campaign, setCampaign] = useState<PublishedCampaignView | null>(null)
   const [causeAreas, setCauseAreas] = useState<CauseArea[]>([])
   const [allCauseAreas, setAllCauseAreas] = useState<CauseArea[]>([])
@@ -570,7 +571,11 @@ export function CampaignPage() {
 
     setSaving(true)
     try {
-      const updated = await updateCampaign(campaign.id, {
+      // Post-REFB content edits MUST go through the state machine.
+      // The backend route inserts a new campaign_details row with
+      // status pending_*_approval; the page does NOT mutate the
+      // campaigns row directly.
+      const content = {
         title: editForm.title,
         short_description: editForm.short_description,
         story_title: editForm.story_title,
@@ -580,7 +585,6 @@ export function CampaignPage() {
         creator_name: editForm.creator_name,
         creator_role: editForm.creator_role,
         cause_area_ids: selectedCauseAreaIds,
-        // Social links and contact
         facebook_url: editForm.facebook_url || null,
         twitter_url: editForm.twitter_url || null,
         instagram_url: editForm.instagram_url || null,
@@ -589,16 +593,22 @@ export function CampaignPage() {
         tiktok_url: editForm.tiktok_url || null,
         website_url: editForm.website_url || null,
         phone: editForm.phone || null,
-      })
-
-      if (updated) {
-        setCampaign({ ...campaign, ...updated })
-        // Update the displayed cause areas
-        const newCauseAreas = allCauseAreas.filter((ca) => selectedCauseAreaIds.includes(ca.id))
-        setCauseAreas(newCauseAreas)
-        setIsEditing(false)
-        setShowTagSelector(false)
       }
+
+      await api.post(
+        `/api/campaigns/${campaign.id}/submit-edit`,
+        { content, change_summary: null },
+        getToken
+      )
+
+      // Optimistic UI: reflect the just-submitted content locally.
+      // The new content is pending admin approval — donors won't see
+      // it until then, but the editor sees their own draft.
+      setCampaign({ ...campaign, ...content } as PublishedCampaignView)
+      const newCauseAreas = allCauseAreas.filter((ca) => selectedCauseAreaIds.includes(ca.id))
+      setCauseAreas(newCauseAreas)
+      setIsEditing(false)
+      setShowTagSelector(false)
     } catch (err) {
       console.error('Error saving campaign:', err)
     } finally {
@@ -768,6 +778,23 @@ export function CampaignPage() {
         <h1 className="mb-4 text-2xl font-bold text-[#0a0a0a]">Campaign Not Found</h1>
         <p className="mb-6 text-[#737373]">
           The campaign you&apos;re looking for doesn&apos;t exist or has been removed.
+        </p>
+        <Link to="/">
+          <Button>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Go Home
+          </Button>
+        </Link>
+      </div>
+    )
+  }
+
+  if (campaign.hasContent === false) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa] p-6">
+        <h1 className="mb-4 text-2xl font-bold text-[#0a0a0a]">Campaign Awaiting Review</h1>
+        <p className="mb-6 max-w-md text-center text-[#737373]">
+          This campaign has not yet been approved for public viewing. Please check back later.
         </p>
         <Link to="/">
           <Button>

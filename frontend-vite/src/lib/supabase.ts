@@ -669,7 +669,12 @@ export const fetchDonorDonations = async (
       status,
       created_at,
       completed_at,
-      campaign:campaigns(id, title, slug),
+      campaign:campaigns(
+        id,
+        slug,
+        organization_id,
+        detail:campaign_details(content, status, version)
+      ),
       organization:organizations(name, logo_emoji)
     `
     )
@@ -697,9 +702,19 @@ export const fetchDonorDonations = async (
 
   const campaignDonations: DonationRecord[] = (txResult.data || []).map((item: any) => {
     const mappedStatus = mapTxStatusToDonationStatus(item.status)
+    const campaignDetails: Array<{ content?: any; status?: string; version?: number }> =
+      Array.isArray(item.campaign?.detail) ? item.campaign.detail : []
+    const sortedDetails = [...campaignDetails].sort(
+      (a, b) => (b.version ?? 0) - (a.version ?? 0)
+    )
+    const approvedDetail = sortedDetails.find((d) => d.status === 'approved')
+    const sourceContent = (approvedDetail?.content ?? sortedDetails[0]?.content ?? {}) as {
+      title?: string
+    }
+    const campaignTitle = sourceContent.title || 'Campaign donation'
     return {
       id: item.id,
-      description: item.campaign?.title || 'Campaign donation',
+      description: campaignTitle,
       // payment_transactions.amount_total is stored in cents
       amount: Number(item.amount_total || 0) / 100,
       status: mappedStatus,
@@ -940,21 +955,91 @@ export interface CampaignData {
   website_url?: string
 }
 
-// Create a new campaign
+// Slugify a campaign title for the campaigns.slug column. Lower-case,
+// strip non-alphanumerics down to single dashes, trim leading/trailing
+// dashes. Matches the generate_org_slug() shape used elsewhere.
+const slugifyTitle = (title: string): string =>
+  title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 200)
+
+// Create a new campaign.
+//
+// Post-REFB the campaigns row is metadata-only — title, funding_goal,
+// story_content, social URLs, etc. all live in campaign_details.content.
+// We split creation into two writes:
+//   1. INSERT campaigns           — { organization_id, slug, created_by }
+//   2. INSERT campaign_details v1 — { campaign_id, version: 1,
+//                                     status: 'pending_initial_approval',
+//                                     content: <jsonb>, changed_by }
+//
+// Required content keys per migration A14: title, funding_goal,
+// contact_email. The returned shape preserves { id, slug, ...campaign }
+// for caller compatibility (callers navigate via campaign.slug).
 export const createCampaign = async (campaignData: CampaignData) => {
-  const { data, error } = await supabase
-    .from('campaigns')
+  const slug = `${slugifyTitle(campaignData.title)}-${Date.now().toString(36)}`
+
+  const { data: campaign, error: campaignError } = await (
+    supabase.from('campaigns') as any
+  )
     .insert({
-      ...campaignData,
-      status: 'pending',
-      amount_raised: 0,
-      supporters_count: 0,
+      organization_id: campaignData.organization_id,
+      created_by: campaignData.created_by,
+      slug,
     })
     .select()
     .single()
 
-  if (error) throw error
-  return data
+  if (campaignError) throw campaignError
+  if (!campaign) throw new Error('createCampaign: insert returned no row')
+
+  const content: Record<string, unknown> = {
+    title: campaignData.title,
+    funding_goal: campaignData.funding_goal,
+    contact_email: campaignData.contact_email,
+  }
+  if (campaignData.creator_name !== undefined) content.creator_name = campaignData.creator_name
+  if (campaignData.creator_role !== undefined) content.creator_role = campaignData.creator_role
+  if (campaignData.cause_area_ids !== undefined) content.cause_area_ids = campaignData.cause_area_ids
+  if (campaignData.short_description !== undefined) content.short_description = campaignData.short_description
+  if (campaignData.story_title !== undefined) content.story_title = campaignData.story_title
+  if (campaignData.story_content !== undefined) content.story_content = campaignData.story_content
+  if (campaignData.image_url !== undefined) content.image_url = campaignData.image_url
+  if (campaignData.logo_url !== undefined) content.logo_url = campaignData.logo_url
+  if (campaignData.phone !== undefined) content.phone = campaignData.phone
+  if (campaignData.facebook_url !== undefined) content.facebook_url = campaignData.facebook_url
+  if (campaignData.twitter_url !== undefined) content.twitter_url = campaignData.twitter_url
+  if (campaignData.instagram_url !== undefined) content.instagram_url = campaignData.instagram_url
+  if (campaignData.linkedin_url !== undefined) content.linkedin_url = campaignData.linkedin_url
+  if (campaignData.youtube_url !== undefined) content.youtube_url = campaignData.youtube_url
+  if (campaignData.tiktok_url !== undefined) content.tiktok_url = campaignData.tiktok_url
+  if (campaignData.website_url !== undefined) content.website_url = campaignData.website_url
+
+  const { data: detail, error: detailError } = await (
+    supabase.from('campaign_details') as any
+  )
+    .insert({
+      campaign_id: (campaign as { id: string }).id,
+      version: 1,
+      status: 'pending_initial_approval',
+      content,
+      changed_by: campaignData.created_by,
+    })
+    .select()
+    .single()
+
+  if (detailError) throw detailError
+
+  // Return the merged metadata + detail as an opaque record so callers
+  // can read .id / .slug via their existing `as { id: string; slug?: string }`
+  // narrowing pattern without TS complaining about a fixed `detail` field.
+  const result: Record<string, unknown> = {
+    ...(campaign as Record<string, unknown>),
+    detail,
+  }
+  return result
 }
 
 // Get campaign by slug or id
@@ -974,25 +1059,83 @@ export const getCampaignBySlug = async (slugOrId: string) => {
   return data
 }
 
-// Get campaigns by organization
+// Get campaigns by organization with derived title + status.
+//
+// Post-REFB, campaigns has no title / funding_goal / status. The CBO
+// dashboard reads those, so we embed every campaign_details row, then
+// reduce client-side to (a) the latest version's status — which maps
+// to the lifecycle bucket — and (b) the latest APPROVED version's
+// content (falling back to the latest version's content for draft /
+// pending campaigns that have never been approved).
+//
+// Returned shape adds top-level `title`, `funding_goal`, `status` so
+// existing JSX in DashboardPage keeps working unchanged.
 export const getCampaignsByOrganization = async (organizationId: string) => {
   const { data, error } = await supabase
     .from('campaigns')
-    .select('*')
+    .select(
+      `
+      *,
+      details:campaign_details(content, status, version)
+    `
+    )
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data || []
+
+  return (data || []).map((row: any) => {
+    const details: Array<{ content: any; status: string; version: number }> =
+      Array.isArray(row.details) ? row.details : []
+    const sorted = [...details].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+    const latest = sorted[0]
+    const latestApproved = sorted.find((d) => d.status === 'approved')
+
+    // Lifecycle derivation mirrors backend/api/services/campaignStateMachine.js
+    let derivedStatus: string
+    if (row.deleted_at) {
+      derivedStatus = 'deleted'
+    } else if (!latest) {
+      derivedStatus = 'draft'
+    } else if (latest.status === 'pending_initial_approval') {
+      derivedStatus = 'pending'
+    } else if (latest.status === 'pending_edit_approval') {
+      derivedStatus = 'pending'
+    } else if (latestApproved) {
+      derivedStatus = 'active'
+    } else if (latest.status === 'rejected') {
+      derivedStatus = 'rejected'
+    } else {
+      derivedStatus = 'draft'
+    }
+
+    const sourceContent = (latestApproved?.content ?? latest?.content ?? {}) as Record<string, unknown>
+    const { details: _details, ...rest } = row
+    return {
+      ...sourceContent,
+      ...rest,
+      status: derivedStatus,
+    }
+  })
 }
 
-// Update campaign
-export const updateCampaign = async (
+// Update campaign metadata (slug / deleted_at only).
+//
+// Post-REFB, content edits MUST flow through the state machine via
+// POST /api/campaigns/:id/submit-edit (the route inserts a new
+// campaign_details row with status pending_*_approval). This client
+// helper exists only for the small whitelist of campaign-level
+// metadata fields that genuinely live on the campaigns row.
+export interface CampaignMetadataUpdate {
+  slug?: string
+  deleted_at?: string | null
+}
+
+export const updateCampaignMetadata = async (
   campaignId: string,
-  updates: Partial<CampaignData> & { status?: string }
+  updates: CampaignMetadataUpdate
 ) => {
-  const { data, error } = await supabase
-    .from('campaigns')
+  const { data, error } = await (supabase.from('campaigns') as any)
     .update(updates)
     .eq('id', campaignId)
     .select()
@@ -1002,27 +1145,41 @@ export const updateCampaign = async (
   return data
 }
 
-// Get active campaigns (for public listing)
-// includePending: also show pending campaigns. Default false so unapproved
-// campaigns aren't visible on the public Browse page.
-export const getActiveCampaigns = async (limit: number = 10, includePending: boolean = false) => {
-  let query = supabase.from('campaigns').select(`
+// Get active campaigns (for public listing).
+//
+// Post-REFB, "active" = at least one approved campaign_details row exists
+// AND the campaign is not soft-deleted. There is no meaningful "pending"
+// public view (pending campaigns are draft-only and hidden by RLS).
+//
+// We use an INNER embed on campaign_details filtered to status=approved
+// so PostgREST drops campaigns with no approved detail row. Each result
+// row also gets the detail.content fields spread onto the top-level
+// campaign object so downstream consumers can still read campaign.title,
+// campaign.funding_goal, etc.
+export const getActiveCampaigns = async (limit: number = 10) => {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select(
+      `
       *,
-      organization:organizations(id, name, slug, logo_url)
-    `)
-
-  if (includePending) {
-    // Show both active and pending campaigns
-    query = query.in('status', ['active', 'pending'])
-  } else {
-    // Only show active campaigns
-    query = query.eq('status', 'active')
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false }).limit(limit)
+      organization:organizations(id, name, slug, logo_url),
+      detail:campaign_details!inner(content, status)
+    `
+    )
+    .eq('detail.status', 'approved')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(limit)
 
   if (error) throw error
-  return data || []
+  return (data || []).map((row: any) => {
+    // PostgREST can return the inner embed as an array OR a single object
+    // depending on FK cardinality. Normalize.
+    const detail = Array.isArray(row.detail) ? row.detail[0] : row.detail
+    const content = (detail?.content as Record<string, unknown> | undefined) || {}
+    const { detail: _detail, ...rest } = row
+    return { ...content, ...rest }
+  })
 }
 
 // Upload campaign image
@@ -1061,10 +1218,17 @@ export interface OrganizationQuestion {
 export const fetchOrganizationQuestions = async (
   organizationId: string
 ): Promise<OrganizationQuestion[]> => {
-  // Get all campaigns for this org
+  // Get all campaigns for this org. Title lives in campaign_details.content
+  // post-REFB; embed the detail rows so we can pick the latest approved
+  // (falling back to latest) title for display.
   const { data: campaigns, error: campaignsError } = await supabase
     .from('campaigns')
-    .select('id, title')
+    .select(
+      `
+      id,
+      details:campaign_details(content, status, version)
+    `
+    )
     .eq('organization_id', organizationId)
 
   if (campaignsError) {
@@ -1074,7 +1238,17 @@ export const fetchOrganizationQuestions = async (
 
   if (!campaigns?.length) return []
 
-  const campaignIds = campaigns.map((c) => c.id)
+  const titleByCampaignId = new Map<string, string>()
+  for (const c of campaigns as any[]) {
+    const details: Array<{ content?: any; status?: string; version?: number }> =
+      Array.isArray(c.details) ? c.details : []
+    const sorted = [...details].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+    const approved = sorted.find((d) => d.status === 'approved')
+    const content = (approved?.content ?? sorted[0]?.content ?? {}) as { title?: string }
+    titleByCampaignId.set(c.id, content.title || 'Unknown Campaign')
+  }
+
+  const campaignIds = Array.from(titleByCampaignId.keys())
 
   // Get all questions for these campaigns
   const { data: questions, error: questionsError } = await (
@@ -1092,7 +1266,7 @@ export const fetchOrganizationQuestions = async (
   // Join campaign titles to questions
   return (questions || []).map((q: any) => ({
     ...q,
-    campaign_title: campaigns.find((c) => c.id === q.campaign_id)?.title || 'Unknown Campaign',
+    campaign_title: titleByCampaignId.get(q.campaign_id) || 'Unknown Campaign',
   }))
 }
 
@@ -1811,7 +1985,12 @@ export const fetchCampaignReports = async (status?: string): Promise<CampaignRep
     .select(
       `
       *,
-      campaign:campaigns(id, title, slug, organization_id)
+      campaign:campaigns(
+        id,
+        slug,
+        organization_id,
+        detail:campaign_details(content, status, version)
+      )
     `
     )
     .order('created_at', { ascending: false })
@@ -1827,7 +2006,23 @@ export const fetchCampaignReports = async (status?: string): Promise<CampaignRep
     return []
   }
 
-  return data || []
+  // Post-process: derive campaign.title from the latest approved detail
+  // (fallback to latest) so downstream callers keep reading report.campaign.title.
+  return (data || []).map((row: any) => {
+    const detail: Array<{ content?: any; status?: string; version?: number }> =
+      Array.isArray(row.campaign?.detail) ? row.campaign.detail : []
+    const sorted = [...detail].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+    const approved = sorted.find((d) => d.status === 'approved')
+    const content = (approved?.content ?? sorted[0]?.content ?? {}) as { title?: string }
+    if (row.campaign) {
+      row.campaign = {
+        ...row.campaign,
+        title: content.title || 'Untitled campaign',
+      }
+      delete row.campaign.detail
+    }
+    return row
+  })
 }
 
 // Update campaign report status (for admin)

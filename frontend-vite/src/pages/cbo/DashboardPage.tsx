@@ -460,8 +460,11 @@ function CampaignsContent({
   const visibleCampaigns = showDeleted
     ? campaigns
     : campaigns.filter((c) => !c.deleted_at)
+  // Derived status values come from getCampaignsByOrganization() and
+  // mirror the backend state machine: draft / pending / active / rejected /
+  // deleted. There is no "completed" state post-REFB, so that bucket
+  // always renders 0 until/unless a completion state is introduced.
   const pendingCampaigns = visibleCampaigns.filter((c) => c.status === 'pending')
-  const _activeCampaigns = visibleCampaigns.filter((c) => c.status === 'active')
   const completedCampaigns = visibleCampaigns.filter((c) => c.status === 'completed')
 
   const handleSoftDelete = async (campaignId: string, title: string) => {

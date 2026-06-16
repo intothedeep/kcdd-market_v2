@@ -571,6 +571,20 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
       return res.status(404).json({ error: 'Campaign not found' })
     }
 
+    // Post-REFB: campaigns has no title column. Pull the title (and any
+    // other content fields needed for receipts / metadata) from the
+    // latest approved campaign_details row. `maybeSingle()` returns null
+    // when no approved detail exists yet; we fall back to a stable label.
+    const { data: campaignDetail } = await supabase
+      .from('campaign_details')
+      .select('content')
+      .eq('campaign_id', campaign.id)
+      .eq('status', 'approved')
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const campaignTitle = campaignDetail?.content?.title || 'Untitled campaign'
+
     // Check if organization can accept payments. Dev convenience:
     // STRIPE_BYPASS_CONNECT=true lets us run test-mode donations without
     // having a Connect account set up. Money goes to the platform balance
@@ -611,14 +625,14 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
       currency: 'usd',
       metadata: {
         campaignId,
-        campaignTitle: campaign.title,
+        campaignTitle,
         organizationId: org?.id || '',
         organizationName: org?.name || '',
         donorId: donorId || 'anonymous',
         platformFee: platformFee.toString(),
         organizationAmount: organizationAmount.toString(),
       },
-      description: `Campaign donation: ${campaign.title}`,
+      description: `Campaign donation: ${campaignTitle}`,
     }
     if (!bypassConnect) {
       intentParams.application_fee_amount = platformFee
@@ -641,7 +655,7 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
         kind: 'campaign',
         targetSnapshot: {
           campaign_slug: campaign.slug,
-          campaign_title_snapshot: campaign.title,
+          campaign_title_snapshot: campaignTitle,
           organization_name_snapshot: org?.name || null,
         },
         req,
@@ -1993,14 +2007,20 @@ async function generateAndStoreReceipt(paymentIntent) {
         description = `Donation for: ${request.item || request.description || 'Request'}`
       }
     } else if (campaignId) {
-      const { data: campaign } = await supabase
-        .from('campaigns')
-        .select('title')
-        .eq('id', campaignId)
-        .single()
-      if (campaign) {
-        description = `Campaign donation: ${campaign.title}`
-      }
+      // Post-REFB: campaigns.title is gone. Pull the donor-visible title
+      // from the latest approved campaign_details row. maybeSingle() so
+      // receipts still issue (with a generic description) when no
+      // approved detail exists at receipt time.
+      const { data: detail } = await supabase
+        .from('campaign_details')
+        .select('content')
+        .eq('campaign_id', campaignId)
+        .eq('status', 'approved')
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const campaignTitle = detail?.content?.title || 'Untitled campaign'
+      description = `Campaign donation: ${campaignTitle}`
     }
 
     // Generate receipt number
