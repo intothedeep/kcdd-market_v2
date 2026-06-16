@@ -1546,11 +1546,11 @@ app.post('/api/campaigns/:id/soft-delete', clerkAuth, async (req, res) => {
       return res.status(409).json({ error: 'Already deleted' })
     }
 
-    // 4. Stamp deleted_at.
+    // 4. Stamp deleted_at + deleted_by (SOFT-DEL.1: capture WHO performed the delete).
     const nowIso = new Date().toISOString()
     const { error: updateErr } = await supabase
       .from('campaigns')
-      .update({ deleted_at: nowIso })
+      .update({ deleted_at: nowIso, deleted_by: callerUserId })
       .eq('id', campaignId)
       .is('deleted_at', null)
     if (updateErr) throw updateErr
@@ -1602,10 +1602,13 @@ app.post('/api/admin/campaigns/:id/restore', clerkAuth, async (req, res) => {
       return res.status(409).json({ error: 'Not deleted' })
     }
 
-    // 3. Clear deleted_at.
+    // 3. Clear deleted_at + deleted_by (SOFT-DEL.1: clean reset semantics — the
+    //    row is no longer in a deleted state, so neither column should retain
+    //    stale values. Audit trail for the restoring admin lives in
+    //    `admin_activity_log`, NOT in row-level state).
     const { error: updateErr } = await supabase
       .from('campaigns')
-      .update({ deleted_at: null })
+      .update({ deleted_at: null, deleted_by: null })
       .eq('id', campaignId)
     if (updateErr) throw updateErr
 
@@ -1641,7 +1644,7 @@ app.get('/api/admin/deleted-campaigns', clerkAuth, async (req, res) => {
     // 2. Pull every soft-deleted campaign + its organization.
     const { data: campaigns, error: campErr } = await supabase
       .from('campaigns')
-      .select('id, slug, deleted_at, organizations(id, name)')
+      .select('id, slug, deleted_at, deleted_by, organizations(id, name)')
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: false })
     if (campErr) throw campErr
@@ -1666,6 +1669,7 @@ app.get('/api/admin/deleted-campaigns', clerkAuth, async (req, res) => {
         slug: c.slug,
         title,
         deleted_at: c.deleted_at,
+        deleted_by: c.deleted_by ?? null,
         organization_id: c.organizations?.id ?? null,
         organization_name: c.organizations?.name ?? null,
       })

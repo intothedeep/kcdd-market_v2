@@ -71,6 +71,7 @@ type DeletedRow = {
   slug: string
   title: string | null
   deleted_at: string
+  deleted_by: string | null
   organization_id: string | null
   organization_name: string | null
 }
@@ -472,6 +473,9 @@ export function PendingEditsPage() {
                     <p className="text-xs text-[#737373]">
                       {row.organization_name ?? 'Unknown organization'} ·{' '}
                       deleted {formatRelativeTime(row.deleted_at)}
+                    </p>
+                    <p className="text-xs text-[#737373]">
+                      Deleted by: {row.deleted_by ?? '—'}
                     </p>
                   </div>
                   <Button
