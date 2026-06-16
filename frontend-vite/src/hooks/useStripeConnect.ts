@@ -7,7 +7,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { apiConfig } from '@/config'
+import { useAuth } from '@clerk/clerk-react'
+import { api } from '@/lib/api'
 
 export interface StripeConnectStatus {
   connected: boolean
@@ -37,6 +38,7 @@ export function useStripeConnect(organizationId: string | undefined): UseStripeC
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
+  const { getToken } = useAuth()
 
   const fetchStatus = useCallback(async () => {
     if (!organizationId) {
@@ -45,13 +47,11 @@ export function useStripeConnect(organizationId: string | undefined): UseStripeC
     }
 
     try {
-      const res = await fetch(`${apiConfig.baseUrl}/api/stripe/connect/status/${organizationId}`)
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch Stripe status')
-      }
-
-      const data = await res.json()
+      // H5-D: backend route now requires Clerk auth + org-owner check
+      const data = await api.get<StripeConnectStatus>(
+        `/api/stripe/connect/status/${organizationId}`,
+        getToken
+      )
       setStatus(data)
       setError(null)
     } catch (err) {
@@ -62,7 +62,7 @@ export function useStripeConnect(organizationId: string | undefined): UseStripeC
       setLoading(false)
       setIsRefreshing(false)
     }
-  }, [organizationId])
+  }, [organizationId, getToken])
 
   // Initial fetch
   useEffect(() => {

@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -21,7 +21,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
-import { apiConfig, routes } from '@/config'
+import { routes } from '@/config'
+import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { AlertTriangle, ArrowLeft, Loader2, Heart } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -52,6 +53,7 @@ export function CampaignDonatePage() {
   const stripe = useStripe()
   const elements = useElements()
   const { user } = useUser()
+  const { getToken } = useAuth()
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [loading, setLoading] = useState(true)
@@ -160,25 +162,16 @@ export function CampaignDonatePage() {
     setError(null)
 
     try {
-      // Create payment intent for campaign donation
-      const response = await fetch(`${apiConfig.baseUrl}/api/payments/create-campaign-intent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Create payment intent for campaign donation via authenticated helper (H5-A)
+      const { clientSecret } = await api.post<{ clientSecret: string }>(
+        '/api/payments/create-campaign-intent',
+        {
           campaignId: campaign.id,
           amount: Math.round(amount * 100), // Convert to cents
           donorId: user?.id,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create payment')
-      }
-
-      const { clientSecret } = await response.json()
+        },
+        getToken
+      )
 
       // Confirm payment
       const cardElement = elements.getElement(CardElement)

@@ -193,7 +193,7 @@ app.get('/api/campaigns/:slug/public-meta', async (req, res) => {
  * - organizationId: string
  * - userId: string (Clerk user ID)
  */
-app.post('/api/stripe/connect/create-account', async (req, res) => {
+app.post('/api/stripe/connect/create-account', clerkAuth, async (req, res) => {
   try {
     const { organizationId, userId: _userId } = req.body
 
@@ -210,6 +210,13 @@ app.post('/api/stripe/connect/create-account', async (req, res) => {
 
     if (orgError || !org) {
       return res.status(404).json({ error: 'Organization not found' })
+    }
+
+    // H5-D (L5): caller must own this organization
+    if (org.user_id !== req.auth.userId) {
+      return res
+        .status(403)
+        .json({ error: 'forbidden', detail: 'caller does not own this organization' })
     }
 
     // Check if already has Stripe account
@@ -275,7 +282,7 @@ app.post('/api/stripe/connect/create-account', async (req, res) => {
  * Body:
  * - organizationId: string
  */
-app.post('/api/stripe/connect/onboarding-link', async (req, res) => {
+app.post('/api/stripe/connect/onboarding-link', clerkAuth, async (req, res) => {
   try {
     const { organizationId } = req.body
 
@@ -286,12 +293,19 @@ app.post('/api/stripe/connect/onboarding-link', async (req, res) => {
     // Get organization's Stripe account
     const { data: org, error: orgError } = await supabase
       .from('organizations')
-      .select('stripe_account_id')
+      .select('stripe_account_id, user_id')
       .eq('id', organizationId)
       .single()
 
     if (orgError || !org) {
       return res.status(404).json({ error: 'Organization not found' })
+    }
+
+    // H5-D (L5): caller must own this organization
+    if (org.user_id !== req.auth.userId) {
+      return res
+        .status(403)
+        .json({ error: 'forbidden', detail: 'caller does not own this organization' })
     }
 
     if (!org.stripe_account_id) {
@@ -323,7 +337,7 @@ app.post('/api/stripe/connect/onboarding-link', async (req, res) => {
  * Get Stripe Connect Account Status
  * GET /api/stripe/connect/status/:organizationId
  */
-app.get('/api/stripe/connect/status/:organizationId', async (req, res) => {
+app.get('/api/stripe/connect/status/:organizationId', clerkAuth, async (req, res) => {
   try {
     const { organizationId } = req.params
 
@@ -331,13 +345,20 @@ app.get('/api/stripe/connect/status/:organizationId', async (req, res) => {
     const { data: org, error: orgError } = await supabase
       .from('organizations')
       .select(
-        'stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled'
+        'stripe_account_id, stripe_onboarding_complete, stripe_charges_enabled, stripe_payouts_enabled, user_id'
       )
       .eq('id', organizationId)
       .single()
 
     if (orgError || !org) {
       return res.status(404).json({ error: 'Organization not found' })
+    }
+
+    // H5-D (L5): caller must own this organization (gate BEFORE write-back to row)
+    if (org.user_id !== req.auth.userId) {
+      return res
+        .status(403)
+        .json({ error: 'forbidden', detail: 'caller does not own this organization' })
     }
 
     if (!org.stripe_account_id) {
@@ -2174,7 +2195,7 @@ if (process.env.NODE_ENV !== 'production') {
  *
  * Returns a signed URL for downloading the document
  */
-app.get('/api/documents/download/:documentId', async (req, res) => {
+app.get('/api/documents/download/:documentId', clerkAuth, async (req, res) => {
   try {
     const { documentId } = req.params
 
@@ -2187,6 +2208,13 @@ app.get('/api/documents/download/:documentId', async (req, res) => {
 
     if (docError || !doc) {
       return res.status(404).json({ error: 'Document not found' })
+    }
+
+    // H5-D (M7): caller may only download their own documents
+    if (doc.user_id !== req.auth.userId) {
+      return res
+        .status(403)
+        .json({ error: 'forbidden', detail: "caller cannot read another donor's documents" })
     }
 
     // If we have a file_url, return it
@@ -2227,12 +2255,19 @@ app.get('/api/documents/download/:documentId', async (req, res) => {
  * - donorId: string (Clerk user ID)
  * - year: number
  */
-app.post('/api/documents/generate-annual-summary', async (req, res) => {
+app.post('/api/documents/generate-annual-summary', clerkAuth, async (req, res) => {
   try {
     const { donorId, year } = req.body
 
     if (!donorId || !year) {
       return res.status(400).json({ error: 'Missing donorId or year' })
+    }
+
+    // H5-D (M7): caller may only generate their own annual summary
+    if (donorId !== req.auth.userId) {
+      return res
+        .status(403)
+        .json({ error: 'forbidden', detail: "caller cannot read another donor's documents" })
     }
 
     // Get donor details
@@ -2371,10 +2406,17 @@ app.post('/api/documents/generate-annual-summary', async (req, res) => {
  * List Donor Documents
  * GET /api/documents/list/:donorId
  */
-app.get('/api/documents/list/:donorId', async (req, res) => {
+app.get('/api/documents/list/:donorId', clerkAuth, async (req, res) => {
   try {
     const { donorId } = req.params
     const { year, type } = req.query
+
+    // H5-D (M7): caller may only list their own documents
+    if (donorId !== req.auth.userId) {
+      return res
+        .status(403)
+        .json({ error: 'forbidden', detail: "caller cannot read another donor's documents" })
+    }
 
     let query = supabase
       .from('donor_documents')

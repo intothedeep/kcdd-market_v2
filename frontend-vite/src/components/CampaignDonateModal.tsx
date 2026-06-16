@@ -11,14 +11,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import { Heart, Loader2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { apiConfig, routes } from '@/config'
+import { routes } from '@/config'
+import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 
 const SUGGESTED_AMOUNTS = [25, 50, 100, 250, 500]
@@ -41,6 +42,7 @@ export function CampaignDonateModal({ open, onOpenChange, campaign }: CampaignDo
   const stripe = useStripe()
   const elements = useElements()
   const { user } = useUser()
+  const { getToken } = useAuth()
 
   const [amount, setAmount] = useState<number>(50)
   const [customAmount, setCustomAmount] = useState<string>('')
@@ -92,22 +94,15 @@ export function CampaignDonateModal({ open, onOpenChange, campaign }: CampaignDo
     setError(null)
 
     try {
-      const response = await fetch(`${apiConfig.baseUrl}/api/payments/create-campaign-intent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { clientSecret } = await api.post<{ clientSecret: string }>(
+        '/api/payments/create-campaign-intent',
+        {
           campaignId: campaign.id,
           amount: Math.round(amount * 100),
           donorId: user?.id,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create payment')
-      }
-
-      const { clientSecret } = await response.json()
+        },
+        getToken
+      )
 
       const cardElement = elements.getElement(CardElement)
       if (!cardElement) throw new Error('Card element not found')

@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +34,7 @@ import {
 
 export function DonorDocuments() {
   const { user, isLoaded } = useUser()
+  const { getToken } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -79,7 +80,7 @@ export function DonorDocuments() {
   const handleDownload = async (doc: DonorDocument) => {
     try {
       // Try to get a fresh download URL from the API
-      const downloadUrl = await getDocumentDownloadUrl(doc.id)
+      const downloadUrl = await getDocumentDownloadUrl(doc.id, getToken)
       if (downloadUrl) {
         window.open(downloadUrl, '_blank')
       } else if (doc.file_url) {
@@ -103,7 +104,7 @@ export function DonorDocuments() {
 
     setGeneratingYear(year)
     try {
-      const doc = await generateAnnualSummary(user.id, year)
+      const doc = await generateAnnualSummary(user.id, year, getToken)
       if (doc) {
         // Refresh documents list
         const docsData = await fetchDonorDocuments(user.id)

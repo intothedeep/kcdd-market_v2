@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { Checkbox } from '@/components/ui/checkbox'
+import { sanitizeStoryHtml } from '@/lib/sanitizeStoryHtml'
 import {
   Accordion,
   AccordionContent,
@@ -128,13 +129,14 @@ function parseYouTubeId(src: string): string | null {
   return null
 }
 
-// Render trusted story HTML stored in campaign_details.content.story_content (post-REFB).
-// We render markdown-y story bodies and rich-text-editor HTML the same way:
-// the field is HTML so we pass it through, but we only convert newline-only
-// content (no tags) into <br> so plain-text stories still look right.
+// Render story HTML stored in campaign_details.content.story_content (post-REFB).
+// Story bodies come from a TipTap rich-text editor (CBO authoring) and pass
+// through admin review, but we sanitize via DOMPurify at render time as
+// defense-in-depth against XSS payloads that survive eyeball review (H5-B / M3).
 function renderStoryHtml(content: string): string {
   const looksLikeHtml = /<\/?[a-z][\s\S]*?>/i.test(content)
-  return looksLikeHtml ? content : content.replace(/\n/g, '<br />')
+  const html = looksLikeHtml ? content : content.replace(/\n/g, '<br />')
+  return sanitizeStoryHtml(html)
 }
 
 interface SubmittedQuestion {

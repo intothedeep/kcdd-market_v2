@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js'
 import { supabaseConfig } from '@/config'
 import type { Database } from '@/types/database'
 
+import { api } from '@/lib/api'
 // Clerk-Supabase JWT bridge.
 //
 // Code side (this file + App.tsx) wires a getter for the current Clerk
@@ -1389,18 +1390,19 @@ export const fetchDonorDocuments = async (userId: string): Promise<DonorDocument
 
 /**
  * Get download URL for a document
+ *
+ * H5-D: backend route now enforces clerkAuth + per-doc ownership, so we
+ * route the call through api.get() to pass the Clerk Bearer token.
  */
-export const getDocumentDownloadUrl = async (documentId: string): Promise<string | null> => {
+export const getDocumentDownloadUrl = async (
+  documentId: string,
+  getToken: (options?: { template?: string }) => Promise<string | null>
+): Promise<string | null> => {
   try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-    const response = await fetch(`${apiUrl}/api/documents/download/${documentId}`)
-
-    if (!response.ok) {
-      console.error('Error fetching download URL')
-      return null
-    }
-
-    const data = await response.json()
+    const data = await api.get<{ url?: string | null }>(
+      `/api/documents/download/${documentId}`,
+      getToken
+    )
     return data.url || null
   } catch (error) {
     console.error('Error getting document download URL:', error)
@@ -1410,25 +1412,21 @@ export const getDocumentDownloadUrl = async (documentId: string): Promise<string
 
 /**
  * Generate annual summary for a donor
+ *
+ * H5-D: backend route now enforces clerkAuth + self-only guard, so we
+ * route the call through api.post() to pass the Clerk Bearer token.
  */
 export const generateAnnualSummary = async (
   donorId: string,
-  year: number
+  year: number,
+  getToken: (options?: { template?: string }) => Promise<string | null>
 ): Promise<DonorDocument | null> => {
   try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-    const response = await fetch(`${apiUrl}/api/documents/generate-annual-summary`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ donorId, year }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to generate summary')
-    }
-
-    const data = await response.json()
+    const data = await api.post<{ document?: DonorDocument | null }>(
+      '/api/documents/generate-annual-summary',
+      { donorId, year },
+      getToken
+    )
     return data.document || null
   } catch (error) {
     console.error('Error generating annual summary:', error)
