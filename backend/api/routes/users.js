@@ -33,10 +33,30 @@ router.post('/sync', async (req, res) => {
 })
 
 // POST /api/users/become-cbo
-// Requires clerkAuth middleware (applied in server.js mount)
+// Requires clerkAuth middleware (applied in server.js mount).
+// Role-flip precondition: admins must not be able to self-demote (lockout vector);
+// existing CBOs are a no-op (idempotent); donor/null becomes 'cbo'.
 router.post('/become-cbo', async (req, res) => {
   try {
     const clerkUserId = req.auth.userId
+
+    const { data: current, error: readError } = await supabase
+      .from('user_profiles')
+      .select('user_type')
+      .eq('id', clerkUserId)
+      .maybeSingle()
+
+    if (readError) throw readError
+
+    const currentType = current?.user_type ?? null
+
+    if (currentType === 'admin') {
+      return res.status(403).json({ error: 'Admins cannot self-demote to CBO' })
+    }
+
+    if (currentType === 'cbo') {
+      return res.json({ success: true })
+    }
 
     const { error } = await supabase
       .from('user_profiles')

@@ -527,17 +527,23 @@ app.post('/api/payments/create-intent', clerkAuth, async (req, res) => {
  * Create Payment Intent for Campaign Donation
  * POST /api/payments/create-campaign-intent
  *
+ * Auth required (clerkAuth). donor_id is taken from the verified Clerk JWT,
+ * never from the request body — accepting client-supplied donorId would let
+ * an anonymous attacker pollute Stripe immutable metadata under any user id.
+ *
  * Body:
  * - campaignId: string
  * - amount: number (in cents)
- * - donorId: string (optional)
  *
- * Supports destination charges to transfer funds to connected accounts
+ * Supports destination charges to transfer funds to connected accounts.
+ * TODO: if anonymous campaign donations are needed, add a separate explicit
+ * route — do NOT relax this auth gate.
  */
 // NOTE: campaign amounts are donor-chosen by design — client-supplied amount is intentional here.
-app.post('/api/payments/create-campaign-intent', async (req, res) => {
+app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => {
   try {
-    const { campaignId, amount, donorId } = req.body
+    const { campaignId, amount } = req.body
+    const donorId = req.auth.userId // from Clerk JWT, not client
 
     if (!campaignId || !amount) {
       return res.status(400).json({ error: 'Missing campaignId or amount' })

@@ -21,6 +21,14 @@ function decodeJwtPayload(token) {
 }
 
 export async function clerkAuth(req, res, next) {
+  // Fail closed in production if the Clerk secret is missing — otherwise the
+  // code below would silently fall through to the unverified dev decoder,
+  // allowing forged JWT impersonation.
+  if (process.env.NODE_ENV === 'production' && !process.env.CLERK_SECRET_KEY) {
+    console.error('clerkAuth: CLERK_SECRET_KEY missing in production — failing closed')
+    return res.status(500).json({ error: 'Auth not configured' })
+  }
+
   const authHeader = req.headers['authorization']
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Missing authorization header' })

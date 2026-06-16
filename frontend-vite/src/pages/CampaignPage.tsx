@@ -610,20 +610,31 @@ export function CampaignPage() {
     try {
       setLoading(true)
 
-      // Fetch campaign by slug or id. Postgres rejects a non-UUID cast for
-      // the id column (22P02) so the .or() filter only includes id when the
-      // route param actually looks like a UUID.
-      const isUuid =
-        !!slug && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
+      // Fetch campaign by slug or id. The raw URL param is untrusted: an
+      // unescaped slug interpolated into PostgREST .or() lets the caller
+      // inject extra filter clauses (commas, dots, parens are PostgREST
+      // metacharacters). Resolve which column to match first, then run a
+      // single .eq() with the validated value — and reject anything that
+      // matches neither shape.
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      const SLUG_RE = /^[a-z0-9-]+$/i
+      const column: 'id' | 'slug' | null = !slug
+        ? null
+        : UUID_RE.test(slug)
+          ? 'id'
+          : SLUG_RE.test(slug)
+            ? 'slug'
+            : null
+      if (!column || !slug) {
+        throw new Error('Campaign not found')
+      }
       const query = supabase.from('campaigns').select(
         `
           *,
           organization:organizations(id, name, slug, mission, logo_url, stripe_charges_enabled)
         `
       )
-      const { data, error } = await (
-        isUuid ? query.or(`slug.eq.${slug},id.eq.${slug}`) : query.eq('slug', slug)
-      ).single()
+      const { data, error } = await query.eq(column, slug).single()
 
       if (error) throw error
 
