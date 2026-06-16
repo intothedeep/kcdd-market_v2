@@ -523,4 +523,65 @@ WHERE c.id = '00000000-0000-0000-0009-000000000001'
 ON CONFLICT (recipient_clerk_user_id, dedupe_key) WHERE dedupe_key IS NOT NULL
   DO NOTHING;
 
+-- ============================================================
+-- STEP REFB — soft-delete demo
+-- ============================================================
+-- One additional campaign that WOULD be donor-visible (has an approved
+-- detail) but was soft-deleted 2 days ago. Used to verify:
+--   * anon SELECT FROM campaigns still returns 5 (the soft-deleted
+--     row is filtered by the public RLS predicate `deleted_at IS NULL`)
+--   * admin/owner SELECT can still see it (no deleted_at filter on
+--     their policies — intentional, so undelete UI can list it)
+INSERT INTO campaigns (
+  id, organization_id, created_by, slug,
+  amount_raised, supporters_count, created_at, deleted_at
+) VALUES (
+  '00000000-0000-0000-0009-000000000008',
+  '00000000-0000-0000-0004-000000000001',
+  '00000000-0000-0000-0002-000000000001',
+  'archived-laptops-pilot-2025',
+  500.00, 5,
+  NOW() - INTERVAL '90 days',
+  NOW() - INTERVAL '2 days'
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO campaign_details (
+  id, campaign_id, version, status,
+  content, change_summary,
+  changed_by, approved_by, approved_at, created_at
+) VALUES (
+  gen_random_uuid(),
+  '00000000-0000-0000-0009-000000000008',
+  1,
+  'approved',
+  jsonb_build_object(
+    'title', 'Archived Laptops Pilot (2025)',
+    'creator_name', 'Amara Johnson',
+    'creator_role', 'Program Director',
+    'funding_goal', 2000,
+    'short_description', 'Pilot ended successfully — kept here for soft-delete demo.',
+    'story_title', 'Wrap report',
+    'story_content', '<p>Closed out the 2025 pilot. Archived 2026-06.</p>',
+    'contact_email', 'campaigns@connectingroots.org',
+    'phone', '+1-816-555-0111',
+    'image_url', NULL,
+    'logo_url', NULL,
+    'facebook_url', NULL, 'twitter_url', NULL,
+    'instagram_url', NULL, 'linkedin_url', NULL,
+    'youtube_url', NULL, 'tiktok_url', NULL,
+    'website_url', NULL,
+    'cause_area_ids', ARRAY[]::text[]
+  ),
+  'Pilot completed; archived',
+  '00000000-0000-0000-0002-000000000001',
+  '00000000-0000-0000-0001-000000000001',
+  NOW() - INTERVAL '85 days',
+  NOW() - INTERVAL '85 days'
+) ON CONFLICT (campaign_id, version) DO NOTHING;
+
+UPDATE campaigns
+SET first_approved_at = NOW() - INTERVAL '85 days',
+    last_edit_approved_at = NOW() - INTERVAL '85 days'
+WHERE id = '00000000-0000-0000-0009-000000000008';
+
 COMMIT;
