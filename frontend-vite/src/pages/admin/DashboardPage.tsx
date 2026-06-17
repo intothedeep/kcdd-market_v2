@@ -3334,6 +3334,22 @@ export function AdminDashboard() {
       const { error } = await supabase.from('user_profiles').delete().eq('id', userId)
       if (error) throw error
 
+      // W4-B / YELLOW Y1: audit log on successful hard-cascade user deletion.
+      // Only logs after the user_profiles delete succeeds; if any earlier step
+      // threw, we land in the catch below and skip the audit write.
+      if (user?.id) {
+        await logAdminActivity(user.id, 'user_deleted', 'user', userId, {
+          deleted_by_clerk_id: user.id,
+          cascaded_tables: [
+            'donor_cause_areas',
+            'request_notifications',
+            'organization_*',
+            'campaigns',
+            'user_profiles',
+          ],
+        })
+      }
+
       // Remove from local state
       setUsers(users.filter((u) => u.id !== userId))
       setOrganizations(organizations.filter((o) => o.user_id !== userId))

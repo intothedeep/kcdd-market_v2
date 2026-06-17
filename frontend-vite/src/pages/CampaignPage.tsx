@@ -855,7 +855,7 @@ export function CampaignPage() {
                 {campaign.organization.name}
               </span>
               <span className="text-xs text-neutral-500 group-hover:text-[hsl(var(--brand-primary))]">
-                View profile →
+                View organization profile →
               </span>
             </Link>
           )}
@@ -1090,7 +1090,7 @@ export function CampaignPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="text-lg font-bold text-[#0a0a0a] transition-colors hover:text-[#ea580c] group-hover:text-[hsl(var(--brand-primary))] group-hover:underline">
+                      <p className="text-lg font-bold text-[#0a0a0a] transition-colors group-hover:text-[hsl(var(--brand-primary))] group-hover:underline">
                         {campaign.creator_name || campaign.organization?.name}
                       </p>
                       <p className="text-sm text-[#737373]">
@@ -1304,47 +1304,54 @@ export function CampaignPage() {
               <div className="flex gap-2.5">
                 {/* Outline Sidebar */}
                 <div className="w-[323px] flex-shrink-0 space-y-4">
-                  <h2 className="text-2xl font-semibold text-[#0a0a0a]">Outline</h2>
+                  {/* YELLOW Y4: hide the Outline heading entirely for visitors
+                      when there's no outline to render. Owners still see the
+                      heading + empty-state CTA so they're nudged to publish. */}
+                  {(outline.length > 0 || isOwner) && (
+                    <>
+                      <h2 className="text-2xl font-semibold text-[#0a0a0a]">Outline</h2>
 
-                  {/* Dynamic outline from headings */}
-                  {outline.length > 0 ? (
-                    <nav className="space-y-0.5">
-                      {outline.map((item, index) => (
-                        <button
-                          key={item.id}
-                          onClick={() => scrollToHeading(index)}
-                          className={`block w-full rounded-md px-3 py-1.5 text-left text-sm leading-snug transition-colors hover:bg-gray-100 ${
-                            item.level === 1
-                              ? 'font-semibold text-[#0a0a0a]'
-                              : item.level === 2
-                                ? 'pl-5 text-[#404040]'
-                                : item.level === 3
-                                  ? 'pl-7 text-xs text-[#737373]'
-                                  : 'pl-9 text-xs text-[#737373]'
-                          }`}
-                        >
-                          {item.text}
-                        </button>
-                      ))}
-                    </nav>
-                  ) : isOwner ? (
-                    <div className="rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-50/50 p-4 text-sm">
-                      <p className="mb-2 text-neutral-700">
-                        Visitors can jump to sections of your story using this outline.
-                      </p>
-                      <p className="mb-3 text-neutral-600">
-                        Add H1–H3 headings to your story, then approve to publish.
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleStartEdit}
-                        className="border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
-                      >
-                        Edit campaign
-                      </Button>
-                    </div>
-                  ) : null}
+                      {/* Dynamic outline from headings */}
+                      {outline.length > 0 ? (
+                        <nav className="space-y-0.5">
+                          {outline.map((item, index) => (
+                            <button
+                              key={item.id}
+                              onClick={() => scrollToHeading(index)}
+                              className={`block w-full rounded-md px-3 py-1.5 text-left text-sm leading-snug transition-colors hover:bg-gray-100 ${
+                                item.level === 1
+                                  ? 'font-semibold text-[#0a0a0a]'
+                                  : item.level === 2
+                                    ? 'pl-5 text-[#404040]'
+                                    : item.level === 3
+                                      ? 'pl-7 text-xs text-[#737373]'
+                                      : 'pl-9 text-xs text-[#737373]'
+                              }`}
+                            >
+                              {item.text}
+                            </button>
+                          ))}
+                        </nav>
+                      ) : (
+                        <div className="rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-50/50 p-4 text-sm">
+                          <p className="mb-2 text-neutral-700">
+                            Visitors can jump to sections of your story using this outline.
+                          </p>
+                          <p className="mb-3 text-neutral-600">
+                            Add H1–H3 headings to your story, then approve to publish.
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleStartEdit}
+                            className="border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
+                          >
+                            Edit campaign
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
 
                   {/* Short description */}
                   <div className="border-t border-gray-200 pt-4">

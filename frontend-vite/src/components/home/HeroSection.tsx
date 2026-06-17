@@ -95,7 +95,7 @@ export function HeroSection() {
                   Browse requests &amp; donate
                 </Button>
               </Link>
-              <Link to={routes.about} className="block w-full sm:w-auto">
+              <Link to={`${routes.about}#for-organizations`} className="block w-full sm:w-auto">
                 <Button
                   size="lg"
                   className="h-10 w-full rounded-full border-2 border-[hsl(var(--brand-primary))] bg-transparent px-6 text-[hsl(var(--brand-primary))] transition-all duration-200 hover:bg-[hsl(var(--brand-primary))] hover:text-white focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-primary))] focus-visible:ring-offset-2 active:scale-95 sm:w-auto"

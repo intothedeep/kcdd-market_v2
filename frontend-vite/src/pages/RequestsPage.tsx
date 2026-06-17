@@ -342,6 +342,23 @@ export function RequestsPage() {
                         </CardContent>
                       </Link>
 
+                      {/* YELLOW Y5: card-level click-to-org affordance restored
+                          without nesting anchors. Outer card wrapper is a <div>
+                          (W4-H refactor); inner Link wraps only image+title+desc;
+                          this Link sits between Link and CardFooter as a sibling. */}
+                      {campaign.organization?.name && campaign.organization?.slug && (
+                        <div className="px-6 pt-2 text-xs text-neutral-500">
+                          by{' '}
+                          <Link
+                            to={`/organizations/${campaign.organization.slug}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-medium text-neutral-700 underline-offset-2 hover:text-[hsl(var(--brand-primary))] hover:underline"
+                          >
+                            {campaign.organization.name}
+                          </Link>
+                        </div>
+                      )}
+
                       <CardFooter className="flex-col items-stretch gap-3 pt-0">
                         {/* Progress Bar */}
                         <div className="space-y-1.5">
