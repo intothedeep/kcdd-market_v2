@@ -408,6 +408,39 @@ export const updateOrganization = async (
   return { data, error }
 }
 
+// W5-B1 (Phase C / Theme 4) — Per-org default campaign template
+// Persisted as JSONB on organizations.default_campaign_template; consumed
+// by W5-B2 to prefill the new-campaign form.
+export interface OrganizationDefaults {
+  creator_name?: string
+  creator_role?: string
+  contact_email?: string
+  cause_area_ids?: string[]
+  faqs?: Array<{ question: string; answer: string }>
+}
+
+export async function getOrganizationDefaults(orgId: string): Promise<OrganizationDefaults | null> {
+  const { data, error } = await (supabase.from('organizations') as any)
+    .select('default_campaign_template')
+    .eq('id', orgId)
+    .maybeSingle()
+  if (error) {
+    console.error('getOrganizationDefaults error:', error)
+    return null
+  }
+  return (data?.default_campaign_template as OrganizationDefaults | null) ?? null
+}
+
+export async function updateOrganizationDefaults(
+  orgId: string,
+  payload: OrganizationDefaults
+): Promise<void> {
+  const { error } = await (supabase.from('organizations') as any)
+    .update({ default_campaign_template: payload })
+    .eq('id', orgId)
+  if (error) throw error
+}
+
 // Save donor onboarding data
 export const saveDonorOnboarding = async (
   userId: string,

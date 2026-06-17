@@ -131,6 +131,7 @@ export const routes = {
     profile: '/cbo/profile',
     profileEdit: '/cbo/profile/edit',
   },
+  cboCampaignDefaults: '/cbo/campaign-defaults',
 
   // Admin routes
   admin: {

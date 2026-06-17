@@ -32,6 +32,7 @@ import { CBORequests } from '@/pages/cbo/RequestsPage'
 import { NewRequestPage } from '@/pages/cbo/NewRequestPage'
 import { CBOProfile } from '@/pages/cbo/ProfilePage'
 import { CBOProfileEdit } from '@/pages/cbo/ProfileEditPage'
+import { CampaignDefaultsPage } from '@/pages/cbo/CampaignDefaultsPage'
 import { OrganizationProfilePage } from '@/pages/organizations/OrganizationProfilePage'
 import { CheckoutPage } from '@/pages/CheckoutPage'
 import { PaymentSuccessPage } from '@/pages/PaymentSuccessPage'
@@ -216,6 +217,14 @@ export function AppRoutes() {
           element={
             <ProtectedRoute>
               <CBOProfileEdit />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={routes.cboCampaignDefaults}
+          element={
+            <ProtectedRoute>
+              <CampaignDefaultsPage />
             </ProtectedRoute>
           }
         />
