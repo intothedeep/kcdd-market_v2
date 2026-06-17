@@ -838,6 +838,28 @@ export function CampaignPage() {
             </div>
           )}
 
+          {/* Above-the-fold org identity — Theme 3 / W4-E */}
+          {campaign.organization && (
+            <Link
+              to={`/organizations/${campaign.organization.slug || campaign.organization.id}`}
+              className="group mb-3 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 hover:border-[hsl(var(--brand-primary))] hover:bg-white"
+              aria-label={`View ${campaign.organization.name} organization profile`}
+            >
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={campaign.organization.logo_url || undefined} alt="" />
+                <AvatarFallback className="text-[10px]">
+                  {campaign.organization.name?.slice(0, 2).toUpperCase() || 'OR'}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-semibold text-neutral-800 group-hover:text-[hsl(var(--brand-primary))]">
+                {campaign.organization.name}
+              </span>
+              <span className="text-xs text-neutral-500 group-hover:text-[hsl(var(--brand-primary))]">
+                View profile →
+              </span>
+            </Link>
+          )}
+
           {/* Title with Edit Button */}
           <div className="flex items-start justify-between gap-4">
             {isEditing ? (
