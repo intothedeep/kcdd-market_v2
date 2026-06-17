@@ -25,9 +25,7 @@ const URL_FIELD_HINT = /(_url|_image|_logo|image_url|logo_url|video|website|link
 const diffPatcher = create()
 
 function humanizeKey(key: string): string {
-  return key
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
+  return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -165,9 +163,7 @@ function ChangedField({ change }: { change: FieldChange }) {
         <StatusBadge kind={change.kind} />
       </div>
       {change.kind === 'added' && <ValueBlock value={change.after} tone="after" />}
-      {change.kind === 'removed' && (
-        <ValueBlock value={change.before} tone="before" strike />
-      )}
+      {change.kind === 'removed' && <ValueBlock value={change.before} tone="before" strike />}
       {change.kind === 'changed' && (
         <div className="grid gap-1">
           {isUrlField ? (
@@ -254,10 +250,7 @@ export function RevisionDiff({ before, after }: RevisionDiffProps): JSX.Element 
           {showUnchanged && (
             <ul className="mt-2 flex flex-wrap gap-1">
               {unchangedKeys.map((k) => (
-                <li
-                  key={k}
-                  className="rounded bg-white px-1.5 py-0.5 text-[10px] text-[#404040]"
-                >
+                <li key={k} className="rounded bg-white px-1.5 py-0.5 text-[10px] text-[#404040]">
                   {humanizeKey(k)}
                 </li>
               ))}

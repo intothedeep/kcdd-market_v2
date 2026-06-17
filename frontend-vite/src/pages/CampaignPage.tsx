@@ -286,10 +286,7 @@ export function CampaignPage() {
       tag.setAttribute('name', 'last-modified')
       document.head.appendChild(tag)
     }
-    tag.setAttribute(
-      'content',
-      new Date(campaign.last_edit_approved_at).toISOString()
-    )
+    tag.setAttribute('content', new Date(campaign.last_edit_approved_at).toISOString())
   }, [campaign?.last_edit_approved_at])
 
   // Fetch FAQs, updates, submitted questions, and images when campaign loads
@@ -666,12 +663,10 @@ export function CampaignPage() {
       // approvedDetail is typed `never` by the supabase generic for tables that
       // don't yet exist in `src/types/database.types.ts`. Cast through unknown.
       const content =
-        ((approvedDetail as unknown as { content?: PublishedCampaignContent } | null)?.content) ?? null
+        (approvedDetail as unknown as { content?: PublishedCampaignContent } | null)?.content ??
+        null
 
-      const view = buildPublishedCampaignView(
-        data as Record<string, unknown>,
-        content
-      )
+      const view = buildPublishedCampaignView(data as Record<string, unknown>, content)
       setCampaign(view)
 
       // Fetch cause area names from the (content-sourced) view

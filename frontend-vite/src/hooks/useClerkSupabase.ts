@@ -138,7 +138,8 @@ export const useUserType = () => {
           console.error('Error fetching user type:', error)
           setUserType(null)
         } else {
-          const fetched = (data as { user_type?: 'donor' | 'cbo' | 'admin' } | null)?.user_type ?? null
+          const fetched =
+            (data as { user_type?: 'donor' | 'cbo' | 'admin' } | null)?.user_type ?? null
           if (fetched) {
             setUserType(fetched)
             setAuthStoreUserType(fetched)
@@ -204,7 +205,8 @@ export const useRealUserType = () => {
           console.error('Error fetching real user type:', error)
           setUserType(null)
         } else {
-          const fetched = (data as { user_type?: 'donor' | 'cbo' | 'admin' } | null)?.user_type ?? null
+          const fetched =
+            (data as { user_type?: 'donor' | 'cbo' | 'admin' } | null)?.user_type ?? null
           if (fetched) {
             setUserType(fetched)
             setAuthStoreUserType(fetched)

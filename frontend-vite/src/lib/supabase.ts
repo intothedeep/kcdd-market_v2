@@ -737,9 +737,7 @@ export const fetchDonorDonations = async (
     const mappedStatus = mapTxStatusToDonationStatus(item.status)
     const campaignDetails: Array<{ content?: any; status?: string; version?: number }> =
       Array.isArray(item.campaign?.detail) ? item.campaign.detail : []
-    const sortedDetails = [...campaignDetails].sort(
-      (a, b) => (b.version ?? 0) - (a.version ?? 0)
-    )
+    const sortedDetails = [...campaignDetails].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
     const approvedDetail = sortedDetails.find((d) => d.status === 'approved')
     const sourceContent = (approvedDetail?.content ?? sortedDetails[0]?.content ?? {}) as {
       title?: string
@@ -1023,8 +1021,10 @@ export const createCampaign = async (campaignData: CampaignData) => {
   }
   if (campaignData.creator_name !== undefined) content.creator_name = campaignData.creator_name
   if (campaignData.creator_role !== undefined) content.creator_role = campaignData.creator_role
-  if (campaignData.cause_area_ids !== undefined) content.cause_area_ids = campaignData.cause_area_ids
-  if (campaignData.short_description !== undefined) content.short_description = campaignData.short_description
+  if (campaignData.cause_area_ids !== undefined)
+    content.cause_area_ids = campaignData.cause_area_ids
+  if (campaignData.short_description !== undefined)
+    content.short_description = campaignData.short_description
   if (campaignData.story_title !== undefined) content.story_title = campaignData.story_title
   if (campaignData.story_content !== undefined) content.story_content = campaignData.story_content
   if (campaignData.image_url !== undefined) content.image_url = campaignData.image_url
@@ -1115,8 +1115,11 @@ export const getCampaignsByOrganization = async (organizationId: string) => {
   if (error) throw error
 
   return (data || []).map((row: any) => {
-    const details: Array<{ content: any; status: string; version: number }> =
-      Array.isArray(row.details) ? row.details : []
+    const details: Array<{ content: any; status: string; version: number }> = Array.isArray(
+      row.details
+    )
+      ? row.details
+      : []
     const sorted = [...details].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
     const latest = sorted[0]
     const latestApproved = sorted.find((d) => d.status === 'approved')
@@ -1139,7 +1142,10 @@ export const getCampaignsByOrganization = async (organizationId: string) => {
       derivedStatus = 'draft'
     }
 
-    const sourceContent = (latestApproved?.content ?? latest?.content ?? {}) as Record<string, unknown>
+    const sourceContent = (latestApproved?.content ?? latest?.content ?? {}) as Record<
+      string,
+      unknown
+    >
     const { details: _details, ...rest } = row
     return {
       ...sourceContent,
@@ -1286,8 +1292,11 @@ export const fetchOrganizationQuestions = async (
 
   const titleByCampaignId = new Map<string, string>()
   for (const c of campaigns as any[]) {
-    const details: Array<{ content?: any; status?: string; version?: number }> =
-      Array.isArray(c.details) ? c.details : []
+    const details: Array<{ content?: any; status?: string; version?: number }> = Array.isArray(
+      c.details
+    )
+      ? c.details
+      : []
     const sorted = [...details].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
     const approved = sorted.find((d) => d.status === 'approved')
     const content = (approved?.content ?? sorted[0]?.content ?? {}) as { title?: string }
@@ -2052,8 +2061,11 @@ export const fetchCampaignReports = async (status?: string): Promise<CampaignRep
   // Post-process: derive campaign.title from the latest approved detail
   // (fallback to latest) so downstream callers keep reading report.campaign.title.
   return (data || []).map((row: any) => {
-    const detail: Array<{ content?: any; status?: string; version?: number }> =
-      Array.isArray(row.campaign?.detail) ? row.campaign.detail : []
+    const detail: Array<{ content?: any; status?: string; version?: number }> = Array.isArray(
+      row.campaign?.detail
+    )
+      ? row.campaign.detail
+      : []
     const sorted = [...detail].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
     const approved = sorted.find((d) => d.status === 'approved')
     const content = (approved?.content ?? sorted[0]?.content ?? {}) as { title?: string }

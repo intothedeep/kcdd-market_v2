@@ -92,13 +92,17 @@ app.use('/api/users', clerkAuth, usersRouter)
 // leaks unapproved edit cadence). See architect decision 2026-06-15.
 
 function escapeXml(s) {
-  return String(s).replace(/[<>&'"]/g, (c) => ({
-    '<': '&lt;',
-    '>': '&gt;',
-    '&': '&amp;',
-    "'": '&apos;',
-    '"': '&quot;',
-  }[c]))
+  return String(s).replace(
+    /[<>&'"]/g,
+    (c) =>
+      ({
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        "'": '&apos;',
+        '"': '&quot;',
+      })[c]
+  )
 }
 
 /**
@@ -179,7 +183,6 @@ app.get('/api/campaigns/:slug/public-meta', async (req, res) => {
     res.status(500).json({ error: 'internal' })
   }
 })
-
 
 // ============================================
 // STRIPE CONNECT ENDPOINTS
@@ -1150,10 +1153,7 @@ app.post('/api/campaigns/:id/submit-edit', clerkAuth, async (req, res) => {
 
     // 3. Resolve detail status from current state.
     let detailStatus
-    if (
-      currentState === CAMPAIGN_STATES.DRAFT ||
-      currentState === CAMPAIGN_STATES.REJECTED
-    ) {
+    if (currentState === CAMPAIGN_STATES.DRAFT || currentState === CAMPAIGN_STATES.REJECTED) {
       detailStatus = 'pending_initial_approval'
     } else if (currentState === CAMPAIGN_STATES.ACTIVE) {
       detailStatus = 'pending_edit_approval'
@@ -1353,9 +1353,7 @@ app.post(
 
       // 6. Notify CBO. Title comes from the approved detail's content.
       const campaignTitle =
-        detail.content && typeof detail.content.title === 'string'
-          ? detail.content.title
-          : null
+        detail.content && typeof detail.content.title === 'string' ? detail.content.title : null
       try {
         if (campaign.created_by) {
           await emitNotification(supabase, {
@@ -1489,9 +1487,7 @@ app.post(
 
       // 6. Notify CBO. Title sourced from the rejected detail's content.
       const campaignTitle =
-        detail.content && typeof detail.content.title === 'string'
-          ? detail.content.title
-          : null
+        detail.content && typeof detail.content.title === 'string' ? detail.content.title : null
       try {
         if (campaign.created_by) {
           await emitNotification(supabase, {
@@ -1697,9 +1693,7 @@ app.get('/api/admin/deleted-campaigns', clerkAuth, async (req, res) => {
         .limit(1)
         .maybeSingle()
       const title =
-        detail?.content && typeof detail.content.title === 'string'
-          ? detail.content.title
-          : null
+        detail?.content && typeof detail.content.title === 'string' ? detail.content.title : null
       rows.push({
         id: c.id,
         slug: c.slug,
@@ -1774,8 +1768,7 @@ app.get('/api/admin/pending-edits', clerkAuth, async (req, res) => {
       seen.add(d.campaign_id)
       const c = d.campaigns || {}
       const org = c.organizations || {}
-      const title =
-        d.content && typeof d.content.title === 'string' ? d.content.title : null
+      const title = d.content && typeof d.content.title === 'string' ? d.content.title : null
       rows.push({
         campaign_id: c.id,
         campaign_title: title,
@@ -1808,88 +1801,82 @@ app.get('/api/admin/pending-edits', clerkAuth, async (req, res) => {
  *
  * No diff visualization — A5 owns that.
  */
-app.get(
-  '/api/campaigns/:campaignId/details/:detailId/preview',
-  clerkAuth,
-  async (req, res) => {
-    try {
-      const { campaignId, detailId } = req.params
-      const callerUserId = req.auth.userId
+app.get('/api/campaigns/:campaignId/details/:detailId/preview', clerkAuth, async (req, res) => {
+  try {
+    const { campaignId, detailId } = req.params
+    const callerUserId = req.auth.userId
 
-      // 1. Admin auth.
-      const { data: profile, error: profileErr } = await supabase
-        .from('user_profiles')
-        .select('user_type')
-        .eq('id', callerUserId)
-        .single()
-      if (profileErr || !profile || profile.user_type !== 'admin') {
-        return res.status(403).json({ error: 'Forbidden: admin only' })
-      }
-
-      // 2. Load detail.
-      const { data: detail, error: detailErr } = await supabase
-        .from('campaign_details')
-        .select(
-          'id, campaign_id, version, content, change_summary, status, created_at, changed_by'
-        )
-        .eq('id', detailId)
-        .single()
-      if (detailErr || !detail) {
-        return res.status(404).json({ error: 'Detail not found' })
-      }
-      if (detail.campaign_id !== campaignId) {
-        return res.status(400).json({ error: 'Detail does not belong to campaign' })
-      }
-
-      // 3. Load current campaign row (used as the 'before' side).
-      const { data: campaign, error: campErr } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('id', campaignId)
-        .single()
-      if (campErr || !campaign) {
-        return res.status(404).json({ error: 'Campaign not found' })
-      }
-
-      // 4. Load latest approved detail (for client-side diff vs. this pending).
-      const { data: approvedDetail, error: approvedErr } = await supabase
-        .from('campaign_details')
-        .select('id, version, content, created_at')
-        .eq('campaign_id', campaignId)
-        .eq('status', 'approved')
-        .order('version', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (approvedErr) {
-        return res.status(500).json({ error: approvedErr.message })
-      }
-
-      return res.json({
-        campaign,
-        detail: {
-          id: detail.id,
-          version: detail.version,
-          content: detail.content,
-          change_summary: detail.change_summary,
-          status: detail.status,
-          created_at: detail.created_at,
-          changed_by: detail.changed_by,
-        },
-        current_approved_detail: approvedDetail
-          ? {
-              id: approvedDetail.id,
-              version: approvedDetail.version,
-              content: approvedDetail.content,
-              created_at: approvedDetail.created_at,
-            }
-          : null,
-      })
-    } catch (err) {
-      console.error('Error in detail preview:', err)
-      return res.status(500).json({ error: err.message })
+    // 1. Admin auth.
+    const { data: profile, error: profileErr } = await supabase
+      .from('user_profiles')
+      .select('user_type')
+      .eq('id', callerUserId)
+      .single()
+    if (profileErr || !profile || profile.user_type !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin only' })
     }
+
+    // 2. Load detail.
+    const { data: detail, error: detailErr } = await supabase
+      .from('campaign_details')
+      .select('id, campaign_id, version, content, change_summary, status, created_at, changed_by')
+      .eq('id', detailId)
+      .single()
+    if (detailErr || !detail) {
+      return res.status(404).json({ error: 'Detail not found' })
+    }
+    if (detail.campaign_id !== campaignId) {
+      return res.status(400).json({ error: 'Detail does not belong to campaign' })
+    }
+
+    // 3. Load current campaign row (used as the 'before' side).
+    const { data: campaign, error: campErr } = await supabase
+      .from('campaigns')
+      .select('*')
+      .eq('id', campaignId)
+      .single()
+    if (campErr || !campaign) {
+      return res.status(404).json({ error: 'Campaign not found' })
+    }
+
+    // 4. Load latest approved detail (for client-side diff vs. this pending).
+    const { data: approvedDetail, error: approvedErr } = await supabase
+      .from('campaign_details')
+      .select('id, version, content, created_at')
+      .eq('campaign_id', campaignId)
+      .eq('status', 'approved')
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (approvedErr) {
+      return res.status(500).json({ error: approvedErr.message })
+    }
+
+    return res.json({
+      campaign,
+      detail: {
+        id: detail.id,
+        version: detail.version,
+        content: detail.content,
+        change_summary: detail.change_summary,
+        status: detail.status,
+        created_at: detail.created_at,
+        changed_by: detail.changed_by,
+      },
+      current_approved_detail: approvedDetail
+        ? {
+            id: approvedDetail.id,
+            version: approvedDetail.version,
+            content: approvedDetail.content,
+            created_at: approvedDetail.created_at,
+          }
+        : null,
+    })
+  } catch (err) {
+    console.error('Error in detail preview:', err)
+    return res.status(500).json({ error: err.message })
   }
-)
+})
 
 /**
  * List the caller's in-app notifications (newest first, capped at 50).
@@ -1904,7 +1891,9 @@ app.get('/api/notifications', clerkAuth, async (req, res) => {
 
     const { data: rows, error } = await supabase
       .from('notifications')
-      .select('id, recipient_clerk_user_id, kind, payload, link_url, entity_type, entity_id, read_at, created_at')
+      .select(
+        'id, recipient_clerk_user_id, kind, payload, link_url, entity_type, entity_id, read_at, created_at'
+      )
       .eq('recipient_clerk_user_id', callerUserId)
       .order('created_at', { ascending: false })
       .limit(50)
@@ -1946,7 +1935,6 @@ app.post('/api/notifications/:id/read', clerkAuth, async (req, res) => {
     return res.status(500).json({ error: err.message })
   }
 })
-
 
 // ============================================
 // TAX DOCUMENT ENDPOINTS

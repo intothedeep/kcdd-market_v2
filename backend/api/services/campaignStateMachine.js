@@ -149,10 +149,7 @@ export function synthesizeDedupeKey({ kind, entity_id, version } = {}) {
  * @returns {Promise<string[]>}
  */
 export async function getAdminUserIds(supabase) {
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('id')
-    .eq('user_type', 'admin')
+  const { data, error } = await supabase.from('user_profiles').select('id').eq('user_type', 'admin')
 
   if (error) throw error
   return (data ?? []).map((row) => row.id)

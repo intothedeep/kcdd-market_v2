@@ -314,9 +314,7 @@ export function PendingEditsPage() {
         <Card className="flex flex-col items-center justify-center gap-2 py-12 text-center">
           <Inbox className="h-10 w-10 text-gray-300" />
           <p className="text-sm text-[#737373]">
-            {activeTab === 'initial'
-              ? 'No new campaigns awaiting review.'
-              : 'No pending edits.'}
+            {activeTab === 'initial' ? 'No new campaigns awaiting review.' : 'No pending edits.'}
           </p>
         </Card>
       ) : (
@@ -329,22 +327,18 @@ export function PendingEditsPage() {
                     <h3 className="truncate font-medium text-[#0a0a0a]">{row.campaign_title}</h3>
                     <Badge
                       className={
-                        row.is_initial
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-amber-100 text-amber-700'
+                        row.is_initial ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
                       }
                     >
                       v{row.version}
                     </Badge>
                   </div>
                   <p className="text-xs text-[#737373]">
-                    {row.organization_name ?? 'Unknown organization'} ·{' '}
-                    submitted {formatRelativeTime(row.submitted_at)}
+                    {row.organization_name ?? 'Unknown organization'} · submitted{' '}
+                    {formatRelativeTime(row.submitted_at)}
                   </p>
                   {row.change_summary && (
-                    <p className="text-sm text-[#404040]">
-                      {truncate(row.change_summary, 100)}
-                    </p>
+                    <p className="text-sm text-[#404040]">{truncate(row.change_summary, 100)}</p>
                   )}
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-2">
@@ -471,12 +465,10 @@ export function PendingEditsPage() {
                       {row.title ?? row.slug}
                     </p>
                     <p className="text-xs text-[#737373]">
-                      {row.organization_name ?? 'Unknown organization'} ·{' '}
-                      deleted {formatRelativeTime(row.deleted_at)}
+                      {row.organization_name ?? 'Unknown organization'} · deleted{' '}
+                      {formatRelativeTime(row.deleted_at)}
                     </p>
-                    <p className="text-xs text-[#737373]">
-                      Deleted by: {row.deleted_by ?? '—'}
-                    </p>
+                    <p className="text-xs text-[#737373]">Deleted by: {row.deleted_by ?? '—'}</p>
                   </div>
                   <Button
                     size="sm"

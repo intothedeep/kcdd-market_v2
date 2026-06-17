@@ -457,9 +457,7 @@ function CampaignsContent({
   const { toast } = useToast()
   const [showDeleted, setShowDeleted] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const visibleCampaigns = showDeleted
-    ? campaigns
-    : campaigns.filter((c) => !c.deleted_at)
+  const visibleCampaigns = showDeleted ? campaigns : campaigns.filter((c) => !c.deleted_at)
   // Derived status values come from getCampaignsByOrganization() and
   // mirror the backend state machine: draft / pending / active / rejected /
   // deleted. There is no "completed" state post-REFB; the previous
@@ -467,7 +465,11 @@ function CampaignsContent({
   const pendingCampaigns = visibleCampaigns.filter((c) => c.status === 'pending')
 
   const handleSoftDelete = async (campaignId: string, title: string) => {
-    if (!window.confirm(`Delete campaign "${title}"? It will be hidden from donors but kept for audit and admin restore.`)) {
+    if (
+      !window.confirm(
+        `Delete campaign "${title}"? It will be hidden from donors but kept for audit and admin restore.`
+      )
+    ) {
       return
     }
     setDeletingId(campaignId)
@@ -495,10 +497,7 @@ function CampaignsContent({
         </div>
         <div className="flex items-center gap-3">
           <label className="flex cursor-pointer items-center gap-2 text-sm text-[#737373]">
-            <Checkbox
-              checked={showDeleted}
-              onCheckedChange={(v) => setShowDeleted(v === true)}
-            />
+            <Checkbox checked={showDeleted} onCheckedChange={(v) => setShowDeleted(v === true)} />
             Show deleted
           </label>
           <Button className="bg-[#1b5858] hover:bg-[#164444]" onClick={onCreateCampaign}>

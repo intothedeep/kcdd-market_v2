@@ -121,9 +121,7 @@ export function NotificationBell() {
       const target = rows.find((r) => r.id === id)
       if (!target || target.read_at !== null) return
       const nowIso = new Date().toISOString()
-      setRows((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, read_at: r.read_at ?? nowIso } : r))
-      )
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, read_at: r.read_at ?? nowIso } : r)))
       setUnreadCount((c) => Math.max(0, c - 1))
       try {
         await api.post<{ updated: boolean }>(`/api/notifications/${id}/read`, {}, getToken)
@@ -189,9 +187,7 @@ export function NotificationBell() {
                       >
                         {label}
                       </p>
-                      {preview && (
-                        <p className="truncate text-xs text-[#737373]">{preview}</p>
-                      )}
+                      {preview && <p className="truncate text-xs text-[#737373]">{preview}</p>}
                       <p className="text-[10px] text-[#a3a3a3]">
                         {formatRelativeTime(row.created_at)}
                       </p>
@@ -221,11 +217,7 @@ export function NotificationBell() {
                 }
                 return (
                   <li key={row.id} className="border-b border-gray-100 last:border-b-0">
-                    <button
-                      type="button"
-                      className={className}
-                      onClick={() => markRead(row.id)}
-                    >
+                    <button type="button" className={className} onClick={() => markRead(row.id)}>
                       {itemBody}
                     </button>
                   </li>
