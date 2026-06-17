@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { sanitizeStoryHtml } from '@/lib/sanitizeStoryHtml'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -222,7 +223,7 @@ export function RequestDetailPage() {
             {/* Full description (may contain HTML for the individual <strong> intros) */}
             <div
               className="text-base leading-relaxed text-[#404040] [&_strong]:font-semibold [&_strong]:text-[#0a0a0a]"
-              dangerouslySetInnerHTML={{ __html: request.description }}
+              dangerouslySetInnerHTML={{ __html: sanitizeStoryHtml(request.description) }}
             />
 
             {/* What this funds */}
