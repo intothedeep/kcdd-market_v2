@@ -43,11 +43,13 @@ import {
   Plus,
   TrendingUp,
   MoreVertical,
+  Copy,
   LayoutDashboard,
   List,
   BarChart3,
   FileText,
   Settings,
+  Settings2,
   HelpCircle,
   Search,
   AlertTriangle,
@@ -74,6 +76,7 @@ import {
   checkOnboardingStatus,
   getOrganizationByUserId,
   getCampaignsByOrganization,
+  duplicateCampaign,
   fetchOrganizationQuestions,
   answerQuestion,
   dismissQuestion,
@@ -454,9 +457,11 @@ function CampaignsContent({
   onRefresh: () => void
 }) {
   const { getToken } = useAuth()
+  const { user } = useUser()
   const { toast } = useToast()
   const [showDeleted, setShowDeleted] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
   const visibleCampaigns = showDeleted ? campaigns : campaigns.filter((c) => !c.deleted_at)
   // Derived status values come from getCampaignsByOrganization() and
   // mirror the backend state machine: draft / pending / active / rejected /
@@ -485,6 +490,38 @@ function CampaignsContent({
       })
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  // W5-A1: duplicate a campaign via createCampaign — new copy enters
+  // pending_initial_approval (no fast-track). Soft-deleted campaigns are
+  // disabled at the menu level; the helper also guards defensively.
+  const handleDuplicate = async (campaign: Campaign) => {
+    const adminClerkId = user?.id
+    if (!adminClerkId) {
+      toast({
+        title: 'Sign in to duplicate',
+        description: 'Your session is not loaded yet — try again in a moment.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setDuplicatingId(campaign.id)
+    try {
+      await duplicateCampaign(campaign, adminClerkId)
+      toast({
+        title: 'Campaign duplicated',
+        description: 'A draft copy is pending admin review.',
+      })
+      onRefresh()
+    } catch (err) {
+      toast({
+        title: 'Duplicate failed',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive',
+      })
+    } finally {
+      setDuplicatingId(null)
     }
   }
 
@@ -591,6 +628,13 @@ function CampaignsContent({
                       <DropdownMenuItem disabled>Edit Campaign</DropdownMenuItem>
                       <DropdownMenuItem disabled>View Analytics</DropdownMenuItem>
                       <DropdownMenuItem disabled>Share</DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!!campaign.deleted_at || duplicatingId === campaign.id}
+                        onClick={() => handleDuplicate(campaign)}
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        {duplicatingId === campaign.id ? 'Duplicating...' : 'Duplicate'}
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-600"
                         disabled={!!campaign.deleted_at || deletingId === campaign.id}
@@ -3317,6 +3361,15 @@ export function CBODashboard() {
             <Settings className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Settings</span>}
           </button>
+
+          {/* W5-B1: link to per-org campaign defaults page */}
+          <Link
+            to="/cbo/campaign-defaults"
+            className="flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 text-[#0a0a0a] transition-colors hover:bg-gray-100"
+          >
+            <Settings2 className="h-4 w-4 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm">Campaign defaults</span>}
+          </Link>
 
           <button
             onClick={() => setActiveSection('support')}

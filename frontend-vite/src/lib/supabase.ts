@@ -2564,3 +2564,99 @@ function formatFileSize(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
+
+// Duplicate an existing campaign.
+//
+// W5-A1: copies the source campaign's content into a brand-new campaign
+// that lands in `pending_initial_approval` (no fast-track) via the
+// existing create_campaign_with_detail RPC. No new RPC, no Storage
+// re-upload — image URLs are shared with the source.
+//
+// The source object is whatever `getCampaignsByOrganization` returns:
+// post-REFB that helper spreads `latestApproved?.content ?? latest?.content`
+// flat onto the campaign row, so title / funding_goal / contact_email /
+// story_content / etc. are read directly off `sourceCampaign`. The
+// `latestApproved.content` shape from the architect brief is also
+// honoured if present, for forward compatibility.
+export const duplicateCampaign = async (
+  sourceCampaign: any,
+  createdBy: string
+): Promise<unknown> => {
+  if (!sourceCampaign) {
+    throw new Error('No source campaign to duplicate')
+  }
+  if (sourceCampaign.deleted_at) {
+    throw new Error('Cannot duplicate a deleted campaign')
+  }
+  if (!sourceCampaign.organization_id) {
+    throw new Error('Source campaign is missing organization_id')
+  }
+
+  // Prefer the architect-spec'd nested content if a future caller
+  // provides it; otherwise read the flat fields that the current
+  // getCampaignsByOrganization() spread produces.
+  const nestedContent =
+    sourceCampaign.latestApproved?.content ?? sourceCampaign.latest?.content ?? null
+  const source: Record<string, unknown> = nestedContent
+    ? { ...(nestedContent as Record<string, unknown>) }
+    : { ...(sourceCampaign as Record<string, unknown>) }
+
+  const sourceTitle =
+    (source.title as string | undefined) ||
+    (sourceCampaign.title as string | undefined) ||
+    'Untitled campaign'
+
+  const fundingGoalRaw = source.funding_goal ?? sourceCampaign.funding_goal
+  const fundingGoal =
+    typeof fundingGoalRaw === 'number'
+      ? fundingGoalRaw
+      : typeof fundingGoalRaw === 'string'
+        ? parseFloat(fundingGoalRaw) || 0
+        : 0
+
+  const contactEmail =
+    (source.contact_email as string | undefined) ||
+    (sourceCampaign.contact_email as string | undefined) ||
+    ''
+
+  if (!contactEmail) {
+    throw new Error('Source campaign is missing contact_email; cannot duplicate')
+  }
+
+  const payload: CampaignData = {
+    organization_id: sourceCampaign.organization_id,
+    created_by: createdBy,
+    title: `Copy of ${sourceTitle}`,
+    funding_goal: fundingGoal,
+    contact_email: contactEmail,
+  }
+
+  // Copy every optional content field that exists on the source.
+  // Skip undefined so createCampaign omits the key from the RPC payload.
+  const optionalKeys: Array<keyof CampaignData> = [
+    'creator_name',
+    'creator_role',
+    'cause_area_ids',
+    'short_description',
+    'story_title',
+    'story_content',
+    'image_url',
+    'logo_url',
+    'phone',
+    'facebook_url',
+    'twitter_url',
+    'instagram_url',
+    'linkedin_url',
+    'youtube_url',
+    'tiktok_url',
+    'website_url',
+  ]
+  for (const key of optionalKeys) {
+    const value = source[key as string]
+    if (value !== undefined && value !== null) {
+      ;(payload as unknown as Record<string, unknown>)[key as string] = value
+    }
+  }
+
+  return createCampaign(payload)
+}
