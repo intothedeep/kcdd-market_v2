@@ -2444,8 +2444,7 @@ app.get('/api/documents/list/:donorId', clerkAuth, async (req, res) => {
 // Also accept POST with header x-cron-secret for manual operator triggers.
 const slackCronHandler = async (req, res) => {
   const headerSecret =
-    req.headers['x-cron-secret'] ||
-    (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '')
+    req.headers['x-cron-secret'] || (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '')
   if (!process.env.CRON_SECRET || headerSecret !== process.env.CRON_SECRET) {
     return res.status(401).json({ error: 'unauthorized' })
   }

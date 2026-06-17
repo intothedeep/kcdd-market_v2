@@ -10,11 +10,9 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SECRET_KEY,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
+const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+})
 
 /**
  * Upsert a Slack alert into the queue. Same dedupeKey while pending = single row.
@@ -28,18 +26,16 @@ const supabaseAdmin = createClient(
 export async function enqueueSlackAlert({ event, dedupeKey, payload, channel = 'admin' }) {
   // Upsert: if a pending row with the same dedupe_key exists, refresh its payload
   // and queued_at so the cron flush picks up the latest state ("last write wins").
-  const { error } = await supabaseAdmin
-    .from('slack_notification_queue')
-    .upsert(
-      {
-        dedupe_key: dedupeKey,
-        channel,
-        payload: { ...payload, event },
-        status: 'pending',
-        queued_at: new Date().toISOString(),
-      },
-      { onConflict: 'dedupe_key', ignoreDuplicates: false }
-    )
+  const { error } = await supabaseAdmin.from('slack_notification_queue').upsert(
+    {
+      dedupe_key: dedupeKey,
+      channel,
+      payload: { ...payload, event },
+      status: 'pending',
+      queued_at: new Date().toISOString(),
+    },
+    { onConflict: 'dedupe_key', ignoreDuplicates: false }
+  )
   // ignoreDuplicates:false + onConflict will UPDATE on conflict. However the
   // partial UNIQUE index is WHERE status='pending', so non-pending rows do
   // NOT conflict — a previously-sent row with the same dedupe_key will not
