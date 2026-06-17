@@ -138,6 +138,7 @@ export const routes = {
     users: '/admin/users',
     organizations: '/admin/organizations',
     campaigns: '/admin/campaigns',
+    auditLog: '/admin/audit-log',
   },
 
   // Campaign routes

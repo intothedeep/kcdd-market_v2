@@ -2356,12 +2356,24 @@ export const logAdminActivity = async (
   }
 }
 
-// Fetch recent admin activity
-export const fetchAdminActivity = async (limit: number = 20): Promise<AdminActivity[]> => {
-  const { data, error } = await (supabase.from('admin_activity_log') as any)
+// Fetch recent admin activity.
+// W4-B (Phase A8): signature extended to support filter + cursor pagination
+// for AuditLogPage. `sinceIso` is exclusive upper bound on created_at, so
+// callers can keep paging by passing the oldest item's timestamp.
+export const fetchAdminActivity = async (
+  opts: { limit?: number; action?: string; entityType?: string; sinceIso?: string } = {}
+): Promise<AdminActivity[]> => {
+  const { limit = 50, action, entityType, sinceIso } = opts
+  let query = (supabase.from('admin_activity_log') as any)
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit)
+
+  if (action) query = query.eq('action', action)
+  if (entityType) query = query.eq('entity_type', entityType)
+  if (sinceIso) query = query.lt('created_at', sinceIso)
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching admin activity:', error)

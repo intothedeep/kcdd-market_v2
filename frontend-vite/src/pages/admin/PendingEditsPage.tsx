@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useAuth } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import { Loader2, RefreshCw, Inbox, Trash2, RotateCcw } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
 import { api } from '@/lib/api'
+import { logAdminActivity } from '@/lib/supabase'
 import { formatRelativeTime, truncate } from '@/lib/utils'
 import { RevisionDiff } from '@/components/admin/RevisionDiff'
 
@@ -89,6 +90,7 @@ function isTabKey(v: string | null): v is TabKey {
 
 export function PendingEditsPage() {
   const { getToken } = useAuth()
+  const { user } = useUser()
   const { toast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
@@ -144,6 +146,12 @@ export function PendingEditsPage() {
     setRestoringId(row.id)
     try {
       await api.post(`/api/admin/campaigns/${row.id}/restore`, {}, getToken)
+      // W4-B: audit log — admin restored a soft-deleted campaign.
+      if (user?.id) {
+        await logAdminActivity(user.id, 'campaign_restored', 'campaign', row.id, {
+          restored_by_clerk_id: user.id,
+        })
+      }
       toast({ title: 'Restored', description: row.title ?? row.slug })
       await fetchDeleted()
       await fetchList()
@@ -223,6 +231,14 @@ export function PendingEditsPage() {
         {},
         getToken
       )
+      // W4-B: audit log — admin approved a pending campaign revision.
+      if (user?.id) {
+        await logAdminActivity(user.id, 'campaign_approved', 'campaign', row.campaign_id, {
+          revision_id: row.detail_id,
+          before_status: row.detail_status,
+          after_status: 'approved',
+        })
+      }
       toast({ title: 'Approved', description: row.campaign_title })
       closePreview()
       fetchList()
@@ -255,6 +271,13 @@ export function PendingEditsPage() {
         { review_note: note },
         getToken
       )
+      // W4-B: audit log — admin rejected a pending campaign revision.
+      if (user?.id) {
+        await logAdminActivity(user.id, 'campaign_rejected', 'campaign', rejectRow.campaign_id, {
+          revision_id: rejectRow.detail_id,
+          reason: note,
+        })
+      }
       toast({ title: 'Rejected', description: rejectRow.campaign_title })
       closeReject()
       closePreview()

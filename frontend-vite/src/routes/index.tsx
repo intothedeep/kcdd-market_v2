@@ -41,6 +41,7 @@ import { CampaignDonatePage } from '@/pages/CampaignDonatePage'
 import { AdminDashboard } from '@/pages/admin/DashboardPage'
 import { AdminUsersPage } from '@/pages/admin/UsersPage'
 import { PendingEditsPage } from '@/pages/admin/PendingEditsPage'
+import { AuditLogPage } from '@/pages/admin/AuditLogPage'
 import { useRealUserType } from '@/hooks/useClerkSupabase'
 
 // Legal Pages
@@ -281,6 +282,16 @@ export function AppRoutes() {
             <ProtectedRoute>
               <ProtectedAdminRoute>
                 <PendingEditsPage />
+              </ProtectedAdminRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={routes.admin.auditLog}
+          element={
+            <ProtectedRoute>
+              <ProtectedAdminRoute>
+                <AuditLogPage />
               </ProtectedAdminRoute>
             </ProtectedRoute>
           }

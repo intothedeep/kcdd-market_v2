@@ -3662,6 +3662,14 @@ export function AdminDashboard() {
           </button>
 
           <button
+            onClick={() => navigate('/admin/audit-log')}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[#0a0a0a] transition-colors hover:bg-gray-100`}
+          >
+            <Activity className="h-4 w-4 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm">Audit Log</span>}
+          </button>
+
+          <button
             onClick={() => setActiveSection('analytics')}
             className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
               activeSection === 'analytics'
