@@ -10,6 +10,9 @@
 6. Get Stripe keys (optional)
 7. Start the 3 servers
 8. Verify everything is running
+9. **Try the branch features** (optional — see "What to try after the servers are up" near the end)
+
+**Slack admin alerts**: optional, separate from setup. See "Testing Slack admin alerts locally" after "Reset the Database".
 
 ---
 
@@ -298,7 +301,49 @@ cd frontend-vite && pnpm dev
 
 ---
 
-> For production deployment (cloud Supabase, Vercel, etc.), see `howtodeploy.prod.md`.
+## Step 9 — What to try after the servers are up
+
+The seed creates 3 orgs, 3 donor profiles, 1 admin, 8 campaigns spanning every approval state, and (post-2026-06-17) one org with a `default_campaign_template` so the prefill flow is testable. Sign in flows go through Clerk — fresh signups produce real Clerk user IDs (e.g. `user_2abc...`), separate from the UUID-shaped seed users.
+
+### 1. Sign up as a donor
+
+1. Open <http://localhost:3000>
+2. Click **Sign up** (top right) — Clerk modal
+3. Verify via Inbucket: <http://127.0.0.1:54324>
+4. After landing in the dashboard, browse campaigns at <http://localhost:3000/requests?tab=campaigns>. Card Donate button → campaign detail → Stripe Elements (works only if Stripe keys are set per Step 6; otherwise the modal renders but card submission errors)
+
+### 2. Sign in as the seeded admin (Supabase Studio role swap)
+
+The seeded admin id is `00000000-0000-0000-0001-000000000001`. The fastest path to test admin pages is:
+
+1. Sign up fresh via Clerk
+2. Open Supabase Studio (<http://127.0.0.1:54323>) → Table editor → `user_profiles`
+3. Find your row (filter by `email`), set `user_type = 'admin'`, Save
+4. Reload <http://localhost:3000/admin> — admin dashboard loads
+
+You can now:
+- `/admin/pending-edits` — 3 seeded pending campaigns (initial + edit), Approve / Reject from the diff viewer
+- `/admin/audit-log` — 4 seeded `admin_activity_log` rows (initial approve, edit reject, soft-delete). New approve/reject actions append rows here
+- `/admin/dashboard` settings → "Admin Notifications" card (W4-B / Y6 rename)
+
+### 3. Sign in as a CBO owner (test Wave 5 prefill)
+
+Same role-swap trick: set your `user_profiles.user_type = 'cbo'` and `user_profiles.organization_id = '00000000-0000-0000-0004-000000000001'` (Connecting Roots). Then:
+
+- `/cbo/dashboard` shows that org's campaigns + a kebab-menu **Duplicate** action (W5-A1)
+- `/cbo/campaign-defaults` shows the defaults template UI (W5-B1) — Connecting Roots is seeded with values
+- Create a new campaign — Step 1 prefills `creator_name = Amara Johnson`, `creator_role = Program Director`, cause areas, FAQs (W5-B2)
+- Duplicate any existing campaign — drops you onto a new draft with `Copy of …` title
+
+### 4. Drive an approval cycle end-to-end
+
+1. Sign in as CBO, submit a new campaign or edit an existing one
+2. Backend writes the row + `enqueueSlackAlert` upserts into `slack_notification_queue`
+3. (Optional) Fire the Slack cron locally — see "Testing Slack admin alerts locally" below
+4. Switch to admin, approve via `/admin/pending-edits`
+5. Public campaign page now renders the new content; the "Updated {time}" badge appears once `last_edit_approved_at` is more than 60 s past `first_approved_at` (W4-A)
+
+> For production deployment (cloud Supabase, Vercel, Slack workspace setup), see `howtodeploy.prod.md`.
 
 ---
 

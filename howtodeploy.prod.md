@@ -138,6 +138,16 @@ IP_HASH_SALT=                # `openssl rand -hex 32` output. NEVER set this to
                              # the dev fallback in production.
 GIT_SHA=${VERCEL_GIT_COMMIT_SHA}   # Vercel auto-injects this. For other
                                    # hosts: use the deploy commit SHA.
+
+# Required for the Slack admin-alert cron registered in vercel.json. See Step 5
+# for issuance + verification. Set on the same env as the backend.
+SLACK_WEBHOOK_URL=           # Issued in Step 5.1 — leave blank for silent
+                             # dev-style fallback (cron still marks rows 'sent').
+CRON_SECRET=                 # `openssl rand -hex 32` output. Required — the
+                             # /api/cron/flush-slack-queue route returns 401
+                             # without it.
+APP_URL=https://your-frontend.vercel.app   # Used as the link prefix in Slack
+                             # messages. Same hostname as ALLOWED_ORIGINS above.
 ```
 
 > **`IP_HASH_SALT` 보안 메모**: backend는 도너 IP를 `payment_transactions.metadata.client.ip_hash`에 raw가 아닌 SHA-256 hash 앞 16자로 저장합니다 (`backend/api/helpers/paymentMetadata.js`의 `hashIp`). salt 없이는 공격자가 IPv4 주소 공간(~43억) 전체에 대해 사전 계산된 rainbow table로 IP를 역추정할 수 있습니다. dev에선 코드 fallback `'dev-only-replace-in-prod'`가 동작하지만 **프로덕션 배포 전 반드시 교체**.
