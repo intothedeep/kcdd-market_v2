@@ -91,17 +91,12 @@ kcdd-market2/
 │   ├── howtodeploy.prod.md
 │   ├── CHANGELOG.feat-post-launch-feedback.md
 │   ├── feat-post-launch-feedback.md
-│   ├── JOSHUA_ONBOARDING.md
 │   └── …                 # plus reference: GITHUB_ACTIONS_GUIDE / MAZE_TESTING / TAX_DOCUMENTS / USER_TYPES / VERCEL_DEPLOYMENT
 ├── CLAUDE.md             # AI-collaboration project conventions
 └── README.md             # This file
-
-# Deprecated (kept for reference, do not use):
-backend/x_docker-compose.yml.legacy
-backend/x_volumes/
 ```
 
-The local Supabase stack runs via the Supabase CLI (`pnpm db:start`), NOT the legacy `x_docker-compose.yml.legacy`.
+The local Supabase stack runs via the Supabase CLI (`pnpm db:start`), managed by `backend/supabase/config.toml`.
 
 ---
 

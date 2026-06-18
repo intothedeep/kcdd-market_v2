@@ -47,7 +47,7 @@ cd backend/api && pnpm dev
 cd frontend-vite && pnpm dev
 ```
 
-> `pnpm db:start` runs the full Supabase stack via the Supabase CLI (managed by `backend/supabase/config.toml`). The legacy `backend/x_docker-compose.yml.legacy` and `backend/x_volumes/` are kept for archival reference only — do not use.
+> `pnpm db:start` runs the full Supabase stack via the Supabase CLI (managed by `backend/supabase/config.toml`).
 
 ### Frontend (`frontend-vite/`)
 
@@ -180,7 +180,7 @@ _docs/                                 # Project documentation (gitignored — l
 └── archive/                           # Old planning docs, feat/taek merge artifacts
 ```
 
-The `docs/` folder holds tracked user-facing docs: `docs/howtoexecute.local.md` (local dev guide), `docs/howtodeploy.prod.md` (production deployment), `docs/CHANGELOG.feat-post-launch-feedback.md`, `docs/feat-post-launch-feedback.md` (branch entry point), `docs/JOSHUA_ONBOARDING.md`, plus reference material (Vercel, GitHub Actions, etc.). `_docs/` remains gitignored for local PM scratch.
+The `docs/` folder holds tracked user-facing docs: `docs/howtoexecute.local.md` (local dev guide), `docs/howtodeploy.prod.md` (production deployment), `docs/CHANGELOG.feat-post-launch-feedback.md`, `docs/feat-post-launch-feedback.md` (branch entry point), plus reference material (Vercel, GitHub Actions, etc.). `_docs/` remains gitignored for local PM scratch.
 
 ### Authentication Flow
 
