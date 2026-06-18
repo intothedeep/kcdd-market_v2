@@ -351,6 +351,100 @@ Finished supabase db reset on branch <branch>.
 
 ---
 
+## Testing Slack admin alerts locally
+
+Phase A6 admin alerts (new campaign submitted, campaign edit submitted, campaign reported, campaign soft-deleted by owner) flow through `slack_notification_queue` and are flushed by `/api/cron/flush-slack-queue`. **Vercel cron does not exist locally** — you fire the route manually with `curl`. Do not install a cron daemon.
+
+### Prerequisites
+
+Add to `backend/api/.env`:
+
+```env
+CRON_SECRET=<openssl rand -hex 32>   # required — route returns 401 without it
+SLACK_WEBHOOK_URL=<your-webhook-url> # optional — leave unset for dev mode
+```
+
+Restart the backend (`cd backend/api && pnpm dev`) after editing `.env`.
+
+### Two test modes
+
+| Mode      | `SLACK_WEBHOOK_URL` | Behavior                                                                 |
+| --------- | ------------------- | ------------------------------------------------------------------------ |
+| Dev mode  | unset               | `postToSlack` logs `[slack:dev] {...}` to the API stdout, returns `ok`. Row flips to `status='sent'`. No network call. |
+| Real mode | set                 | Cron POSTs to your Slack webhook with 3-attempt backoff (1s / 4s / 16s). |
+
+For setting up a real Slack Incoming Webhook, follow `howtodeploy.prod.md` Step 5.1 — do not duplicate that flow here.
+
+### Enqueue a test row
+
+**Fast path — direct psql INSERT** (no UI needed):
+
+```bash
+docker exec -i supabase_db_backend psql -U postgres -d postgres <<'SQL'
+INSERT INTO slack_notification_queue (dedupe_key, channel, payload, status, queued_at)
+VALUES (
+  'manual_test:' || gen_random_uuid()::text,
+  'admin',
+  jsonb_build_object(
+    'event', 'campaign_edit_submitted',
+    'campaign_id', '00000000-0000-0000-0009-000000000007',
+    'campaign_title', 'Health-Tech Kiosk at the Roots Community Hub — Updated',
+    'actor_user_id', '00000000-0000-0000-0002-000000000001',
+    'link_url', 'http://localhost:3000/admin/pending-edits/00000000-0000-0000-0009-000000000007'
+  ),
+  'pending',
+  NOW()
+);
+SQL
+```
+
+**Realistic path — UI flow**: sign in as a CBO owner, navigate to one of your campaigns, submit an edit. The backend calls `enqueueSlackAlert({ event: 'campaign_edit_submitted', ... })` which inserts the row.
+
+### Fire the cron
+
+Both transports the route accepts are valid locally:
+
+```bash
+# POST + header (operator-friendly form)
+curl -X POST http://localhost:4000/api/cron/flush-slack-queue \
+  -H "x-cron-secret: $CRON_SECRET"
+
+# GET + Bearer (matches what Vercel cron sends in prod)
+curl http://localhost:4000/api/cron/flush-slack-queue \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+Expected response:
+
+```json
+{ "processed": 1, "sent": 1, "failed": 0 }
+```
+
+`{ "error": "unauthorized" }` with HTTP 401 means `CRON_SECRET` is missing in `backend/api/.env` or the header value does not match.
+
+### Verify outcome
+
+1. **API stdout** — in dev mode, look for `[slack:dev] {"text":"Campaign edit submitted: ...","blocks":[...]}`. In real mode, no console log; check your Slack channel.
+2. **Queue state** — in Supabase Studio (<http://127.0.0.1:54323>) SQL editor:
+
+   ```sql
+   SELECT id, status, sent_at, last_error, payload->>'event' AS event
+   FROM slack_notification_queue
+   ORDER BY queued_at DESC
+   LIMIT 5;
+   ```
+
+   Successful row: `status='sent'`, `sent_at` populated, `last_error` NULL.
+   Failed row: `status='failed'`, `last_error` populated, `attempt_count` incremented.
+
+### Notes
+
+- The route is idempotent under cron retries: a `sent` row is excluded from the next pass by `.eq('status', 'pending')`.
+- Re-firing while the previous batch is unfinished is safe — the SELECT is bounded at 100 rows per call.
+- See `howtodeploy.prod.md` Step 5 for Vercel cron registration (`vercel.json`) and production smoke testing.
+
+---
+
 ## Restart Reference
 
 | What changed                   | Supabase        | Backend API    | Frontend   |

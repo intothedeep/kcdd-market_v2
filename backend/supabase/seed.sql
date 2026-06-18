@@ -584,4 +584,92 @@ SET first_approved_at = NOW() - INTERVAL '85 days',
     last_edit_approved_at = NOW() - INTERVAL '85 days'
 WHERE id = '00000000-0000-0000-0009-000000000008';
 
+-- ============================================================
+-- STEP W5-B1 — default_campaign_template (Wave 5 prefill demo)
+-- ============================================================
+-- Exercises organizations.default_campaign_template (added in
+-- 20260618000001_organization_default_campaign_template.sql). Shape
+-- matches frontend OrganizationDefaults type. Picked Connecting Roots
+-- because its v1 campaign #1 detail already validates these strings.
+-- cause_area_ids is looked up by name so this stays robust against
+-- the auto-generated UUIDs of the cause_areas seed at the top of this file.
+UPDATE organizations
+SET default_campaign_template = jsonb_build_object(
+  'creator_name', 'Amara Johnson',
+  'creator_role', 'Program Director',
+  'contact_email', 'campaigns@connectingroots.org',
+  'cause_area_ids', (
+    SELECT COALESCE(array_agg(id::text), ARRAY[]::text[])
+    FROM cause_areas
+    WHERE name IN ('Education', 'Youth Development')
+  ),
+  'faqs', jsonb_build_array(
+    jsonb_build_object(
+      'question', 'How are donated funds used?',
+      'answer',   'Every dollar buys refurbished hardware, accessory bundles, or one year of break/fix support for our youth cohort.'
+    ),
+    jsonb_build_object(
+      'question', 'Is my donation tax-deductible?',
+      'answer',   'Yes. Connecting Roots KC is a registered 501(c)(3); a receipt is emailed automatically after payment.'
+    )
+  )
+)
+WHERE id = '00000000-0000-0000-0004-000000000001';
+
+-- ============================================================
+-- STEP W4-B1 — admin_activity_log (audit page non-empty out of the box)
+-- ============================================================
+-- 4 rows referencing REAL seeded ids: admin = ...0001-000000000001,
+-- campaigns = ...0009-000000000001 / 0007 / 0008.
+-- Service-role seed bypasses RLS; the W4-B self-attribution policy still
+-- holds for real admin writes from the app.
+INSERT INTO admin_activity_log (admin_id, action, entity_type, entity_id, details, created_at) VALUES
+  (
+    '00000000-0000-0000-0001-000000000001',
+    'approve_campaign_initial',
+    'campaign',
+    '00000000-0000-0000-0009-000000000001',
+    jsonb_build_object(
+      'campaign_title', 'Laptops for the Roots After-School Program',
+      'detail_version', 1,
+      'note', 'Initial approval — content + funding goal verified.'
+    ),
+    NOW() - INTERVAL '7 days'
+  ),
+  (
+    '00000000-0000-0000-0001-000000000001',
+    'approve_campaign_initial',
+    'campaign',
+    '00000000-0000-0000-0009-000000000007',
+    jsonb_build_object(
+      'campaign_title', 'Health-Tech Kiosk at the Roots Community Hub',
+      'detail_version', 1
+    ),
+    NOW() - INTERVAL '7 days'
+  ),
+  (
+    '00000000-0000-0000-0001-000000000001',
+    'reject_campaign_edit',
+    'campaign',
+    '00000000-0000-0000-0009-000000000007',
+    jsonb_build_object(
+      'campaign_title', 'Health-Tech Kiosk at the Roots Community Hub — Updated',
+      'detail_version', 2,
+      'reason', 'Funding goal increase needs board sign-off; resubmit with attached minutes.'
+    ),
+    NOW() - INTERVAL '1 hour'
+  ),
+  (
+    '00000000-0000-0000-0001-000000000001',
+    'soft_delete_campaign',
+    'campaign',
+    '00000000-0000-0000-0009-000000000008',
+    jsonb_build_object(
+      'campaign_title', 'Archived Laptops Pilot (2025)',
+      'reason', 'Owner-initiated archive after pilot wrap-up.',
+      'restorable_until', (NOW() + INTERVAL '28 days')::text
+    ),
+    NOW() - INTERVAL '2 days'
+  );
+
 COMMIT;

@@ -122,12 +122,14 @@ See [CLAUDE.md](./CLAUDE.md) "Adding a new DB table — required workflow" for t
 
 ## Branch State
 
-This branch family extends `main` with the pnpm + Clerk JWT bridge integration and payment hardening:
+Current branch: **`feat/post-launch-feedback`** — post-launch UX + ops hardening. Ships four themes:
 
-- `feat/pnpm-jwt-integration` — pnpm migration, Clerk JWT bridge, RLS reconcile, server-side amount on `create-intent`, campaigns-only mock seed
-- `feat/payment-hardening` — `stripe_events` idempotency wiring, `payment_transactions.metadata` snapshot + lifecycle, `stripe_disputes` table + dispute webhook handlers
+- **Theme 1 — Campaign approval lifecycle**: `campaign_details` versioned JSONB store, derived states (PENDING_INITIAL / PENDING_EDIT / ACTIVE / SOFT_DELETED), admin approval queue, owner soft-delete + restore
+- **Theme 4 — Wave 5 CBO productivity**: `organizations.default_campaign_template` JSONB so new-campaign form prefills creator/contact/cause-areas/FAQs from a per-org default
+- **Phase A6 — Slack admin alerts**: `slack_notification_queue` table + `enqueueSlackAlert` helper + `/api/cron/flush-slack-queue` route. Dev mode (no `SLACK_WEBHOOK_URL`) logs `[slack:dev]` and still flips rows to `sent`. Prod runs on Vercel cron every 5 min
+- **W4-B — Admin audit log hardening**: `admin_activity_log` RLS tightened to admin-only SELECT + self-attribution INSERT (`clerk_user_id() = admin_id`)
 
-Phase 8 / 8.5 / 9 / 10 features from `feat/taek` (in-kind pledges, match alerts, tax cron, public impact page) are intentionally NOT included here — see `_docs/tasks.md` "Backlog — Later work" for the deferred items.
+Inherits everything from `feat/payment-hardening` (PH-1/2/3 idempotency + metadata + disputes) and `feat/pnpm-jwt-integration` (pnpm + Clerk JWT bridge + campaigns-only mock seed). Per-theme detail lives under `_docs/` (local-only). Phase 8 / 8.5 / 9 / 10 features (in-kind pledges, match alerts, tax cron, public impact page) remain in the backlog per `_docs/x_tasks.md`.
 
 ---
 
@@ -138,6 +140,8 @@ Phase 8 / 8.5 / 9 / 10 features from `feat/taek` (in-kind pledges, match alerts,
 - **Payment metadata**: every `payment_transactions` row has a `metadata` JSONB snapshot (stripe / lifecycle / target / client / diagnostics). IP is hashed (SHA-256 + salt), never stored raw
 - **PII**: Never store card data, raw IP, session tokens, or PAN — Stripe Elements handles all card I/O client-side
 - **RLS**: Every public table has explicit policies; service-role-only tables document the intent in their migration (e.g. `stripe_events`, `stripe_disputes`)
+- **Admin audit log**: `admin_activity_log` enforces self-attribution — admin rows are INSERT-able only when `clerk_user_id() = admin_id`. SELECT is restricted to `user_type = 'admin'`. Wide-open dev policies from `20240310000000_platform_settings.sql` were replaced in `20260618000000_admin_activity_log_soft_delete_writes.sql`
+- **Slack admin alerts**: queue-based via `slack_notification_queue` (PK + `dedupe_key UNIQUE WHERE status='pending'`). Webhook URL never logged. Dev fallback (`[slack:dev]` console line) keeps local flows testable without a real workspace. Local recipe: `howtoexecute.local.md` → Testing Slack admin alerts locally. Prod setup: `howtodeploy.prod.md` Step 5
 
 ---
 
