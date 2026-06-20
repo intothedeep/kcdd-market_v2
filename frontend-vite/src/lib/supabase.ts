@@ -1106,22 +1106,6 @@ export const createCampaign = async (campaignData: CampaignData) => {
 }
 
 // Get campaign by slug or id
-export const getCampaignBySlug = async (slugOrId: string) => {
-  const { data, error } = await supabase
-    .from('campaigns')
-    .select(
-      `
-      *,
-      organization:organizations(id, name, slug, mission, logo_url)
-    `
-    )
-    .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
-    .single()
-
-  if (error) throw error
-  return data
-}
-
 /**
  * Shape returned by getCampaignsByOrganization — flat-spread of campaigns
  * row + latest content JSONB + derived lifecycle status.
@@ -1783,7 +1767,16 @@ export interface OrganizationTeamMember {
 export const fetchOrganizationProfile = async (
   organizationIdOrSlug: string
 ): Promise<OrganizationProfile | null> => {
-  const { data: org, error } = await supabase
+  // organizations.id is a uuid column. When called with a slug, putting it in
+  // an `id.eq.<slug>` predicate makes Postgres try to cast the slug to uuid and
+  // throws 22P02 (invalid input syntax for type uuid), failing the whole query.
+  // Only include the id predicate when the argument actually looks like a uuid.
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      organizationIdOrSlug
+    )
+
+  const baseQuery = supabase
     .from('organizations')
     .select(
       `
@@ -1791,8 +1784,11 @@ export const fetchOrganizationProfile = async (
       user_profile:user_profiles!organizations_user_id_fkey(is_vetted)
     `
     )
-    .or(`id.eq.${organizationIdOrSlug},slug.eq.${organizationIdOrSlug}`)
-    .maybeSingle()
+
+  const { data: org, error } = await (isUuid
+    ? baseQuery.or(`id.eq.${organizationIdOrSlug},slug.eq.${organizationIdOrSlug}`)
+    : baseQuery.eq('slug', organizationIdOrSlug)
+  ).maybeSingle()
 
   if (error || !org) {
     if (error) console.error('Error fetching organization:', error)
