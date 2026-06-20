@@ -25,14 +25,9 @@
 | Docker (Desktop or Colima) | `docker ps`                 | latest      |
 | Supabase CLI          | `cd backend && pnpx supabase -v` | latest      |
 
-**Docker runtime — pick one:**
+**Docker runtime — Docker Desktop is the default.** Download from [docker.com](https://www.docker.com/products/docker-desktop/), install, and **launch the app before continuing**. `pnpm db:start` uses it automatically (socket at `/var/run/docker.sock`).
 
-| Runtime        | How to install       | Socket path                          | Notes                        |
-| -------------- | -------------------- | ------------------------------------ | ---------------------------- |
-| Docker Desktop | Download from docker.com | `/var/run/docker.sock` (auto)    | GUI app, easiest setup       |
-| Colima         | `brew install colima` | `~/.colima/default/docker.sock`     | Lightweight, no GUI required |
-
-> `pnpm db:start` detects which runtime you are using automatically — no manual configuration needed.
+> **macOS users who prefer a lightweight, no-GUI runtime** can use Colima instead — see [Appendix: Using Colima (macOS)](#appendix-using-colima-macos) for install commands, recommended sizing, and the Docker-socket workaround. `pnpm db:start` detects whichever runtime is running automatically — no manual switch needed.
 
 **If pnpm is not installed:**
 
@@ -125,13 +120,13 @@ cd frontend-vite && pnpm install
 
 ## Step 5 — Start Supabase Locally and Get Keys
 
-Start Docker Desktop first, then:
+Start Docker Desktop first (or run `colima start` if you use Colima — see [Appendix: Using Colima (macOS)](#appendix-using-colima-macos)), then:
 
 ```bash
 cd backend && pnpm db:start
 ```
 
-> **Do not use `pnpx supabase start` directly.** On Colima, the vector container requires a Docker socket symlink that `pnpm db:start` creates automatically. Running `pnpx supabase start` without it will fail. See the vector socket error section at the bottom of this doc.
+> **Do not use `pnpx supabase start` directly.** On Colima, the vector container requires a Docker socket symlink that `pnpm db:start` creates automatically. Running `pnpx supabase start` without it will fail. See [Appendix: Using Colima (macOS)](#appendix-using-colima-macos) at the bottom of this doc.
 
 After startup, the full output looks like this (v2.98.2+):
 
@@ -640,26 +635,64 @@ docker images | grep supabase
 
 ---
 
-## `pnpm db:start` — Vector Container Socket Error (Colima only)
+## Appendix: Using Colima (macOS)
 
-> **Docker Desktop users**: this error does not occur. `/var/run/docker.sock` is created automatically by Docker Desktop.
+Colima is a lightweight, no-GUI Docker runtime — a common alternative to Docker Desktop on macOS (lower memory footprint, MIT-licensed, no commercial-use license thresholds). Everything else in this guide works unchanged once Colima is running; `pnpm db:start` detects it automatically.
 
-### Symptom
+### Install and start
+
+```bash
+brew install colima docker   # `docker` = the CLI client; `colima` provides the daemon/VM
+colima start --vm-type vz --mount-type virtiofs --cpu 2 --memory 4 --disk 40
+```
+
+- `--vm-type vz` uses Apple's Virtualization.Framework (fastest on Apple Silicon).
+- `--cpu 2 --memory 4 --disk 40` is enough for the Supabase stack (~10 containers) plus frequent `db:reset`. Bump to `--memory 6` if `db:reset` hits OOM/swap.
+- These values persist — afterwards you only need `colima start`. To make them permanent (no flags), edit `~/.colima/default/colima.yaml`.
+
+Verify the Docker CLI points at Colima:
+
+```bash
+docker context ls
+docker context use colima
+docker ps                     # should print without error
+```
+
+Then continue from [Step 5](#step-5--start-supabase-locally-and-get-keys) — run `pnpm db:start` as normal.
+
+### Reclaiming disk space
+
+Colima's VM disk is a **sparse file that does not shrink automatically** when you delete images inside the VM — `docker system prune` alone won't return space to macOS. Run `fstrim` to release freed blocks back to the host:
+
+```bash
+colima ssh -- sh -c 'sudo docker system prune -af --volumes; sudo fstrim -av'
+```
+
+If `~/.colima` still grows unbounded, recreate the VM (local DB data is disposable — restore with `pnpm db:reset`):
+
+```bash
+colima stop && colima delete
+colima start --vm-type vz --mount-type virtiofs --cpu 2 --memory 4 --disk 40
+```
+
+### Vector container socket error (Colima only)
+
+> **Docker Desktop users**: this error does not occur — `/var/run/docker.sock` is created automatically by Docker Desktop.
+
+**Symptom**
 
 ```
 failed to start docker container "supabase_vector_backend": error while creating mount source path
 '/Users/<name>/.colima/default/docker.sock': mkdir ... operation not supported
 ```
 
-### Cause
+**Cause**
 
 Colima places its Docker socket at `~/.colima/default/docker.sock` instead of the standard `/var/run/docker.sock`. The `vector` container tries to mount the standard path, which does not exist on Colima.
 
 `analytics = false` in `config.toml` **no longer stops the vector container** in Supabase CLI v2.98.2+. The symlink is the only reliable fix.
 
-### Fix
-
-`pnpm db:start` handles this automatically:
+**Fix** — `pnpm db:start` handles this automatically:
 
 ```bash
 cd backend && pnpm db:start
