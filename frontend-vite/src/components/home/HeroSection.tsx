@@ -92,7 +92,7 @@ export function HeroSection() {
                   size="lg"
                   className="h-10 w-full rounded-full border-2 border-[hsl(var(--brand-primary))] bg-[hsl(var(--brand-primary))] px-6 text-white transition-all duration-200 hover:bg-transparent hover:text-[hsl(var(--brand-primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-primary))] focus-visible:ring-offset-2 active:scale-95 sm:w-auto"
                 >
-                  Browse requests &amp; donate
+                  Browse campaigns &amp; donate
                 </Button>
               </Link>
               <Link to={`${routes.about}#for-organizations`} className="block w-full sm:w-auto">

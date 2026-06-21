@@ -92,14 +92,17 @@ export function AuditLogPage({ embedded = false }: { embedded?: boolean } = {}) 
   >({})
 
   // W7-12: fetch profiles for any admin_ids not yet in the map and merge in.
-  const mergeAdminProfiles = useCallback(async (loaded: AdminActivity[]) => {
-    const missing = [...new Set(loaded.map((r) => r.admin_id))].filter(
-      (id) => !(id in adminProfiles)
-    )
-    if (missing.length === 0) return
-    const fetched = await fetchUserProfilesByIds(missing)
-    setAdminProfiles((prev) => ({ ...prev, ...fetched }))
-  }, [adminProfiles])
+  const mergeAdminProfiles = useCallback(
+    async (loaded: AdminActivity[]) => {
+      const missing = [...new Set(loaded.map((r) => r.admin_id))].filter(
+        (id) => !(id in adminProfiles)
+      )
+      if (missing.length === 0) return
+      const fetched = await fetchUserProfilesByIds(missing)
+      setAdminProfiles((prev) => ({ ...prev, ...fetched }))
+    },
+    [adminProfiles]
+  )
 
   const loadInitial = useCallback(async () => {
     setLoading(true)

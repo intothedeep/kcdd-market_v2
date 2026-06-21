@@ -430,7 +430,9 @@ export function CampaignsAdminPage({ embedded = false }: { embedded?: boolean } 
           </TabsTrigger>
           <TabsTrigger value="pending_new" className="gap-2">
             Pending new
-            <Badge className="bg-gray-100 px-1.5 text-xs text-[#0a0a0a]">{counts.pending_new}</Badge>
+            <Badge className="bg-gray-100 px-1.5 text-xs text-[#0a0a0a]">
+              {counts.pending_new}
+            </Badge>
           </TabsTrigger>
           <TabsTrigger value="pending_edit" className="gap-2">
             Pending edit

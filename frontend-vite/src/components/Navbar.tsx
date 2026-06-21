@@ -4,7 +4,7 @@
  */
 
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { UserButton, useUser, SignInButton, SignUpButton } from '@clerk/clerk-react'
+import { UserButton, useUser, SignInButton } from '@clerk/clerk-react'
 import { routes } from '@/config'
 import { Button } from '@/components/ui/button'
 import {
@@ -161,15 +161,6 @@ export function Navbar() {
                   Sign in
                 </Button>
               </SignInButton>
-              <SignUpButton mode="modal">
-                <Button
-                  size="sm"
-                  className="h-9 gap-2 rounded-full bg-[hsl(var(--brand-primary))] px-4 text-white hover:bg-[hsl(var(--brand-primary)/0.9)]"
-                >
-                  <Heart className="h-4 w-4 fill-white" />
-                  Sign up
-                </Button>
-              </SignUpButton>
             </>
           )}
         </div>

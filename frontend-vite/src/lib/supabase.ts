@@ -1771,23 +1771,21 @@ export const fetchOrganizationProfile = async (
   // an `id.eq.<slug>` predicate makes Postgres try to cast the slug to uuid and
   // throws 22P02 (invalid input syntax for type uuid), failing the whole query.
   // Only include the id predicate when the argument actually looks like a uuid.
-  const isUuid =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      organizationIdOrSlug
-    )
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    organizationIdOrSlug
+  )
 
-  const baseQuery = supabase
-    .from('organizations')
-    .select(
-      `
+  const baseQuery = supabase.from('organizations').select(
+    `
       *,
       user_profile:user_profiles!organizations_user_id_fkey(is_vetted)
     `
-    )
+  )
 
-  const { data: org, error } = await (isUuid
-    ? baseQuery.or(`id.eq.${organizationIdOrSlug},slug.eq.${organizationIdOrSlug}`)
-    : baseQuery.eq('slug', organizationIdOrSlug)
+  const { data: org, error } = await (
+    isUuid
+      ? baseQuery.or(`id.eq.${organizationIdOrSlug},slug.eq.${organizationIdOrSlug}`)
+      : baseQuery.eq('slug', organizationIdOrSlug)
   ).maybeSingle()
 
   if (error || !org) {

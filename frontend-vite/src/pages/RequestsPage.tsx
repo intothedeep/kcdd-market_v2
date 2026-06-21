@@ -144,9 +144,7 @@ export function RequestsPage() {
       <div className="container py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight text-[#0a0a0a]">
-            Browse Campaigns
-          </h1>
+          <h1 className="text-4xl font-bold tracking-tight text-[#0a0a0a]">Browse Campaigns</h1>
           <p className="mt-2 text-lg text-[#737373]">
             Fund a multi-device campaign — every campaign goes to verified Kansas Citians.
           </p>
