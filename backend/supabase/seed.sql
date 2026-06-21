@@ -1041,4 +1041,221 @@ UPDATE campaigns SET first_approved_at = NOW() - INTERVAL '27 days', last_edit_a
   '00000000-0000-0000-0009-000000000036','00000000-0000-0000-0009-000000000038','00000000-0000-0000-0009-000000000040','00000000-0000-0000-0009-000000000042','00000000-0000-0000-0009-000000000044'
 );
 
+-- ============================================================
+-- STEP M10 — 3 COMPLETE public org profiles (rich detail page)
+-- ============================================================
+-- Fills empty profile fields + team members + updates + populations
+-- + cause areas for 3 of the 5 seeded orgs so their public
+-- /organizations/:id page renders rich for donors/anon.
+--   Connecting Roots KC   — 00000000-0000-0000-0004-000000000001
+--   Digital Futures KC    — 00000000-0000-0000-0004-000000000003
+--   Heartland Device Bank — 00000000-0000-0000-0004-000000000005
+-- Idempotent: organizations UPDATEs are naturally re-runnable;
+-- team_members/updates use deterministic ids (0000000b range) with
+-- ON CONFLICT (id) DO NOTHING; populations/cause_areas rely on their
+-- natural UNIQUE(organization_id, target) constraints. cause_areas /
+-- identity_categories are referenced BY NAME (auto-generated ids are
+-- not stable across reset). Re-runnable; never run as part of db:reset
+-- alongside an existing dataset without conflict.
+
+-- M10-1: organizations — fill empty public-profile fields.
+-- Keeps existing mission / tagline / logo_url / cover_image_url /
+-- website / program_description / service_area_description (STEP M6).
+UPDATE organizations SET
+  description = 'Connecting Roots KC bridges the digital divide for immigrant and refugee families across the Kansas City metro. Since 2014 we have paired refurbished laptops with multilingual digital-literacy coaching, helping new arrivals navigate school portals, telehealth, job applications, and citizenship paperwork. Technology is the root system beneath every other kind of opportunity — and we make sure no family is left without one.',
+  city = 'Kansas City',
+  state = 'MO',
+  ein = '47-2018553',
+  organization_size = '11-25 employees',
+  technology_barriers = 'Many of the families we serve arrive without any home computer and rely on a single phone for everything from homework to immigration appointments. Donated laptops, tablets, and reliable internet hotspots let us put a real device in each household and run our weekly multilingual digital-literacy classes.',
+  facebook_url = 'https://facebook.com/connectingrootskc',
+  instagram_url = 'https://instagram.com/connectingrootskc',
+  linkedin_url = 'https://linkedin.com/company/connecting-roots-kc',
+  social_links = jsonb_build_object(
+    'facebook',  'https://facebook.com/connectingrootskc',
+    'instagram', 'https://instagram.com/connectingrootskc',
+    'linkedin',  'https://linkedin.com/company/connecting-roots-kc'
+  )
+WHERE id = '00000000-0000-0000-0004-000000000001';
+
+UPDATE organizations SET
+  description = 'Digital Futures KC equips young people on Kansas City''s east side with the hardware, mentorship, and confidence to pursue careers in technology. Our labs run year-round coding bootcamps, hardware-repair apprenticeships, and a paid internship pipeline that places graduates with local tech employers. We believe a young person''s zip code should never decide whether they get to build the future.',
+  city = 'Kansas City',
+  state = 'MO',
+  ein = '47-3309871',
+  organization_size = '26-50 employees',
+  technology_barriers = 'Our bootcamps are only as strong as the machines students learn on. We need modern laptops capable of running development environments, plus monitors and networking gear for our two community labs, so every student trains on the kind of hardware they will use on the job.',
+  facebook_url = 'https://facebook.com/digitalfutureskc',
+  instagram_url = 'https://instagram.com/digitalfutureskc',
+  linkedin_url = 'https://linkedin.com/company/digital-futures-kc',
+  social_links = jsonb_build_object(
+    'facebook',  'https://facebook.com/digitalfutureskc',
+    'instagram', 'https://instagram.com/digitalfutureskc',
+    'linkedin',  'https://linkedin.com/company/digital-futures-kc'
+  )
+WHERE id = '00000000-0000-0000-0004-000000000003';
+
+UPDATE organizations SET
+  description = 'Heartland Device Bank is the metro''s technology recycler with a conscience. We collect retired computers and tablets from businesses and individuals, securely wipe and refurbish them, and redistribute them to families, students, and nonprofits across the greater Kansas City region. Every device we place keeps electronics out of the landfill and puts a working computer into the hands of someone who needs one.',
+  city = 'Overland Park',
+  state = 'KS',
+  ein = '48-1276640',
+  organization_size = '6-10 employees',
+  technology_barriers = 'We can refurbish almost anything, but we depend on a steady stream of donated laptops, desktops, and tablets to keep our Refurb-to-Home pipeline full. Replacement parts — RAM, SSDs, chargers, and batteries — let our volunteer technicians bring older machines back to life instead of scrapping them.',
+  facebook_url = 'https://facebook.com/heartlanddevicebank',
+  instagram_url = 'https://instagram.com/heartlanddevicebank',
+  linkedin_url = 'https://linkedin.com/company/heartland-device-bank',
+  social_links = jsonb_build_object(
+    'facebook',  'https://facebook.com/heartlanddevicebank',
+    'instagram', 'https://instagram.com/heartlanddevicebank',
+    'linkedin',  'https://linkedin.com/company/heartland-device-bank'
+  )
+WHERE id = '00000000-0000-0000-0004-000000000005';
+
+-- M10-2: organization_team_members — 3 per org. Deterministic ids:
+--   0000000b-0000-0000-000c-0000000000NN  (NN 01..09)
+INSERT INTO organization_team_members
+  (id, organization_id, name, role, bio, photo_url, email, display_order, is_active)
+VALUES
+  -- Connecting Roots KC
+  ('0000000b-0000-0000-000c-000000000001','00000000-0000-0000-0004-000000000001',
+   'Amara Diallo','Executive Director',
+   'Amara founded Connecting Roots KC after a decade of resettlement casework, determined to close the technology gap she saw holding families back.',
+   'https://ui-avatars.com/api/?name=Amara+Diallo&size=256&background=2E7D32&color=fff&bold=true',
+   'amara@connectingrootskc.org',1,true),
+  ('0000000b-0000-0000-000c-000000000002','00000000-0000-0000-0004-000000000001',
+   'Luis Mendoza','Director of Programs',
+   'Luis runs our multilingual digital-literacy curriculum and trains the volunteer coaches who sit beside families at every class.',
+   'https://ui-avatars.com/api/?name=Luis+Mendoza&size=256&background=2E7D32&color=fff&bold=true',
+   'luis@connectingrootskc.org',2,true),
+  ('0000000b-0000-0000-000c-000000000003','00000000-0000-0000-0004-000000000001',
+   'Priya Nair','Refurbishment Lead',
+   'Priya leads the intake bench, wiping and rebuilding every donated laptop before it reaches a family.',
+   'https://ui-avatars.com/api/?name=Priya+Nair&size=256&background=2E7D32&color=fff&bold=true',
+   'priya@connectingrootskc.org',3,true),
+  -- Digital Futures KC
+  ('0000000b-0000-0000-000c-000000000004','00000000-0000-0000-0004-000000000003',
+   'Marcus Bell','Founder & CEO',
+   'A self-taught engineer from the east side, Marcus started Digital Futures KC to build the on-ramp into tech he never had growing up.',
+   'https://ui-avatars.com/api/?name=Marcus+Bell&size=256&background=6A1B9A&color=fff&bold=true',
+   'marcus@digitalfutureskc.org',1,true),
+  ('0000000b-0000-0000-000c-000000000005','00000000-0000-0000-0004-000000000003',
+   'Jasmine Carter','Lead Instructor',
+   'Jasmine designs and teaches our coding bootcamp, mentoring students from their first line of code to their first job offer.',
+   'https://ui-avatars.com/api/?name=Jasmine+Carter&size=256&background=6A1B9A&color=fff&bold=true',
+   'jasmine@digitalfutureskc.org',2,true),
+  ('0000000b-0000-0000-000c-000000000006','00000000-0000-0000-0004-000000000003',
+   'Daniel Okeke','Partnerships Manager',
+   'Daniel builds the employer relationships that turn our graduates into paid interns and full-time hires.',
+   'https://ui-avatars.com/api/?name=Daniel+Okeke&size=256&background=6A1B9A&color=fff&bold=true',
+   'daniel@digitalfutureskc.org',3,true),
+  -- Heartland Device Bank
+  ('0000000b-0000-0000-000c-000000000007','00000000-0000-0000-0004-000000000005',
+   'Samuel Reyes','Executive Director',
+   'Samuel turned a garage refurbishing hobby into a regional device bank that has placed thousands of computers across the metro.',
+   'https://ui-avatars.com/api/?name=Samuel+Reyes&size=256&background=E65100&color=fff&bold=true',
+   'samuel@heartlanddevicebank.org',1,true),
+  ('0000000b-0000-0000-000c-000000000008','00000000-0000-0000-0004-000000000005',
+   'Grace Liu','Operations Manager',
+   'Grace manages intake, secure data-wiping, and the logistics of getting refurbished devices to forty partner agencies.',
+   'https://ui-avatars.com/api/?name=Grace+Liu&size=256&background=E65100&color=fff&bold=true',
+   'grace@heartlanddevicebank.org',2,true),
+  ('0000000b-0000-0000-000c-000000000009','00000000-0000-0000-0004-000000000005',
+   'Tom Becker','Lead Technician',
+   'Tom heads the volunteer repair bench, coaxing life back into machines other recyclers would scrap.',
+   'https://ui-avatars.com/api/?name=Tom+Becker&size=256&background=E65100&color=fff&bold=true',
+   'tom@heartlanddevicebank.org',3,true)
+ON CONFLICT (id) DO NOTHING;
+
+-- M10-3: organization_updates — 3 published per org. Deterministic ids:
+--   0000000b-0000-0000-000d-0000000000NN  (NN 01..09); staggered created_at.
+INSERT INTO organization_updates
+  (id, organization_id, title, content, image_url, is_published, created_at)
+VALUES
+  -- Connecting Roots KC
+  ('0000000b-0000-0000-000d-000000000001','00000000-0000-0000-0004-000000000001',
+   '50 Families Connected This Spring',
+   'Thanks to a wave of laptop donations, we placed devices with 50 immigrant and refugee families this spring and ran our largest digital-literacy cohort yet.',
+   'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=80',
+   true, NOW() - INTERVAL '7 days'),
+  ('0000000b-0000-0000-000d-000000000002','00000000-0000-0000-0004-000000000001',
+   'New Saturday Digital-Literacy Class',
+   'We have added a Saturday morning class in Swahili and Dari so working parents can join. Volunteer coaches make it possible — reach out if you can help.',
+   'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&q=80',
+   true, NOW() - INTERVAL '21 days'),
+  ('0000000b-0000-0000-000d-000000000003','00000000-0000-0000-0004-000000000001',
+   'Partnering With Three New Schools',
+   'Connecting Roots KC is now embedded in three more KCPS schools, helping newcomer students and parents log in to school portals with confidence.',
+   'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1200&q=80',
+   true, NOW() - INTERVAL '45 days'),
+  -- Digital Futures KC
+  ('0000000b-0000-0000-000d-000000000004','00000000-0000-0000-0004-000000000003',
+   'Spring Bootcamp Graduates 28 Students',
+   'Our spring coding bootcamp graduated 28 students — and 19 have already started paid internships with local tech employers. We could not be prouder.',
+   'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&q=80',
+   true, NOW() - INTERVAL '10 days'),
+  ('0000000b-0000-0000-000d-000000000005','00000000-0000-0000-0004-000000000003',
+   'Second Community Lab Opens',
+   'We cut the ribbon on our second east-side community lab this month, doubling the number of students who can train on professional-grade hardware.',
+   'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&q=80',
+   true, NOW() - INTERVAL '30 days'),
+  ('0000000b-0000-0000-000d-000000000006','00000000-0000-0000-0004-000000000003',
+   'Hardware-Repair Apprenticeship Launches',
+   'A new paid apprenticeship teaches students to diagnose and repair laptops — a marketable skill and a way to keep our own labs running.',
+   'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80',
+   true, NOW() - INTERVAL '55 days'),
+  -- Heartland Device Bank
+  ('0000000b-0000-0000-000d-000000000007','00000000-0000-0000-0004-000000000005',
+   '1,800 Devices Placed Last Year',
+   'Our Refurb-to-Home pipeline wiped, repaired, and placed 1,800 devices last year through a network of 40 partner agencies. On to 2,000 this year.',
+   'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=1200&q=80',
+   true, NOW() - INTERVAL '5 days'),
+  ('0000000b-0000-0000-000d-000000000008','00000000-0000-0000-0004-000000000005',
+   'Corporate Donation: 200 Laptops',
+   'A local employer retired its fleet and donated 200 laptops to Heartland Device Bank. Our volunteer bench is busy turning them into home computers.',
+   'https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?w=1200&q=80',
+   true, NOW() - INTERVAL '24 days'),
+  ('0000000b-0000-0000-000d-000000000009','00000000-0000-0000-0004-000000000005',
+   'Certified Data-Wiping Now Standard',
+   'Every device that leaves our shop is now wiped to a certified data-sanitization standard, so donors and recipients can trust their information is gone for good.',
+   'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&q=80',
+   true, NOW() - INTERVAL '50 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- M10-4: organization_populations — 2-3 per org. identity_categories
+-- referenced BY NAME (ids auto-generated). Natural UNIQUE(org, category)
+-- makes this idempotent.
+INSERT INTO organization_populations (organization_id, identity_category_id)
+SELECT v.org_id, ic.id
+FROM (VALUES
+  ('00000000-0000-0000-0004-000000000001'::uuid, 'Hispanic/Latinx'),
+  ('00000000-0000-0000-0004-000000000001'::uuid, 'Black/African American'),
+  ('00000000-0000-0000-0004-000000000001'::uuid, 'Youth'),
+  ('00000000-0000-0000-0004-000000000003'::uuid, 'Youth'),
+  ('00000000-0000-0000-0004-000000000003'::uuid, 'Black/African American'),
+  ('00000000-0000-0000-0004-000000000003'::uuid, 'Asian American'),
+  ('00000000-0000-0000-0004-000000000005'::uuid, 'Seniors'),
+  ('00000000-0000-0000-0004-000000000005'::uuid, 'Veterans'),
+  ('00000000-0000-0000-0004-000000000005'::uuid, 'Disability')
+) AS v(org_id, cat_name)
+JOIN identity_categories ic ON ic.name = v.cat_name
+ON CONFLICT (organization_id, identity_category_id) DO NOTHING;
+
+-- M10-5: organization_cause_areas — 2-3 per org. cause_areas referenced
+-- BY NAME; cause_area_id is TEXT (uuid cast to text). Natural
+-- UNIQUE(org, cause_area_id) makes this idempotent.
+INSERT INTO organization_cause_areas (organization_id, cause_area_id)
+SELECT v.org_id, ca.id::text
+FROM (VALUES
+  ('00000000-0000-0000-0004-000000000001'::uuid, 'Education'),
+  ('00000000-0000-0000-0004-000000000001'::uuid, 'Community Services'),
+  ('00000000-0000-0000-0004-000000000003'::uuid, 'Education'),
+  ('00000000-0000-0000-0004-000000000003'::uuid, 'Youth Development'),
+  ('00000000-0000-0000-0004-000000000003'::uuid, 'Economic Development'),
+  ('00000000-0000-0000-0004-000000000005'::uuid, 'Community Services'),
+  ('00000000-0000-0000-0004-000000000005'::uuid, 'Environment')
+) AS v(org_id, ca_name)
+JOIN cause_areas ca ON ca.name = v.ca_name
+ON CONFLICT (organization_id, cause_area_id) DO NOTHING;
+
 COMMIT;
