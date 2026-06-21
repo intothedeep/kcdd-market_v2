@@ -21,7 +21,10 @@ function parseDevRoleOverrides(raw) {
     const idx = pair.lastIndexOf(':')
     if (idx === -1) continue
     const email = pair.slice(0, idx).trim().toLowerCase()
-    const role = pair.slice(idx + 1).trim().toLowerCase()
+    const role = pair
+      .slice(idx + 1)
+      .trim()
+      .toLowerCase()
     if (!email || !ALLOWED_DEV_ROLES.has(role)) continue
     map[email] = role
   }
@@ -47,9 +50,7 @@ async function fetchClerkIdentity(clerkUserId) {
   const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
   const user = await clerk.users.getUser(clerkUserId)
   const email =
-    user.primaryEmailAddress?.emailAddress ??
-    user.emailAddresses?.[0]?.emailAddress ??
-    null
+    user.primaryEmailAddress?.emailAddress ?? user.emailAddresses?.[0]?.emailAddress ?? null
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || null
   return { email, name }
 }
@@ -78,7 +79,7 @@ router.post('/sync', async (req, res) => {
         .from('user_profiles')
         .upsert(
           { id: clerkUserId, user_type: 'donor' },
-          { onConflict: 'id', ignoreDuplicates: true },
+          { onConflict: 'id', ignoreDuplicates: true }
         )
       if (error) throw error
       return res.json({ success: true })

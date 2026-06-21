@@ -1956,8 +1956,7 @@ app.get('/api/admin/donations', clerkAuth, async (req, res) => {
       for (const d of details ?? []) {
         const entry = campaignMap.get(d.campaign_id)
         if (entry && entry.title == null) {
-          entry.title =
-            d.content && typeof d.content.title === 'string' ? d.content.title : null
+          entry.title = d.content && typeof d.content.title === 'string' ? d.content.title : null
         }
       }
     }
@@ -2000,11 +1999,21 @@ app.get('/api/admin/donations', clerkAuth, async (req, res) => {
       const dispute = disputeMap.get(t.stripe_payment_intent_id) ?? null
       const isDisputed = dispute != null && dispute.status !== 'won'
       const isAnonymous = !t.donor_id || t.donor_id === 'anonymous'
-      const donor = isAnonymous ? null : donorMap.get(t.donor_id) ?? null
+      const donor = isAnonymous ? null : (donorMap.get(t.donor_id) ?? null)
       const campaign = t.campaign_id ? campaignMap.get(t.campaign_id) : null
       const target = t.campaign_id
-        ? { type: 'campaign', title: campaign?.title ?? null, slug: campaign?.slug ?? null, id: t.campaign_id }
-        : { type: 'request', title: orgMap.get(t.organization_id) ?? null, slug: null, id: t.request_id ?? null }
+        ? {
+            type: 'campaign',
+            title: campaign?.title ?? null,
+            slug: campaign?.slug ?? null,
+            id: t.campaign_id,
+          }
+        : {
+            type: 'request',
+            title: orgMap.get(t.organization_id) ?? null,
+            slug: null,
+            id: t.request_id ?? null,
+          }
 
       return {
         id: t.id,
@@ -2033,12 +2042,7 @@ app.get('/api/admin/donations', clerkAuth, async (req, res) => {
     if (search) {
       const needle = search.toLowerCase()
       rows = rows.filter((r) => {
-        const hay = [
-          r.donorName,
-          r.donorEmail,
-          r.target?.title,
-          r.organizationName,
-        ]
+        const hay = [r.donorName, r.donorEmail, r.target?.title, r.organizationName]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
@@ -2123,9 +2127,7 @@ async function computeDonationTotals(client) {
 
   const now = new Date()
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-  const dayStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  )
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
   let thisMonthAmount = 0
   let thisMonthCount = 0
   let todayAmount = 0
@@ -2166,7 +2168,6 @@ async function computeDonationTotals(client) {
     monthlyTrends: [...buckets.values()],
   }
 }
-
 
 /**
  * List ALL campaigns for the admin Campaign Management view.
