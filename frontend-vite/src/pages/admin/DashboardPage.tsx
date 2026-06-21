@@ -54,7 +54,6 @@ import {
   RefreshCw,
   Loader2,
   Activity,
-  Filter,
   Download,
   Mail,
   ExternalLink,
@@ -591,6 +590,15 @@ function UsersContent({
     return matchesSearch && matchesType && matchesStatus
   })
 
+  // Type counts derived from the full loaded users array (not the filtered
+  // view) so each tab badge shows the true total for that user_type.
+  const typeCounts = {
+    all: users.length,
+    donor: users.filter((u) => u.user_type === 'donor').length,
+    cbo: users.filter((u) => u.user_type === 'cbo').length,
+    admin: users.filter((u) => u.user_type === 'admin').length,
+  }
+
   const toggleRowSelection = (id: string) => {
     const newSelected = new Set(selectedRows)
     if (newSelected.has(id)) {
@@ -624,6 +632,31 @@ function UsersContent({
         </div>
       </div>
 
+      {/* User-type tabs — filter the table by user_type. 'all' shows everyone. */}
+      <Tabs
+        value={filterType ?? 'all'}
+        onValueChange={(v) => setFilterType(v === 'all' ? null : v)}
+      >
+        <TabsList>
+          <TabsTrigger value="all" className="gap-2">
+            All
+            <Badge className="bg-gray-100 px-1.5 text-xs text-[#0a0a0a]">{typeCounts.all}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="donor" className="gap-2">
+            Donors
+            <Badge className="bg-gray-100 px-1.5 text-xs text-[#0a0a0a]">{typeCounts.donor}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="cbo" className="gap-2">
+            CBOs
+            <Badge className="bg-gray-100 px-1.5 text-xs text-[#0a0a0a]">{typeCounts.cbo}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="admin" className="gap-2">
+            Admins
+            <Badge className="bg-gray-100 px-1.5 text-xs text-[#0a0a0a]">{typeCounts.admin}</Badge>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-[200px] max-w-sm flex-1">
@@ -635,25 +668,6 @@ function UsersContent({
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Filter className="mr-1 h-4 w-4" />
-              {filterType
-                ? USER_TYPE_LABELS[filterType as keyof typeof USER_TYPE_LABELS]
-                : 'User Type'}
-              <ChevronDown className="ml-1 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => setFilterType(null)}>All Types</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setFilterType('donor')}>Donors</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilterType('cbo')}>Organizations</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilterType('admin')}>Admins</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
