@@ -1839,6 +1839,325 @@ app.get('/api/admin/pending-edits', clerkAuth, async (req, res) => {
 })
 
 /**
+ * List donations (payment ledger) for the admin Donations view.
+ * GET /api/admin/donations?status=&search=&cursor=&limit=
+ *
+ * Auth: Clerk JWT — caller must be user_profiles.user_type='admin'.
+ *
+ * Data source: payment_transactions (amounts in CENTS) with a
+ * stripe_disputes overlay (LEFT JOIN on payment_intent_id). Service-role
+ * client bypasses RLS. Donor / campaign / org joins are batch-resolved per
+ * page (one .in(...) each) to avoid N+1.
+ *
+ * Returns { rows, nextCursor, totals } — see buildDonationRow for row shape.
+ * `totals` carries succeededThisMonth + monthlyTrends so the upcoming admin
+ * Overview (Pass 2) can reuse this endpoint without a second query.
+ *
+ * Refund is intentionally OUT OF SCOPE here — this is a read-only ledger
+ * view; refunds are issued via Stripe and reconciled through the webhook.
+ */
+app.get('/api/admin/donations', clerkAuth, async (req, res) => {
+  try {
+    const callerUserId = req.auth.userId
+
+    // 1. Admin auth.
+    const { data: profile, error: profileErr } = await supabase
+      .from('user_profiles')
+      .select('user_type')
+      .eq('id', callerUserId)
+      .single()
+    if (profileErr || !profile || profile.user_type !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin only' })
+    }
+
+    // 2. Parse query params.
+    const statusFilter = typeof req.query.status === 'string' ? req.query.status : null
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : null
+    const rawLimit = parseInt(req.query.limit, 10)
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 100) : 50
+
+    // base payment_transactions.status values that map to each display bucket.
+    const STATUS_TO_BASE = {
+      succeeded: ['succeeded'],
+      pending: ['pending', 'processing'],
+      failed: ['failed'],
+      refunded: ['refunded', 'partially_refunded'],
+    }
+
+    // 3. Build the keyset query. Fetch limit+1 to detect "has more".
+    //    `disputed` is a derived (overlay) status, not a column value, so it
+    //    can't be filtered at the DB level — we over-fetch and filter in JS.
+    const isDisputedFilter = statusFilter === 'disputed'
+    let query = supabase
+      .from('payment_transactions')
+      .select(
+        'id, created_at, status, donor_id, campaign_id, request_id, organization_id, ' +
+          'stripe_payment_intent_id, amount_total, platform_fee, organization_amount, currency'
+      )
+      .order('created_at', { ascending: false })
+      .limit(limit + 1)
+
+    if (statusFilter && !isDisputedFilter && STATUS_TO_BASE[statusFilter]) {
+      query = query.in('status', STATUS_TO_BASE[statusFilter])
+    }
+    if (cursor) {
+      query = query.lt('created_at', cursor)
+    }
+
+    const { data: txns, error: txnErr } = await query
+    if (txnErr) throw txnErr
+
+    const page = txns ?? []
+
+    // 4. Batch-resolve donor profiles. Skip the 'anonymous' sentinel.
+    const donorIds = [
+      ...new Set(page.map((t) => t.donor_id).filter((id) => id && id !== 'anonymous')),
+    ]
+    const donorMap = new Map() // id -> { name, email }
+    if (donorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('id, name, email')
+        .in('id', donorIds)
+      const { data: donorProfiles } = await supabase
+        .from('donor_profiles')
+        .select('user_id, display_name')
+        .in('user_id', donorIds)
+      const displayMap = new Map((donorProfiles ?? []).map((d) => [d.user_id, d.display_name]))
+      for (const p of profiles ?? []) {
+        donorMap.set(p.id, {
+          name: displayMap.get(p.id) || p.name || null,
+          email: p.email || null,
+        })
+      }
+    }
+
+    // 5. Batch-resolve campaigns (+ latest detail title) and organizations.
+    const campaignIds = [...new Set(page.map((t) => t.campaign_id).filter(Boolean))]
+    const orgIds = [...new Set(page.map((t) => t.organization_id).filter(Boolean))]
+
+    const campaignMap = new Map() // id -> { slug, title }
+    if (campaignIds.length > 0) {
+      const { data: campaigns } = await supabase
+        .from('campaigns')
+        .select('id, slug')
+        .in('id', campaignIds)
+      for (const c of campaigns ?? []) {
+        campaignMap.set(c.id, { slug: c.slug ?? null, title: null })
+      }
+      // campaigns are metadata-only; the human title lives in the detail blob.
+      // Pull the latest version per campaign and read content.title.
+      const { data: details } = await supabase
+        .from('campaign_details')
+        .select('campaign_id, version, content')
+        .in('campaign_id', campaignIds)
+        .order('version', { ascending: false })
+      for (const d of details ?? []) {
+        const entry = campaignMap.get(d.campaign_id)
+        if (entry && entry.title == null) {
+          entry.title =
+            d.content && typeof d.content.title === 'string' ? d.content.title : null
+        }
+      }
+    }
+
+    const orgMap = new Map() // id -> name
+    if (orgIds.length > 0) {
+      const { data: orgs } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .in('id', orgIds)
+      for (const o of orgs ?? []) {
+        orgMap.set(o.id, o.name ?? null)
+      }
+    }
+
+    // 6. Batch-resolve disputes by payment_intent_id (overlay).
+    const piIds = [...new Set(page.map((t) => t.stripe_payment_intent_id).filter(Boolean))]
+    const disputeMap = new Map() // payment_intent_id -> { status, reason, evidenceDueBy }
+    if (piIds.length > 0) {
+      const { data: disputes } = await supabase
+        .from('stripe_disputes')
+        .select('payment_intent_id, status, reason, evidence_due_by')
+        .in('payment_intent_id', piIds)
+      for (const d of disputes ?? []) {
+        // A PI can only carry one dispute in practice; first wins.
+        if (!disputeMap.has(d.payment_intent_id)) {
+          disputeMap.set(d.payment_intent_id, {
+            status: normalizeDisputeStatus(d.status),
+            reason: normalizeDisputeReason(d.reason),
+            evidenceDueBy: d.evidence_due_by ?? null,
+          })
+        }
+      }
+    }
+
+    // 7. Derive rows. A dispute with status !== 'won' flips the display
+    //    status to "Disputed" while preserving the underlying baseStatus.
+    let rows = page.map((t) => {
+      const baseStatus = deriveBaseStatus(t.status)
+      const dispute = disputeMap.get(t.stripe_payment_intent_id) ?? null
+      const isDisputed = dispute != null && dispute.status !== 'won'
+      const isAnonymous = !t.donor_id || t.donor_id === 'anonymous'
+      const donor = isAnonymous ? null : donorMap.get(t.donor_id) ?? null
+      const campaign = t.campaign_id ? campaignMap.get(t.campaign_id) : null
+      const target = t.campaign_id
+        ? { type: 'campaign', title: campaign?.title ?? null, slug: campaign?.slug ?? null, id: t.campaign_id }
+        : { type: 'request', title: orgMap.get(t.organization_id) ?? null, slug: null, id: t.request_id ?? null }
+
+      return {
+        id: t.id,
+        createdAt: t.created_at,
+        status: isDisputed ? 'Disputed' : baseStatus,
+        baseStatus,
+        donorId: t.donor_id,
+        donorName: donor?.name ?? null,
+        donorEmail: donor?.email ?? null,
+        isAnonymous,
+        target,
+        organizationName: orgMap.get(t.organization_id) ?? null,
+        amountTotal: t.amount_total,
+        platformFee: t.platform_fee,
+        netToOrg: t.organization_amount,
+        currency: t.currency || 'usd',
+        paymentIntentId: t.stripe_payment_intent_id,
+        dispute: isDisputed ? dispute : null,
+      }
+    })
+
+    // Apply search + disputed-only filtering in JS (post-derive).
+    if (isDisputedFilter) {
+      rows = rows.filter((r) => r.status === 'Disputed')
+    }
+    if (search) {
+      const needle = search.toLowerCase()
+      rows = rows.filter((r) => {
+        const hay = [
+          r.donorName,
+          r.donorEmail,
+          r.target?.title,
+          r.organizationName,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        return hay.includes(needle)
+      })
+    }
+
+    // Keyset pagination: nextCursor is the created_at of the last kept row,
+    // but only if the unfiltered page hit the limit (more pages exist).
+    const hasMore = page.length > limit
+    const trimmed = rows.slice(0, limit)
+    const nextCursor =
+      hasMore && page.length > 0 ? page[Math.min(limit, page.length) - 1].created_at : null
+
+    // 8. Aggregate totals. These run over the FULL succeeded ledger (not just
+    //    the current page) so the strip + Overview reflect lifetime numbers.
+    const totals = await computeDonationTotals(supabase)
+
+    return res.json({ rows: trimmed, nextCursor, totals })
+  } catch (err) {
+    console.error('Error in GET /api/admin/donations:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+// --- Donations helpers -----------------------------------------------------
+
+/** Map a raw payment_transactions.status to a display bucket. */
+function deriveBaseStatus(raw) {
+  switch (raw) {
+    case 'succeeded':
+      return 'Succeeded'
+    case 'failed':
+      return 'Failed'
+    case 'refunded':
+    case 'partially_refunded':
+      return 'Refunded'
+    case 'pending':
+    case 'processing':
+    default:
+      return 'Pending'
+  }
+}
+
+/** Normalize Stripe dispute status vocab to our 4-state model. */
+function normalizeDisputeStatus(raw) {
+  if (!raw) return 'needs_response'
+  const s = String(raw).toLowerCase()
+  if (s === 'won') return 'won'
+  if (s === 'lost') return 'lost'
+  if (s === 'under_review') return 'under_review'
+  // warning_needs_response, needs_response, warning_under_review, etc.
+  return 'needs_response'
+}
+
+/** Humanize Stripe dispute reason codes (snake_case → Title Case). */
+function normalizeDisputeReason(raw) {
+  if (!raw) return null
+  return String(raw)
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
+/**
+ * Compute succeeded totals over the whole ledger:
+ *  - succeededCount / succeededAmount (lifetime)
+ *  - succeededThisMonth { amount, count } (current calendar month)
+ *  - monthlyTrends [{ month, year, count, amount }] (last ~6 months)
+ * Amounts in CENTS.
+ */
+async function computeDonationTotals(client) {
+  const { data, error } = await client
+    .from('payment_transactions')
+    .select('amount_total, created_at')
+    .eq('status', 'succeeded')
+  if (error) throw error
+
+  const succeeded = data ?? []
+  const succeededAmount = succeeded.reduce((sum, r) => sum + (r.amount_total || 0), 0)
+
+  const now = new Date()
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+  let thisMonthAmount = 0
+  let thisMonthCount = 0
+
+  // last 6 calendar months (including current) keyed YYYY-MM.
+  const buckets = new Map()
+  for (let i = 5; i >= 0; i -= 1) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1))
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+    buckets.set(key, { month: d.getUTCMonth() + 1, year: d.getUTCFullYear(), count: 0, amount: 0 })
+  }
+
+  for (const r of succeeded) {
+    const created = new Date(r.created_at)
+    if (created >= monthStart) {
+      thisMonthAmount += r.amount_total || 0
+      thisMonthCount += 1
+    }
+    const key = `${created.getUTCFullYear()}-${String(created.getUTCMonth() + 1).padStart(2, '0')}`
+    const bucket = buckets.get(key)
+    if (bucket) {
+      bucket.count += 1
+      bucket.amount += r.amount_total || 0
+    }
+  }
+
+  return {
+    succeededCount: succeeded.length,
+    succeededAmount,
+    currency: 'usd',
+    succeededThisMonth: { amount: thisMonthAmount, count: thisMonthCount },
+    monthlyTrends: [...buckets.values()],
+  }
+}
+
+
+/**
  * List ALL campaigns for the admin Campaign Management view.
  * GET /api/admin/campaigns?status=&limit=
  *

@@ -91,6 +91,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useImpersonation } from '@/contexts/ImpersonationContext'
 import { CampaignsAdminPage } from '@/pages/admin/CampaignsAdminPage'
 import { AuditLogPage } from '@/pages/admin/AuditLogPage'
+import { DonationsPage } from '@/pages/admin/DonationsPage'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -206,6 +207,7 @@ type SidebarSection =
   | 'reports'
   | 'pending'
   | 'audit'
+  | 'donations'
   | 'analytics'
   | 'settings'
   | 'support'
@@ -3471,6 +3473,8 @@ export function AdminDashboard() {
         return 'Campaigns'
       case 'audit':
         return 'Admin Audit Log'
+      case 'donations':
+        return 'Donations'
       case 'analytics':
         return 'Analytics'
       case 'settings':
@@ -3594,6 +3598,8 @@ export function AdminDashboard() {
         return <CampaignsAdminPage embedded />
       case 'audit':
         return <AuditLogPage embedded />
+      case 'donations':
+        return <DonationsPage embedded />
       case 'analytics':
         return (
           <AnalyticsContent
@@ -3735,6 +3741,18 @@ export function AdminDashboard() {
           >
             <Activity className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Audit Log</span>}
+          </button>
+
+          <button
+            onClick={() => setActiveSection('donations')}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+              activeSection === 'donations'
+                ? 'bg-[#ea580c] text-white'
+                : 'text-[#0a0a0a] hover:bg-gray-100'
+            }`}
+          >
+            <DollarSign className="h-4 w-4 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm">Donations</span>}
           </button>
 
           <button
