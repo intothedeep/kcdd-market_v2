@@ -343,14 +343,17 @@ SLACK_WEBHOOK_URL=               # OPTIONAL — unset = dev mode (console.log
 APP_URL=http://localhost:3000    # OPTIONAL — link prefix in Slack messages
 
 # Dev role bootstrap (dev only). CSV of `email:role` (admin|cbo|donor).
-# Inert when NODE_ENV=production. On /api/users/sync the backend fetches the
-# email via the Clerk API and force-sets these roles for the listed accounts.
+# On /api/users/sync the backend fetches the email via the Clerk API and, for
+# the listed accounts, force-sets user_type + onboarding_complete + is_vetted.
+# Inert when NODE_ENV=production (see prod-safety note below). DO NOT set in prod.
 DEV_ROLE_OVERRIDES="taek.lim.us@gmail.com:admin,txl25880@ucmo.edu:donor,mysites.victor@gmail.com:cbo"
 ```
 
 `STRIPE_BYPASS_CONNECT=true` lets the `/api/payments/create-intent` route create test-mode PaymentIntents against the platform account instead of requiring each organization to have a connected Stripe account (`stripe_account_id` + `stripe_charges_enabled`). Without it, every donation 400s with `code: STRIPE_NOT_CONNECTED` until the org completes Connect onboarding. Never set in production.
 
 `IP_HASH_SALT` MUST be set in production (32+ bytes from `openssl rand -hex 32`). Without it, the code fallback (`'dev-only-replace-in-prod'`) is used and donor IP hashes become reversible via rainbow table. `GIT_SHA` is recommended; on Vercel set it to `${VERCEL_GIT_COMMIT_SHA}` so `payment_transactions.metadata.diagnostics.backend_version` traces which build processed each payment.
+
+`DEV_ROLE_OVERRIDES` is **dev-only and inert in production** by two independent layers: (1) a `NODE_ENV !== 'production'` hard guard in `resolveDevRoleOverride()` (`backend/api/routes/users.js`) returns `null` in prod, so the entire override block — `user_type`, `onboarding_complete`, `is_vetted` — is skipped; (2) defense-in-depth: never add `DEV_ROLE_OVERRIDES` to the production env (e.g. Vercel project vars) — even if set, layer (1) ignores it. It exists only so designated dev accounts land straight in their dashboard after sign-in (no onboarding banner, owner-vetted org stays public), and it re-applies after `pnpm db:reset`.
 
 All frontend env vars are accessed through `frontend-vite/src/config/index.ts`.
 
