@@ -50,7 +50,6 @@
 
 **Profile created in Supabase with:**
 - `onboarding_complete: false`
-- `is_vetted: false`
 - `verification_status: 'unverified'`
 - `org_tier: 'individual'`
 
@@ -87,7 +86,7 @@
 
 ### Stage 5: Verified
 
-**Status:** `verification_status: 'verified'`, `is_vetted: true` (set by admin)
+**Status:** `verification_status: 'verified'` (set by admin)
 
 Full access to all features for the user's type. See detailed capabilities below.
 
@@ -322,7 +321,7 @@ Full access to all features for the user's type. See detailed capabilities below
 | Update user type | Change between donor/cbo/admin |
 | Update verification status | Set unverified/verified |
 | Update org tier | Set individual/small_org/large_org |
-| Set vetting notes | Toggle `is_vetted`, add `vetting_note` |
+| Set vetting notes | Set `verification_status`, add `vetting_note` |
 | Delete user | Full data cleanup across all tables |
 | Impersonate user | View app as another user (for testing/support) |
 | Export data | Export users, requests, donations to CSV |
@@ -332,7 +331,6 @@ Full access to all features for the user's type. See detailed capabilities below
 **Admin-Only Database Fields:**
 - `verification_status` — `unverified` | `verified`
 - `org_tier` — `individual` | `small_org` | `large_org`
-- `is_vetted` — boolean
 - `vetting_note` — text
 
 **Impersonation:**
@@ -371,7 +369,7 @@ How users move from one stage to the next, what triggers the transition, and whe
 | Anonymous → Signed Up | User clicks Login or For Organizations and completes Clerk sign-up | Clerk auth event; `useClerkSupabase()` detects no `user_profiles` row | Clerk dashboard user list; `needsRoleSelection` flag in app state |
 | Signed Up → Role Selected | User picks "I want to give" or "I need support" in RoleSelectionModal | Supabase upsert to `user_profiles` with `user_type`; `onboarding_complete = false` | `user_profiles` table: `user_type` field; `donor_profiles` row created if donor |
 | Role Selected → Onboarded | User completes 2-step OnboardingModal (profile + cause areas) | Supabase: `onboarding_complete` flipped to `true`; navigates to dashboard | `user_profiles.onboarding_complete`; donors active immediately, CBOs await review |
-| Onboarded → Verified | Admin reviews account in `/admin/users` and sets `verification_status` to `verified` | Supabase: `verification_status = verified`, `is_vetted = true`; admin sets `vetting_note` | Admin dashboard audit trail; `user_profiles.verification_status` + `vetting_note` fields |
+| Onboarded → Verified | Admin reviews account in `/admin/users` and sets `verification_status` to `verified` | Supabase: `verification_status = verified`; admin sets `vetting_note` | Admin dashboard audit trail; `user_profiles.verification_status` + `vetting_note` fields |
 | Verified → Casual | Automatic — user logs in a few times, makes 1-2 donations or requests | Login frequency; donation/request count queries from Supabase tables | Supabase: `donations` table count, `requests` table count, `last_sign_in` from Clerk |
 | Casual → Regular | User donates monthly or has multiple active requests; logs in weekly+ | Donation frequency; request count; Stripe Connect active; profile completeness | Admin analytics; donor impact page history; CBO dashboard request stats |
 | Regular → Power User | 5+ donations or 3+ fulfilled requests; active 3+ months; uses advanced features | Lifetime donation count; fulfilled request count; feature usage (exports, analytics) | Candidate for spotlights/testimonials; admin can flag as featured org or top donor |
