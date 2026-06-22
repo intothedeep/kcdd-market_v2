@@ -6,7 +6,7 @@
  * - Clerk Protected Routes: https://clerk.com/docs/components/protect
  */
 
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { SignIn, SignUp, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react'
 import { routes } from '@/config'
 
@@ -20,7 +20,8 @@ import { AboutPage } from '@/pages/AboutPage'
 import { FaqPage } from '@/pages/FaqPage'
 import { ContactPage } from '@/pages/ContactPage'
 import { RequestsPage } from '@/pages/RequestsPage'
-import { RequestDetailPage } from '@/pages/RequestDetailPage'
+// W7-10 Phase 1: requests surfaces unrouted (campaigns-only). Reversible — uncomment.
+// import { RequestDetailPage } from '@/pages/RequestDetailPage'
 import { DonorDashboard } from '@/pages/donor/DashboardPage'
 import { DonorProfile } from '@/pages/donor/ProfilePage'
 import { DonorImpact } from '@/pages/donor/ImpactPage'
@@ -28,10 +29,11 @@ import { DonorDocuments } from '@/pages/donor/DocumentsPage'
 import { DonorSupport } from '@/pages/donor/SupportPage'
 import { CBODashboard } from '@/pages/cbo/DashboardPage'
 import { CBOSetup } from '@/pages/cbo/SetupPage'
-import { CBORequests } from '@/pages/cbo/RequestsPage'
-import { NewRequestPage } from '@/pages/cbo/NewRequestPage'
+// import { CBORequests } from '@/pages/cbo/RequestsPage'
+// import { NewRequestPage } from '@/pages/cbo/NewRequestPage'
 import { CBOProfile } from '@/pages/cbo/ProfilePage'
 import { CBOProfileEdit } from '@/pages/cbo/ProfileEditPage'
+import { CampaignDefaultsPage } from '@/pages/cbo/CampaignDefaultsPage'
 import { OrganizationProfilePage } from '@/pages/organizations/OrganizationProfilePage'
 import { CheckoutPage } from '@/pages/CheckoutPage'
 import { PaymentSuccessPage } from '@/pages/PaymentSuccessPage'
@@ -40,6 +42,8 @@ import { CampaignDonatePage } from '@/pages/CampaignDonatePage'
 // RoleSelectionPage removed - now using RoleSelectionModal in App.tsx
 import { AdminDashboard } from '@/pages/admin/DashboardPage'
 import { AdminUsersPage } from '@/pages/admin/UsersPage'
+import { CampaignsAdminPage } from '@/pages/admin/CampaignsAdminPage'
+import { AuditLogPage } from '@/pages/admin/AuditLogPage'
 import { useRealUserType } from '@/hooks/useClerkSupabase'
 
 // Legal Pages
@@ -69,7 +73,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
   const { userType, loading } = useRealUserType()
 
-  if (loading) {
+  // H4-B: treat null as "still resolving / transient fetch error" so a
+  // network blip during user_profiles select does not demote an admin
+  // to Access Denied mid-session. useRealUserType now returns null on
+  // fetch error (was: 'donor'), and we surface that as a spinner here.
+  if (loading || userType == null) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#ea580c]" />
@@ -99,6 +107,7 @@ export function AppRoutes() {
         <Route path={routes.home} element={<HomePage />} />
         <Route path={routes.about} element={<AboutPage />} />
         <Route path={routes.requests} element={<RequestsPage />} />
+        <Route path="/requests" element={<Navigate to="/campaigns" replace />} />
         <Route path={routes.faq} element={<FaqPage />} />
         <Route path={routes.contact} element={<ContactPage />} />
       </Route>
@@ -181,7 +190,8 @@ export function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route
+        {/* W7-10 Phase 1: /cbo/requests + /cbo/requests/new unrouted (campaigns-only). Reversible — uncomment. */}
+        {/* <Route
           path={routes.cbo.requests}
           element={
             <ProtectedRoute>
@@ -196,7 +206,7 @@ export function AppRoutes() {
               <NewRequestPage />
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route
           path={routes.cbo.profile}
           element={
@@ -213,12 +223,21 @@ export function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path={routes.cboCampaignDefaults}
+          element={
+            <ProtectedRoute>
+              <CampaignDefaultsPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* Organization routes (public) */}
       <Route element={<MainLayout />}>
         <Route path="/organizations/:id" element={<OrganizationProfilePage />} />
-        <Route path="/request/:id" element={<RequestDetailPage />} />
+        {/* W7-10 Phase 1: /request/:id unrouted. Reversible — uncomment. */}
+        {/* <Route path="/request/:id" element={<RequestDetailPage />} /> */}
       </Route>
 
       {/* Payment routes */}
@@ -266,6 +285,26 @@ export function AppRoutes() {
             <ProtectedRoute>
               <ProtectedAdminRoute>
                 <AdminUsersPage />
+              </ProtectedAdminRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/pending-edits"
+          element={
+            <ProtectedRoute>
+              <ProtectedAdminRoute>
+                <CampaignsAdminPage />
+              </ProtectedAdminRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={routes.admin.auditLog}
+          element={
+            <ProtectedRoute>
+              <ProtectedAdminRoute>
+                <AuditLogPage />
               </ProtectedAdminRoute>
             </ProtectedRoute>
           }

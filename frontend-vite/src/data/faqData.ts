@@ -40,7 +40,7 @@ export const faqData: FaqCategory[] = [
       {
         question: 'Are my donations tax-deductible?',
         answer:
-          'Yes! All donations are 100% tax-deductible. You\'ll receive an instant tax receipt after each donation, and annual summaries are available in your dashboard.',
+          "Yes! All donations are 100% tax-deductible. You'll receive an instant tax receipt after each donation, and annual summaries are available in your dashboard.",
       },
       {
         question: 'How do I know my donation is being used properly?',
@@ -70,12 +70,12 @@ export const faqData: FaqCategory[] = [
       {
         question: 'What does the verification process involve?',
         answer:
-          'We cross-reference your EIN with IRS records, verify your organization\'s mission and service area, and confirm you serve the Kansas City metro area. Once approved, you\'ll receive a verified badge.',
+          "We cross-reference your EIN with IRS records, verify your organization's mission and service area, and confirm you serve the Kansas City metro area. Once approved, you'll receive a verified badge.",
       },
       {
         question: 'How do I receive funds?',
         answer:
-          'Funds are processed securely through Stripe and deposited directly to your organization\'s bank account. You\'ll set up your banking details during onboarding.',
+          "Funds are processed securely through Stripe and deposited directly to your organization's bank account. You'll set up your banking details during onboarding.",
       },
       {
         question: 'Is there a fee to use the platform?',

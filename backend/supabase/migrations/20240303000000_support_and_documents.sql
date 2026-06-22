@@ -204,8 +204,11 @@ CREATE POLICY "Anyone can manage donor cause areas" ON donor_cause_areas FOR ALL
 -- =============================================
 -- 11. EXTEND ORGANIZATIONS TABLE
 -- =============================================
+-- NOTE: `logo_url` was previously added here, but the 20260427 reconcile
+-- migration RENAMEs the original `logo` column to `logo_url`. Adding it here
+-- first caused the RENAME to fail (column already exists). Dropped to let the
+-- reconcile migration own the rename.
 ALTER TABLE organizations
-ADD COLUMN IF NOT EXISTS logo_url TEXT,
 ADD COLUMN IF NOT EXISTS slug VARCHAR(200),
 ADD COLUMN IF NOT EXISTS description TEXT,
 ADD COLUMN IF NOT EXISTS city VARCHAR(100),
@@ -235,6 +238,21 @@ CREATE TRIGGER org_slug_trigger
 -- =============================================
 -- 12. UPDATE CAUSE_AREAS FOR TEXT IDS
 -- =============================================
+-- NOTE: Edited 2026-06-09 to make this section apply on a fresh `db:reset`.
+-- Original was broken on arrival — Postgres refused the type ALTERs because
+--   (a) the `request_details` view from 20240101 depends on `cause_areas.id`
+--   (b) the FK constraints on `organization_cause_areas`, `requests`, and
+--       `donor_cause_areas` reference `cause_areas.id` as UUID.
+-- Fix: drop the view + drop the 3 FK constraints, run the type ALTERs, then
+-- recreate the 3 FK constraints with the same ON DELETE behavior as the
+-- originals (CASCADE, RESTRICT, CASCADE respectively). The `request_details`
+-- view is recreated by the later 20260518 migration — do NOT recreate it here.
+
+DROP VIEW IF EXISTS request_details CASCADE;
+ALTER TABLE organization_cause_areas DROP CONSTRAINT IF EXISTS organization_cause_areas_cause_area_id_fkey;
+ALTER TABLE requests DROP CONSTRAINT IF EXISTS requests_cause_area_id_fkey;
+ALTER TABLE donor_cause_areas DROP CONSTRAINT IF EXISTS donor_cause_areas_cause_area_id_fkey;
+
 -- Allow text IDs for cause areas
 ALTER TABLE cause_areas ALTER COLUMN id TYPE TEXT USING id::text;
 ALTER TABLE cause_areas ALTER COLUMN id SET DEFAULT uuid_generate_v4()::text;
@@ -243,5 +261,16 @@ ALTER TABLE cause_areas ALTER COLUMN id SET DEFAULT uuid_generate_v4()::text;
 ALTER TABLE organization_cause_areas ALTER COLUMN cause_area_id TYPE TEXT USING cause_area_id::text;
 ALTER TABLE requests ALTER COLUMN cause_area_id TYPE TEXT USING cause_area_id::text;
 ALTER TABLE donor_cause_areas ALTER COLUMN cause_area_id TYPE TEXT USING cause_area_id::text;
+
+-- Recreate FK constraints with original ON DELETE semantics
+ALTER TABLE organization_cause_areas
+  ADD CONSTRAINT organization_cause_areas_cause_area_id_fkey
+  FOREIGN KEY (cause_area_id) REFERENCES cause_areas(id) ON DELETE CASCADE;
+ALTER TABLE requests
+  ADD CONSTRAINT requests_cause_area_id_fkey
+  FOREIGN KEY (cause_area_id) REFERENCES cause_areas(id) ON DELETE RESTRICT;
+ALTER TABLE donor_cause_areas
+  ADD CONSTRAINT donor_cause_areas_cause_area_id_fkey
+  FOREIGN KEY (cause_area_id) REFERENCES cause_areas(id) ON DELETE CASCADE;
 
 COMMIT;

@@ -6,10 +6,11 @@
  */
 
 import { useState } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { apiConfig } from '@/config'
+import { api } from '@/lib/api'
 import {
   CheckCircle2,
   AlertCircle,
@@ -36,39 +37,28 @@ export function StripeConnectButton({
 }: StripeConnectButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { getToken } = useAuth()
 
   const handleConnect = async () => {
     setLoading(true)
     setError(null)
 
     try {
-      // Step 1: Create account if doesn't exist
+      // Step 1: Create account if doesn't exist (H5-D: authenticated)
       if (!stripeAccountId) {
-        const createRes = await fetch(`${apiConfig.baseUrl}/api/stripe/connect/create-account`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ organizationId }),
-        })
-
-        if (!createRes.ok) {
-          const data = await createRes.json()
-          throw new Error(data.error || 'Failed to create Stripe account')
-        }
+        await api.post<{ accountId?: string }>(
+          '/api/stripe/connect/create-account',
+          { organizationId },
+          getToken
+        )
       }
 
-      // Step 2: Get onboarding link
-      const linkRes = await fetch(`${apiConfig.baseUrl}/api/stripe/connect/onboarding-link`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId }),
-      })
-
-      if (!linkRes.ok) {
-        const data = await linkRes.json()
-        throw new Error(data.error || 'Failed to generate onboarding link')
-      }
-
-      const { url } = await linkRes.json()
+      // Step 2: Get onboarding link (H5-D: authenticated)
+      const { url } = await api.post<{ url: string }>(
+        '/api/stripe/connect/onboarding-link',
+        { organizationId },
+        getToken
+      )
 
       // Redirect to Stripe onboarding
       window.location.href = url

@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useUser } from '@clerk/clerk-react'
+import { useUser, useAuth } from '@clerk/clerk-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +16,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { Checkbox } from '@/components/ui/checkbox'
+import { sanitizeStoryHtml } from '@/lib/sanitizeStoryHtml'
+import { formatRelativeTime } from '@/lib/utils'
 import {
   Accordion,
   AccordionContent,
@@ -52,11 +54,11 @@ import {
 } from 'lucide-react'
 import {
   supabase,
-  updateCampaign,
   fetchCauseAreas,
   submitCampaignReport,
   type CampaignReportReason,
 } from '@/lib/supabase'
+import { api } from '@/lib/api'
 import { CampaignDonateModal } from '@/components/CampaignDonateModal'
 import {
   Dialog,
@@ -66,44 +68,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Flag } from 'lucide-react'
+import {
+  buildPublishedCampaignView,
+  type PublishedCampaignContent,
+  type PublishedCampaignView,
+} from '@/types/PublishedCampaignView'
 
-interface Campaign {
-  id: string
-  title: string
-  creator_name: string
-  creator_role: string
-  cause_area_ids: string[]
-  funding_goal: number
-  amount_raised: number
-  supporters_count: number
-  short_description: string
-  story_title: string
-  story_content: string
-  image_url: string | null
-  logo_url: string | null
-  contact_email: string
-  status: string
-  slug: string
-  created_at: string
-  created_by?: string
-  organization_id?: string
-  // Social links
-  facebook_url?: string
-  twitter_url?: string
-  instagram_url?: string
-  linkedin_url?: string
-  youtube_url?: string
-  tiktok_url?: string
-  website_url?: string
-  phone?: string
-  organization: {
-    id: string
-    name: string
-    slug: string
-    mission: string
-    logo_url: string | null
-  }
-}
+// `Campaign` interface superseded by `PublishedCampaignView` (A7a).
+// The page state and JSX now consume the view adapter so donor-visible
+// content is sourced from the published campaign_details row per D-public-page.
 
 interface CampaignImage {
   id: string
@@ -157,13 +130,14 @@ function parseYouTubeId(src: string): string | null {
   return null
 }
 
-// Render trusted story HTML stored in campaigns.story_content.
-// We render markdown-y story bodies and rich-text-editor HTML the same way:
-// the field is HTML so we pass it through, but we only convert newline-only
-// content (no tags) into <br> so plain-text stories still look right.
+// Render story HTML stored in campaign_details.content.story_content (post-REFB).
+// Story bodies come from a TipTap rich-text editor (CBO authoring) and pass
+// through admin review, but we sanitize via DOMPurify at render time as
+// defense-in-depth against XSS payloads that survive eyeball review (H5-B / M3).
 function renderStoryHtml(content: string): string {
   const looksLikeHtml = /<\/?[a-z][\s\S]*?>/i.test(content)
-  return looksLikeHtml ? content : content.replace(/\n/g, '<br />')
+  const html = looksLikeHtml ? content : content.replace(/\n/g, '<br />')
+  return sanitizeStoryHtml(html)
 }
 
 interface SubmittedQuestion {
@@ -180,7 +154,8 @@ interface SubmittedQuestion {
 export function CampaignPage() {
   const { slug } = useParams<{ slug: string }>()
   const { user, isSignedIn } = useUser()
-  const [campaign, setCampaign] = useState<Campaign | null>(null)
+  const { getToken } = useAuth()
+  const [campaign, setCampaign] = useState<PublishedCampaignView | null>(null)
   const [causeAreas, setCauseAreas] = useState<CauseArea[]>([])
   const [allCauseAreas, setAllCauseAreas] = useState<CauseArea[]>([])
   const [faqs, setFaqs] = useState<FAQ[]>([])
@@ -300,6 +275,20 @@ export function CampaignPage() {
       setOutline(outlineItems)
     }
   }, [campaign?.story_content])
+
+  // SEO: write <meta name="last-modified"> from the canonical
+  // `last_edit_approved_at` so crawlers see the approved content
+  // timestamp (NOT the unapproved-edit cadence in `last_edited_at`).
+  useEffect(() => {
+    if (!campaign?.last_edit_approved_at) return
+    let tag = document.querySelector('meta[name="last-modified"]')
+    if (!tag) {
+      tag = document.createElement('meta')
+      tag.setAttribute('name', 'last-modified')
+      document.head.appendChild(tag)
+    }
+    tag.setAttribute('content', new Date(campaign.last_edit_approved_at).toISOString())
+  }, [campaign?.last_edit_approved_at])
 
   // Fetch FAQs, updates, submitted questions, and images when campaign loads
   useEffect(() => {
@@ -582,7 +571,11 @@ export function CampaignPage() {
 
     setSaving(true)
     try {
-      const updated = await updateCampaign(campaign.id, {
+      // Post-REFB content edits MUST go through the state machine.
+      // The backend route inserts a new campaign_details row with
+      // status pending_*_approval; the page does NOT mutate the
+      // campaigns row directly.
+      const content = {
         title: editForm.title,
         short_description: editForm.short_description,
         story_title: editForm.story_title,
@@ -592,7 +585,6 @@ export function CampaignPage() {
         creator_name: editForm.creator_name,
         creator_role: editForm.creator_role,
         cause_area_ids: selectedCauseAreaIds,
-        // Social links and contact
         facebook_url: editForm.facebook_url || null,
         twitter_url: editForm.twitter_url || null,
         instagram_url: editForm.instagram_url || null,
@@ -601,16 +593,22 @@ export function CampaignPage() {
         tiktok_url: editForm.tiktok_url || null,
         website_url: editForm.website_url || null,
         phone: editForm.phone || null,
-      })
-
-      if (updated) {
-        setCampaign({ ...campaign, ...updated })
-        // Update the displayed cause areas
-        const newCauseAreas = allCauseAreas.filter((ca) => selectedCauseAreaIds.includes(ca.id))
-        setCauseAreas(newCauseAreas)
-        setIsEditing(false)
-        setShowTagSelector(false)
       }
+
+      await api.post(
+        `/api/campaigns/${campaign.id}/submit-edit`,
+        { content, change_summary: null },
+        getToken
+      )
+
+      // Optimistic UI: reflect the just-submitted content locally.
+      // The new content is pending admin approval — donors won't see
+      // it until then, but the editor sees their own draft.
+      setCampaign({ ...campaign, ...content } as PublishedCampaignView)
+      const newCauseAreas = allCauseAreas.filter((ca) => selectedCauseAreaIds.includes(ca.id))
+      setCauseAreas(newCauseAreas)
+      setIsEditing(false)
+      setShowTagSelector(false)
     } catch (err) {
       console.error('Error saving campaign:', err)
     } finally {
@@ -622,28 +620,62 @@ export function CampaignPage() {
     try {
       setLoading(true)
 
-      // Fetch campaign by slug or id
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select(
-          `
-          *,
-          organization:organizations(id, name, mission, logo)
+      // Fetch campaign by slug or id. The raw URL param is untrusted: an
+      // unescaped slug interpolated into PostgREST .or() lets the caller
+      // inject extra filter clauses (commas, dots, parens are PostgREST
+      // metacharacters). Resolve which column to match first, then run a
+      // single .eq() with the validated value — and reject anything that
+      // matches neither shape.
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      const SLUG_RE = /^[a-z0-9-]+$/i
+      const column: 'id' | 'slug' | null = !slug
+        ? null
+        : UUID_RE.test(slug)
+          ? 'id'
+          : SLUG_RE.test(slug)
+            ? 'slug'
+            : null
+      if (!column || !slug) {
+        throw new Error('Campaign not found')
+      }
+      const query = supabase.from('campaigns').select(
         `
-        )
-        .or(`slug.eq.${slug},id.eq.${slug}`)
-        .single()
+          *,
+          organization:organizations(id, name, slug, mission, logo_url, stripe_charges_enabled)
+        `
+      )
+      const { data, error } = await query.eq(column, slug).single()
 
       if (error) throw error
 
-      setCampaign(data)
+      // Post-REFB: campaigns has no published_detail_id pointer. Fetch the
+      // latest approved campaign_details row in a separate query and overlay
+      // its content onto the live row. Live row still owns identity +
+      // runtime counters (amount_raised, supporters_count, organization join).
+      const { data: approvedDetail } = await supabase
+        .from('campaign_details')
+        .select('content, version')
+        .eq('campaign_id', (data as { id: string }).id)
+        .eq('status', 'approved')
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
-      // Fetch cause area names
-      if (data.cause_area_ids && data.cause_area_ids.length > 0) {
+      // approvedDetail is typed `never` by the supabase generic for tables that
+      // don't yet exist in `src/types/database.types.ts`. Cast through unknown.
+      const content =
+        (approvedDetail as unknown as { content?: PublishedCampaignContent } | null)?.content ??
+        null
+
+      const view = buildPublishedCampaignView(data as Record<string, unknown>, content)
+      setCampaign(view)
+
+      // Fetch cause area names from the (content-sourced) view
+      if (view.cause_area_ids && view.cause_area_ids.length > 0) {
         const { data: causes, error: causesError } = await supabase
           .from('cause_areas')
           .select('id, name')
-          .in('id', data.cause_area_ids)
+          .in('id', view.cause_area_ids)
 
         if (!causesError && causes) {
           setCauseAreas(causes)
@@ -755,6 +787,23 @@ export function CampaignPage() {
     )
   }
 
+  if (campaign.hasContent === false) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa] p-6">
+        <h1 className="mb-4 text-2xl font-bold text-[#0a0a0a]">Campaign Awaiting Review</h1>
+        <p className="mb-6 max-w-md text-center text-[#737373]">
+          This campaign has not yet been approved for public viewing. Please check back later.
+        </p>
+        <Link to="/">
+          <Button>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Go Home
+          </Button>
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <div className="mx-auto max-w-[1200px]">
@@ -789,6 +838,28 @@ export function CampaignPage() {
             </div>
           )}
 
+          {/* Above-the-fold org identity — Theme 3 / W4-E */}
+          {campaign.organization && (
+            <Link
+              to={`/organizations/${campaign.organization.slug || campaign.organization.id}`}
+              className="group mb-3 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 hover:border-[hsl(var(--brand-primary))] hover:bg-white"
+              aria-label={`View ${campaign.organization.name} organization profile`}
+            >
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={campaign.organization.logo_url || undefined} alt="" />
+                <AvatarFallback className="text-[10px]">
+                  {campaign.organization.name?.slice(0, 2).toUpperCase() || 'OR'}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-semibold text-neutral-800 group-hover:text-[hsl(var(--brand-primary))]">
+                {campaign.organization.name}
+              </span>
+              <span className="text-xs text-neutral-500 group-hover:text-[hsl(var(--brand-primary))]">
+                View organization profile →
+              </span>
+            </Link>
+          )}
+
           {/* Title with Edit Button */}
           <div className="flex items-start justify-between gap-4">
             {isEditing ? (
@@ -820,6 +891,29 @@ export function CampaignPage() {
           {/* Date and Tags */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <span className="text-sm text-[#737373]">{formatDate(campaign.created_at)}</span>
+
+            {/*
+              W4-A: "Updated" badge — visible when this campaign has received
+              an admin-approved edit at least 1 minute after first approval.
+              The 1-minute threshold rejects backfill artifacts from
+              20260616000003_campaigns_metadata_only.sql L77-83 where both
+              timestamps default to created_at. Reuses existing columns; no
+              new RPC / table / dep.
+            */}
+            {campaign.last_edit_approved_at != null &&
+              campaign.first_approved_at != null &&
+              new Date(campaign.last_edit_approved_at).getTime() -
+                new Date(campaign.first_approved_at).getTime() >
+                60_000 && (
+                <Badge
+                  variant="secondary"
+                  title={new Date(campaign.last_edit_approved_at).toLocaleString()}
+                  aria-label={`Updated ${new Date(campaign.last_edit_approved_at).toISOString()}`}
+                  className="rounded-full bg-[#eaeaea] px-2 py-0.5 font-normal text-[#737373]"
+                >
+                  Updated {formatRelativeTime(campaign.last_edit_approved_at)}
+                </Badge>
+              )}
 
             {isEditing ? (
               <>
@@ -983,9 +1077,9 @@ export function CampaignPage() {
                 <div className="space-y-2.5">
                   <Link
                     to={`/organizations/${campaign.organization?.slug || campaign.organization?.id || campaign.organization_id}`}
-                    className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+                    className="group flex cursor-pointer items-center gap-2.5 transition-opacity hover:opacity-80"
                   >
-                    <Avatar className="h-[42px] w-[42px]">
+                    <Avatar className="h-[42px] w-[42px] transition-all group-hover:ring-2 group-hover:ring-[hsl(var(--brand-primary))] group-hover:ring-offset-2">
                       <AvatarImage
                         src={campaign.logo_url || campaign.organization?.logo_url || undefined}
                       />
@@ -996,12 +1090,15 @@ export function CampaignPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="text-lg font-bold text-[#0a0a0a] transition-colors hover:text-[#ea580c]">
+                      <p className="text-lg font-bold text-[#0a0a0a] transition-colors group-hover:text-[hsl(var(--brand-primary))] group-hover:underline">
                         {campaign.creator_name || campaign.organization?.name}
                       </p>
                       <p className="text-sm text-[#737373]">
                         {campaign.creator_role || 'Campaign Creator'}
                       </p>
+                      <span className="mt-1 inline-flex items-center gap-1 text-xs text-neutral-400 group-hover:text-[hsl(var(--brand-primary))]">
+                        View organization profile <span aria-hidden="true">→</span>
+                      </span>
                     </div>
                   </Link>
 
@@ -1207,33 +1304,53 @@ export function CampaignPage() {
               <div className="flex gap-2.5">
                 {/* Outline Sidebar */}
                 <div className="w-[323px] flex-shrink-0 space-y-4">
-                  <h2 className="text-2xl font-semibold text-[#0a0a0a]">Outline</h2>
+                  {/* YELLOW Y4: hide the Outline heading entirely for visitors
+                      when there's no outline to render. Owners still see the
+                      heading + empty-state CTA so they're nudged to publish. */}
+                  {(outline.length > 0 || isOwner) && (
+                    <>
+                      <h2 className="text-2xl font-semibold text-[#0a0a0a]">Outline</h2>
 
-                  {/* Dynamic outline from headings */}
-                  {outline.length > 0 ? (
-                    <nav className="space-y-0.5">
-                      {outline.map((item, index) => (
-                        <button
-                          key={item.id}
-                          onClick={() => scrollToHeading(index)}
-                          className={`block w-full rounded-md px-3 py-1.5 text-left text-sm leading-snug transition-colors hover:bg-gray-100 ${
-                            item.level === 1
-                              ? 'font-semibold text-[#0a0a0a]'
-                              : item.level === 2
-                                ? 'pl-5 text-[#404040]'
-                                : item.level === 3
-                                  ? 'pl-7 text-xs text-[#737373]'
-                                  : 'pl-9 text-xs text-[#737373]'
-                          }`}
-                        >
-                          {item.text}
-                        </button>
-                      ))}
-                    </nav>
-                  ) : (
-                    <p className="text-sm italic text-[#737373]">
-                      Add headings (H1-H6) to your story to generate an outline
-                    </p>
+                      {/* Dynamic outline from headings */}
+                      {outline.length > 0 ? (
+                        <nav className="space-y-0.5">
+                          {outline.map((item, index) => (
+                            <button
+                              key={item.id}
+                              onClick={() => scrollToHeading(index)}
+                              className={`block w-full rounded-md px-3 py-1.5 text-left text-sm leading-snug transition-colors hover:bg-gray-100 ${
+                                item.level === 1
+                                  ? 'font-semibold text-[#0a0a0a]'
+                                  : item.level === 2
+                                    ? 'pl-5 text-[#404040]'
+                                    : item.level === 3
+                                      ? 'pl-7 text-xs text-[#737373]'
+                                      : 'pl-9 text-xs text-[#737373]'
+                              }`}
+                            >
+                              {item.text}
+                            </button>
+                          ))}
+                        </nav>
+                      ) : (
+                        <div className="rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-50/50 p-4 text-sm">
+                          <p className="mb-2 text-neutral-700">
+                            Visitors can jump to sections of your story using this outline.
+                          </p>
+                          <p className="mb-3 text-neutral-600">
+                            Add H1–H3 headings to your story, then approve to publish.
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleStartEdit}
+                            className="border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
+                          >
+                            Edit campaign
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Short description */}
@@ -1254,6 +1371,44 @@ export function CampaignPage() {
                       </p>
                     )}
                   </div>
+
+                  {/* Organization — surfaced here so visitors don't have to
+                      switch to the About Us tab to see who runs the campaign. */}
+                  {campaign.organization && (
+                    <div className="border-t border-gray-200 pt-4">
+                      <h3 className="mb-2 text-sm font-medium text-[#737373]">Organization</h3>
+                      <Link
+                        to={`/organizations/${campaign.organization.slug || campaign.organization.id || campaign.organization_id}`}
+                        className="group flex items-center gap-3"
+                      >
+                        {campaign.organization.logo_url ? (
+                          <img
+                            src={campaign.organization.logo_url}
+                            alt={campaign.organization.name}
+                            className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100 text-sm font-semibold text-[#737373]">
+                            {campaign.organization.name?.charAt(0) || '?'}
+                          </div>
+                        )}
+                        <span className="text-sm font-medium text-[#0a0a0a] group-hover:text-[#ea580c] group-hover:underline">
+                          {campaign.organization.name}
+                        </span>
+                      </Link>
+                      {campaign.organization.mission && (
+                        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-[#404040]">
+                          {campaign.organization.mission}
+                        </p>
+                      )}
+                      <Link
+                        to={`/organizations/${campaign.organization.slug || campaign.organization.id || campaign.organization_id}`}
+                        className="mt-2 inline-flex items-center text-sm font-medium text-[#ea580c] hover:underline"
+                      >
+                        View organization profile →
+                      </Link>
+                    </div>
+                  )}
                 </div>
 
                 {/* Main Content */}
@@ -1286,16 +1441,16 @@ export function CampaignPage() {
                   ) : campaign.story_content ? (
                     <div
                       className="campaign-story max-w-none text-base leading-relaxed text-[#0a0a0a]
-                                 [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:text-[#0a0a0a] first:[&_h2]:mt-0
-                                 [&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-[#0a0a0a]
-                                 [&_p]:mb-4 [&_p]:leading-relaxed
-                                 [&_ul]:mb-4 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6
-                                 [&_ol]:mb-4 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6
-                                 [&_li]:pl-1
-                                 [&_strong]:font-semibold [&_strong]:text-[#0a0a0a]
-                                 [&_a]:font-medium [&_a]:text-[#ea580c] [&_a]:underline [&_a]:underline-offset-2
-                                 [&_iframe]:mt-2 [&_iframe]:w-full [&_iframe]:rounded-lg
-                                 [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#ea580c] [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-[#404040]"
+                                 [&_a]:font-medium [&_a]:text-[#ea580c] [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#ea580c]
+                                 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-[#404040] [&_h2]:mb-3 [&_h2]:mt-8
+                                 [&_h2]:text-2xl [&_h2]:font-semibold
+                                 [&_h2]:tracking-tight [&_h2]:text-[#0a0a0a] first:[&_h2]:mt-0 [&_h3]:mb-2 [&_h3]:mt-6
+                                 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-[#0a0a0a] [&_iframe]:mt-2 [&_iframe]:w-full
+                                 [&_iframe]:rounded-lg
+                                 [&_li]:pl-1 [&_ol]:mb-4
+                                 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6
+                                 [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:font-semibold
+                                 [&_strong]:text-[#0a0a0a] [&_ul]:mb-4 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-6"
                       dangerouslySetInnerHTML={{
                         __html: renderStoryHtml(campaign.story_content),
                       }}

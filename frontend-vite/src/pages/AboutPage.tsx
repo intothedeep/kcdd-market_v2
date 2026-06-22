@@ -98,7 +98,7 @@ export function AboutPage() {
               <ul className="mb-6 space-y-2 text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <ArrowRight className="h-4 w-4 text-[hsl(var(--brand-primary))]" />
-                  Browse real requests from verified Kansas City nonprofits
+                  Browse real campaigns from verified Kansas City nonprofits
                 </li>
                 <li className="flex items-center gap-2">
                   <ArrowRight className="h-4 w-4 text-[hsl(var(--brand-primary))]" />
@@ -113,9 +113,9 @@ export function AboutPage() {
                   Get instant tax receipts for every donation
                 </li>
               </ul>
-              <Link to="/requests">
+              <Link to="/campaigns">
                 <Button className="bg-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary)/0.9)]">
-                  Browse Requests
+                  Browse Campaigns
                 </Button>
               </Link>
             </div>
@@ -211,8 +211,8 @@ export function AboutPage() {
                     1
                   </span>
                   <span>
-                    <strong className="text-foreground">Application</strong> — Organizations register
-                    and provide their EIN and 501(c)(3) documentation.
+                    <strong className="text-foreground">Application</strong> — Organizations
+                    register and provide their EIN and 501(c)(3) documentation.
                   </span>
                 </li>
                 <li className="flex items-start gap-3">

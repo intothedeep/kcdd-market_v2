@@ -21,7 +21,7 @@ export const homeFeatureCardsWithImage: FeatureCardsWithImageSectionData = {
     {
       title: 'Get Verified Once',
       description:
-        'We confirm your 501(c)(3) status with the IRS, talk to a reference, and you\'re cleared. After that, your requests post live for donors to fund.',
+        "We confirm your 501(c)(3) status with the IRS, talk to a reference, and you're cleared. After that, your requests post live for donors to fund.",
       linkText: 'Verification Process',
       linkHref: '/about#verification',
     },
@@ -35,7 +35,7 @@ export const homeFeatureCardsWithImage: FeatureCardsWithImageSectionData = {
     {
       title: 'Report Outcomes Easily',
       description:
-        'Upload one photo and write two sentences when the gear is in use. That\'s our entire reporting requirement — and it\'s what keeps donors funding the next request.',
+        "Upload one photo and write two sentences when the gear is in use. That's our entire reporting requirement — and it's what keeps donors funding the next request.",
       linkText: 'Impact Reporting',
       linkHref: '/about#impact',
     },

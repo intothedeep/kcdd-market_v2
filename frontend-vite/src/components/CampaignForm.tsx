@@ -4,7 +4,7 @@
  * Designed to be embedded in the dashboard main content area
  */
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useUser } from '@clerk/clerk-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -34,7 +34,7 @@ import {
   Globe,
   X,
 } from 'lucide-react'
-import { createCampaign, supabase } from '@/lib/supabase'
+import { createCampaign, supabase, getOrganizationDefaults, fetchCauseAreas } from '@/lib/supabase'
 
 interface CampaignFormProps {
   organizationId?: string
@@ -103,6 +103,13 @@ const CAUSE_AREAS = [
 
 const TOTAL_STEPS = 7
 
+// W5-B2: faqs initial state is `[{question:'', answer:''}]` (one empty row),
+// so length===0 is never true. Treat "all blank" as empty for prefill purposes.
+function faqsAreEmpty(faqs: FAQ[]): boolean {
+  if (!faqs || faqs.length === 0) return true
+  return faqs.every((f) => !f.question.trim() && !f.answer.trim())
+}
+
 export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignFormProps) {
   const { user } = useUser()
   const navigate = useNavigate()
@@ -137,12 +144,98 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
   })
   const imageInputRef = useRef<HTMLInputElement>(null)
 
+  // W5-B2: Track which fields the user has touched. Any field in this Set
+  // will NEVER be overwritten by the late-arriving defaults fetch. The Set
+  // is consulted only on prefill; it does not gate normal user editing.
+  const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set())
+
+  const markDirty = (field: string) => {
+    setDirtyFields((prev) => {
+      if (prev.has(field)) return prev
+      const next = new Set(prev)
+      next.add(field)
+      return next
+    })
+  }
+
+  // W5-B2: On mount, fetch the org's default_campaign_template and prefill
+  // the 5 target fields, but ONLY where (a) the field is empty AND (b) the
+  // user hasn't touched it yet. cause_area_ids are stored as cause_areas.id
+  // (UUIDs) but formData.causeAreas holds cause area NAMES — we fetch the
+  // cause_areas table in parallel and translate id -> name client-side so
+  // the existing submit pipeline (name -> id lookup in handleSubmit) works.
+  //
+  // Form is create-only (no mode discriminator on CampaignFormProps), so
+  // no edit-mode guard is needed.
+  useEffect(() => {
+    if (!organizationId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [defaults, allCauseAreas] = await Promise.all([
+          getOrganizationDefaults(organizationId),
+          fetchCauseAreas(),
+        ])
+        if (cancelled || !defaults) return
+
+        // Translate UUID ids -> names; drop unknown ids.
+        const idToName = new Map<string, string>(
+          (allCauseAreas as Array<{ id: string; name: string }>).map((ca) => [ca.id, ca.name])
+        )
+        const defaultCauseNames =
+          defaults.cause_area_ids
+            ?.map((id) => idToName.get(id))
+            .filter((name): name is string => Boolean(name)) ?? []
+
+        setFormData((prev) => {
+          const next = { ...prev }
+          if (!dirtyFields.has('creatorName') && !prev.creatorName && defaults.creator_name) {
+            next.creatorName = defaults.creator_name
+          }
+          if (!dirtyFields.has('roleTitle') && !prev.roleTitle && defaults.creator_role) {
+            next.roleTitle = defaults.creator_role
+          }
+          if (!dirtyFields.has('contactEmail') && !prev.contactEmail && defaults.contact_email) {
+            next.contactEmail = defaults.contact_email
+          }
+          if (
+            !dirtyFields.has('causeAreas') &&
+            prev.causeAreas.length === 0 &&
+            defaultCauseNames.length > 0
+          ) {
+            next.causeAreas = defaultCauseNames
+          }
+          if (
+            !dirtyFields.has('faqs') &&
+            faqsAreEmpty(prev.faqs) &&
+            defaults.faqs &&
+            defaults.faqs.length > 0
+          ) {
+            next.faqs = defaults.faqs.map((f) => ({ question: f.question, answer: f.answer }))
+          }
+          return next
+        })
+      } catch (err) {
+        // Defaults are a UX nicety — never block the form on fetch failure.
+        console.error('CampaignForm prefill error:', err)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // dirtyFields is read via closure; intentionally excluded from deps so
+    // this effect runs once on mount and does not re-fire on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizationId])
+
   const updateFormData = (field: keyof CampaignFormData, value: FormDataValue) => {
+    markDirty(field)
     setFormData((prev) => ({ ...prev, [field]: value }))
     setError(null)
   }
 
   const toggleCauseArea = (area: string) => {
+    markDirty('causeAreas')
     setFormData((prev) => ({
       ...prev,
       causeAreas: prev.causeAreas.includes(area)
@@ -152,6 +245,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
   }
 
   const addFaq = () => {
+    markDirty('faqs')
     setFormData((prev) => ({
       ...prev,
       faqs: [...prev.faqs, { question: '', answer: '' }],
@@ -159,6 +253,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
   }
 
   const removeFaq = (index: number) => {
+    markDirty('faqs')
     setFormData((prev) => ({
       ...prev,
       faqs: prev.faqs.filter((_, i) => i !== index),
@@ -166,6 +261,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
   }
 
   const updateFaq = (index: number, field: 'question' | 'answer', value: string) => {
+    markDirty('faqs')
     setFormData((prev) => ({
       ...prev,
       faqs: prev.faqs.map((faq, i) => (i === index ? { ...faq, [field]: value } : faq)),

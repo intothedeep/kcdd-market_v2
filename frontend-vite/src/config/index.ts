@@ -13,7 +13,7 @@
 const requiredEnvVars = [
   'VITE_CLERK_PUBLISHABLE_KEY',
   'VITE_SUPABASE_URL',
-  'VITE_SUPABASE_ANON_KEY',
+  'VITE_SUPABASE_PUBLISHABLE_KEY',
   'VITE_STRIPE_PUBLISHABLE_KEY',
   'VITE_API_URL',
 ] as const
@@ -41,7 +41,7 @@ export const clerkConfig = {
 // ============================================
 export const supabaseConfig = {
   url: import.meta.env.VITE_SUPABASE_URL || '',
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+  anonKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '',
   // Supabase Dashboard: https://app.supabase.com
   // Docs: https://supabase.com/docs/reference/javascript/introduction
 }
@@ -103,7 +103,7 @@ export const routes = {
   about: '/about',
   faq: '/faq',
   contact: '/contact',
-  requests: '/requests',
+  requests: '/campaigns',
 
   // Authentication
   signIn: '/sign-in',
@@ -131,6 +131,7 @@ export const routes = {
     profile: '/cbo/profile',
     profileEdit: '/cbo/profile/edit',
   },
+  cboCampaignDefaults: '/cbo/campaign-defaults',
 
   // Admin routes
   admin: {
@@ -138,6 +139,7 @@ export const routes = {
     users: '/admin/users',
     organizations: '/admin/organizations',
     campaigns: '/admin/campaigns',
+    auditLog: '/admin/audit-log',
   },
 
   // Campaign routes

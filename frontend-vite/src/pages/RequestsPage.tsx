@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { getActiveCampaigns, supabase } from '@/lib/supabase'
 import {
   Card,
@@ -49,30 +49,50 @@ interface CauseArea {
   name: string
 }
 
+interface OrgChip {
+  id: string
+  name: string
+  logo_url: string | null
+}
+
 export function RequestsPage() {
+  const [searchParams] = useSearchParams()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [causeAreas, setCauseAreas] = useState<CauseArea[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(
+    searchParams.get('organization')
+  )
   const [showTagFilter, setShowTagFilter] = useState(false)
   const [page, setPage] = useState(1)
 
   useEffect(() => {
     const loadData = async () => {
-      try {
-        const [campaignsData, causeAreasData] = await Promise.all([
-          getActiveCampaigns(200),
-          supabase.from('cause_areas').select('id, name').order('name'),
-        ])
+      // Load campaigns and cause areas independently so a failure in one
+      // (e.g. an embed/RLS error on cause_areas) does not silently wipe out
+      // the campaigns grid — the primary content of this page.
+      const [campaignsResult, causeAreasResult] = await Promise.allSettled([
+        getActiveCampaigns(200),
+        supabase.from('cause_areas').select('id, name').order('name'),
+      ])
 
-        setCampaigns(campaignsData || [])
-        setCauseAreas(causeAreasData.data || [])
-      } catch (error) {
-        console.error('Error loading data:', error)
-      } finally {
-        setLoading(false)
+      if (campaignsResult.status === 'fulfilled') {
+        setCampaigns((campaignsResult.value as Campaign[]) || [])
+      } else {
+        console.error('Error loading campaigns:', campaignsResult.reason)
       }
+
+      if (causeAreasResult.status === 'fulfilled') {
+        const { data, error } = causeAreasResult.value
+        if (error) console.error('Error loading cause areas:', error)
+        setCauseAreas((data as CauseArea[]) || [])
+      } else {
+        console.error('Error loading cause areas:', causeAreasResult.reason)
+      }
+
+      setLoading(false)
     }
 
     loadData()
@@ -82,7 +102,21 @@ export function RequestsPage() {
   // land on an empty page after narrowing results.
   useEffect(() => {
     setPage(1)
-  }, [searchQuery, selectedTags])
+  }, [searchQuery, selectedTags, selectedOrgId])
+
+  // Deduped, name-sorted list of organizations derived from loaded campaigns.
+  // No extra fetch — getActiveCampaigns already embeds the organization.
+  const organizations: OrgChip[] = Array.from(
+    campaigns
+      .reduce((map, campaign) => {
+        const org = campaign.organization
+        if (org?.id && !map.has(org.id)) {
+          map.set(org.id, { id: org.id, name: org.name, logo_url: org.logo_url })
+        }
+        return map
+      }, new Map<string, OrgChip>())
+      .values()
+  ).sort((a, b) => a.name.localeCompare(b.name))
 
   const getCauseAreaNames = (causeAreaIds: string[]) => {
     return causeAreas
@@ -105,7 +139,7 @@ export function RequestsPage() {
     setSelectedTags([])
   }
 
-  // Filter campaigns by search query AND selected tags
+  // Filter campaigns by search query AND selected tags AND selected org
   const filteredCampaigns = campaigns.filter((campaign) => {
     // Search filter
     const matchesSearch =
@@ -118,7 +152,10 @@ export function RequestsPage() {
       selectedTags.length === 0 ||
       selectedTags.every((tagId) => campaign.cause_area_ids?.includes(tagId))
 
-    return matchesSearch && matchesTags
+    // Org filter
+    const matchesOrg = !selectedOrgId || campaign.organization?.id === selectedOrgId
+
+    return matchesSearch && matchesTags && matchesOrg
   })
 
   if (loading) {
@@ -134,12 +171,9 @@ export function RequestsPage() {
       <div className="container py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight text-[#0a0a0a]">
-            Browse Campaigns & Requests
-          </h1>
+          <h1 className="text-4xl font-bold tracking-tight text-[#0a0a0a]">Browse Campaigns</h1>
           <p className="mt-2 text-lg text-[#737373]">
-            Fund a multi-device campaign, or pick a single open request — both go to verified
-            Kansas Citians.
+            Fund a multi-device campaign — every campaign goes to verified Kansas Citians.
           </p>
         </div>
 
@@ -167,6 +201,45 @@ export function RequestsPage() {
             )}
           </Button>
         </div>
+
+        {/* Organization Chips */}
+        {organizations.length > 1 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedOrgId(null)}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
+                selectedOrgId === null
+                  ? 'bg-[#1b5858] text-white'
+                  : 'bg-[#f5f5f5] text-[#737373] hover:bg-[#e5e5e5]'
+              }`}
+            >
+              All
+            </button>
+            {organizations.map((org) => {
+              const isSelected = selectedOrgId === org.id
+              return (
+                <button
+                  key={org.id}
+                  onClick={() => setSelectedOrgId(isSelected ? null : org.id)}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
+                    isSelected
+                      ? 'bg-[#1b5858] text-white'
+                      : 'bg-[#f5f5f5] text-[#737373] hover:bg-[#e5e5e5]'
+                  }`}
+                >
+                  {org.logo_url && (
+                    <img
+                      src={org.logo_url}
+                      alt={org.name}
+                      className="h-4 w-4 rounded-full object-cover"
+                    />
+                  )}
+                  {org.name}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* Tag Filter Panel */}
         {showTagFilter && (
@@ -239,8 +312,8 @@ export function RequestsPage() {
             <div className="mb-4 flex items-center justify-between text-sm text-[#737373]">
               <span>
                 Showing {filteredCampaigns.length === 0 ? 0 : startIdx + 1}
-                {filteredCampaigns.length > 0 ? `–${endIdx}` : ''} of{' '}
-                {filteredCampaigns.length} campaign
+                {filteredCampaigns.length > 0 ? `–${endIdx}` : ''} of {filteredCampaigns.length}{' '}
+                campaign
                 {filteredCampaigns.length !== 1 ? 's' : ''}
               </span>
               {totalPages > 1 && (
@@ -275,110 +348,135 @@ export function RequestsPage() {
                     PAGE_SIZE
                 )
                 .map((campaign) => (
-                <Link key={campaign.id} to={`/campaign/${campaign.slug}`} className="group">
-                  <Card className="flex h-full flex-col overflow-hidden border-[#e5e5e5] transition-shadow duration-200 hover:shadow-lg">
-                    {/* Campaign Image */}
-                    <div className="relative aspect-video overflow-hidden bg-[#f5f5f5]">
-                      {campaign.image_url ? (
-                        <>
-                          <img
-                            src={campaign.image_url}
-                            alt={campaign.title}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                          {campaign.image_url.includes('kcdd_placeholder=1') && (
-                            <span className="pointer-events-none absolute right-2 top-2 z-10 rounded bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                              Placeholder photo
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1b5858] to-[#103032]">
-                          {campaign.logo_url ? (
-                            <img
-                              src={campaign.logo_url}
-                              alt={campaign.organization?.name}
-                              className="h-16 w-16 rounded-full object-cover"
-                            />
+                  <div key={campaign.id} className="group">
+                    <Card className="flex h-full flex-col overflow-hidden border-[#e5e5e5] transition-shadow duration-200 hover:shadow-lg">
+                      <Link to={`/campaign/${campaign.slug}`} className="block">
+                        {/* Campaign Image */}
+                        <div className="relative aspect-video overflow-hidden bg-[#f5f5f5]">
+                          {campaign.image_url ? (
+                            <>
+                              <img
+                                src={campaign.image_url}
+                                alt={campaign.title}
+                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                              {campaign.image_url.includes('kcdd_placeholder=1') && (
+                                <span className="pointer-events-none absolute right-2 top-2 z-10 rounded bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                                  Placeholder photo
+                                </span>
+                              )}
+                            </>
                           ) : (
-                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20">
-                              <span className="text-2xl font-bold text-white">
-                                {campaign.organization?.name?.charAt(0) || 'C'}
-                              </span>
+                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1b5858] to-[#103032]">
+                              {campaign.logo_url ? (
+                                <img
+                                  src={campaign.logo_url}
+                                  alt={campaign.organization?.name}
+                                  className="h-16 w-16 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20">
+                                  <span className="text-2xl font-bold text-white">
+                                    {campaign.organization?.name?.charAt(0) || 'C'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {/* Cause Area Tags */}
+                          {campaign.cause_area_ids?.length > 0 && (
+                            <div className="absolute bottom-2 left-2 flex gap-1">
+                              {getCauseAreaNames(campaign.cause_area_ids).map((name) => (
+                                <Badge
+                                  key={name}
+                                  variant="secondary"
+                                  className="bg-white/90 text-xs text-[#0a0a0a]"
+                                >
+                                  {name}
+                                </Badge>
+                              ))}
                             </div>
                           )}
                         </div>
-                      )}
-                      {/* Cause Area Tags */}
-                      {campaign.cause_area_ids?.length > 0 && (
-                        <div className="absolute bottom-2 left-2 flex gap-1">
-                          {getCauseAreaNames(campaign.cause_area_ids).map((name) => (
-                            <Badge
-                              key={name}
-                              variant="secondary"
-                              className="bg-white/90 text-xs text-[#0a0a0a]"
-                            >
-                              {name}
-                            </Badge>
-                          ))}
+
+                        <CardHeader className="pb-2">
+                          <CardDescription className="font-medium text-[#ea580c]">
+                            {campaign.organization?.name}
+                          </CardDescription>
+                          <CardTitle className="line-clamp-2 text-lg transition-colors group-hover:text-[#ea580c]">
+                            {campaign.title}
+                          </CardTitle>
+                        </CardHeader>
+
+                        <CardContent className="flex-1 pb-3">
+                          <p className="line-clamp-2 text-sm text-[#737373]">
+                            {campaign.short_description}
+                          </p>
+                        </CardContent>
+                      </Link>
+
+                      {/* YELLOW Y5: card-level click-to-org affordance restored
+                          without nesting anchors. Outer card wrapper is a <div>
+                          (W4-H refactor); inner Link wraps only image+title+desc;
+                          this Link sits between Link and CardFooter as a sibling. */}
+                      {campaign.organization?.name && campaign.organization?.slug && (
+                        <div className="px-6 pt-2 text-xs text-neutral-500">
+                          by{' '}
+                          <Link
+                            to={`/organizations/${campaign.organization.slug}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-medium text-neutral-700 underline-offset-2 hover:text-[hsl(var(--brand-primary))] hover:underline"
+                          >
+                            {campaign.organization.name}
+                          </Link>
                         </div>
                       )}
-                    </div>
 
-                    <CardHeader className="pb-2">
-                      <CardDescription className="font-medium text-[#ea580c]">
-                        <Link
-                          to={`/organizations/${campaign.organization?.slug || campaign.organization?.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="hover:underline"
+                      <CardFooter className="flex-col items-stretch gap-3 pt-0">
+                        {/* Progress Bar */}
+                        <div className="space-y-1.5">
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-[#e5e5e5]">
+                            <div
+                              className="h-full rounded-full bg-[#ea580c] transition-all duration-500"
+                              style={{
+                                width: `${calculateProgress(campaign.amount_raised, campaign.funding_goal)}%`,
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-semibold text-[#0a0a0a]">
+                              {formatCurrency(campaign.amount_raised)}
+                            </span>
+                            <span className="text-[#737373]">
+                              of {formatCurrency(campaign.funding_goal)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="flex items-center justify-between text-xs text-[#737373]">
+                          <div className="flex items-center gap-1">
+                            <Users className="h-3.5 w-3.5" />
+                            <span>{campaign.supporters_count} supporters</span>
+                          </div>
+                          <span>{formatRelativeTime(campaign.created_at)}</span>
+                        </div>
+
+                        <Button
+                          asChild
+                          className="w-full bg-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary)/0.9)]"
                         >
-                          {campaign.organization?.name}
-                        </Link>
-                      </CardDescription>
-                      <CardTitle className="line-clamp-2 text-lg transition-colors group-hover:text-[#ea580c]">
-                        {campaign.title}
-                      </CardTitle>
-                    </CardHeader>
-
-                    <CardContent className="flex-1 pb-3">
-                      <p className="line-clamp-2 text-sm text-[#737373]">
-                        {campaign.short_description}
-                      </p>
-                    </CardContent>
-
-                    <CardFooter className="flex-col items-stretch gap-3 pt-0">
-                      {/* Progress Bar */}
-                      <div className="space-y-1.5">
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-[#e5e5e5]">
-                          <div
-                            className="h-full rounded-full bg-[#ea580c] transition-all duration-500"
-                            style={{
-                              width: `${calculateProgress(campaign.amount_raised, campaign.funding_goal)}%`,
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-semibold text-[#0a0a0a]">
-                            {formatCurrency(campaign.amount_raised)}
-                          </span>
-                          <span className="text-[#737373]">
-                            of {formatCurrency(campaign.funding_goal)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Stats */}
-                      <div className="flex items-center justify-between text-xs text-[#737373]">
-                        <div className="flex items-center gap-1">
-                          <Users className="h-3.5 w-3.5" />
-                          <span>{campaign.supporters_count} supporters</span>
-                        </div>
-                        <span>{formatRelativeTime(campaign.created_at)}</span>
-                      </div>
-                    </CardFooter>
-                  </Card>
-                </Link>
-              ))}
+                          <Link
+                            to={`/campaign/${campaign.slug}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Donate
+                          </Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </div>
+                ))}
             </div>
           )}
         </div>

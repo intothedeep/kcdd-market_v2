@@ -5,7 +5,7 @@ export const footerData: FooterData = {
     {
       title: 'Platform',
       links: [
-        { label: 'Browse Requests', href: '/requests' },
+        { label: 'Browse Campaigns', href: '/campaigns' },
         { label: 'For Organizations', href: '/about#for-organizations' },
         { label: 'For Donors', href: '/about#for-donors' },
       ],

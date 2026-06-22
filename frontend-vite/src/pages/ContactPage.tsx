@@ -76,9 +76,7 @@ export function ContactPage() {
           <div className="lg:col-span-3">
             <Card className="p-6">
               <h2 className="mb-1 text-lg font-semibold">Send a Message</h2>
-              <p className="mb-6 text-sm text-muted-foreground">
-                We'll respond within 24 hours.
-              </p>
+              <p className="mb-6 text-sm text-muted-foreground">We'll respond within 24 hours.</p>
 
               {sent ? (
                 <div className="rounded-lg bg-green-50 p-6 text-center">
@@ -86,11 +84,7 @@ export function ContactPage() {
                   <p className="mt-1 text-sm text-green-700">
                     We'll get back to you within 24 hours.
                   </p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => setSent(false)}
-                  >
+                  <Button variant="outline" className="mt-4" onClick={() => setSent(false)}>
                     Send Another
                   </Button>
                 </div>
@@ -182,13 +176,22 @@ export function ContactPage() {
             <Card className="p-6">
               <h3 className="mb-3 font-semibold">Quick Links</h3>
               <div className="space-y-2 text-sm">
-                <a href="/faq" className="block text-muted-foreground hover:text-[hsl(var(--brand-primary))]">
+                <a
+                  href="/faq"
+                  className="block text-muted-foreground hover:text-[hsl(var(--brand-primary))]"
+                >
                   Frequently Asked Questions
                 </a>
-                <a href="/about" className="block text-muted-foreground hover:text-[hsl(var(--brand-primary))]">
+                <a
+                  href="/about"
+                  className="block text-muted-foreground hover:text-[hsl(var(--brand-primary))]"
+                >
                   About Us
                 </a>
-                <a href="/requests" className="block text-muted-foreground hover:text-[hsl(var(--brand-primary))]">
+                <a
+                  href="/campaigns"
+                  className="block text-muted-foreground hover:text-[hsl(var(--brand-primary))]"
+                >
                   Browse Requests
                 </a>
               </div>

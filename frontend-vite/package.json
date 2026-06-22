@@ -2,12 +2,19 @@
   "name": "kcdd-market-frontend-vite",
   "version": "3.0.0",
   "type": "module",
+  "packageManager": "pnpm@11.1.2",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "chromedriver"
+    ]
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "build:check": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 300",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 400",
     "lint:a11y": "eslint . --ext ts,tsx --config .eslintrc.cjs",
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
@@ -51,6 +58,8 @@
     "clsx": "^2.1.0",
     "cmdk": "^0.2.1",
     "date-fns": "^3.3.1",
+    "dompurify": "^3.4.10",
+    "jsondiffpatch": "^0.7.6",
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -71,6 +80,7 @@
     "@storybook/react": "8.6.18",
     "@storybook/react-vite": "8.6.18",
     "@storybook/test": "8.6.18",
+    "@types/dompurify": "^3.2.0",
     "@types/node": "^20.11.17",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",

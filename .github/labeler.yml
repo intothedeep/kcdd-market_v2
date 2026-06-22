@@ -1,34 +1,50 @@
-# Automatically label PRs based on changed files
+# Automatically label PRs based on changed files.
+# Uses actions/labeler@v5 syntax (changed-files / any-glob-to-any-file).
 
-'frontend':
-  - frontend-vite/**/*
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - frontend-vite/**/*
 
-'backend':
-  - backend/**/*
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - backend/**/*
 
-'documentation':
-  - '**/*.md'
-  - docs/**/*
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - docs/**/*
 
-'dependencies':
-  - '**/package.json'
-  - '**/package-lock.json'
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/package.json'
+          - '**/pnpm-lock.yaml'
 
-'configuration':
-  - '**/*.config.{js,ts,cjs,mjs}'
-  - '**/.*.{js,json,yml,yaml}'
-  - '.github/**/*'
+configuration:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.config.{js,ts,cjs,mjs}'
+          - '**/.*.{js,json,yml,yaml}'
+          - .github/**/*
 
-'accessibility':
-  - '**/*a11y*'
-  - '**/*.a11y.{ts,tsx,js,jsx}'
+accessibility:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*a11y*'
+          - '**/*.a11y.{ts,tsx,js,jsx}'
 
-'components':
-  - '**/components/**/*'
+components:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/components/**/*'
 
-'tests':
-  - '**/*.test.{ts,tsx,js,jsx}'
-  - '**/*.spec.{ts,tsx,js,jsx}'
-  - '**/tests/**/*'
-  - '**/test/**/*'
-
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.test.{ts,tsx,js,jsx}'
+          - '**/*.spec.{ts,tsx,js,jsx}'
+          - '**/tests/**/*'
+          - '**/test/**/*'

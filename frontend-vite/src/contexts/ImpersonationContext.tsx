@@ -71,7 +71,8 @@ export function ImpersonationBanner() {
   return (
     <div className="sticky top-0 z-[100] flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-white shadow-md">
       <span>
-        Impersonating <strong>{impersonating.displayName}</strong> ({impersonating.userType})
+        Previewing UI as <strong>{impersonating.displayName}</strong> ({impersonating.userType}) —
+        navigation only, data is still your own
       </span>
       <button
         onClick={() => {
@@ -80,7 +81,7 @@ export function ImpersonationBanner() {
         }}
         className="rounded bg-white/20 px-3 py-0.5 text-xs font-semibold transition hover:bg-white/30"
       >
-        Stop Impersonating
+        Stop Preview
       </button>
     </div>
   )

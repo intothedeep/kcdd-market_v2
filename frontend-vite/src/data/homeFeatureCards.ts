@@ -14,7 +14,7 @@ export const homeFeatureCards: FeatureCardsSectionData = {
       description:
         'Laptops for students, hotspots for re-entry clients, tablets for seniors, monitors for remote workers — see what Kansas City needs right now.',
       linkText: 'View All Requests',
-      linkHref: '/requests',
+      linkHref: '/campaigns',
     },
     {
       title: 'Fund a Device',
@@ -26,7 +26,7 @@ export const homeFeatureCards: FeatureCardsSectionData = {
     {
       title: 'Track Your Impact',
       description:
-        'Every device you funded shows up in your donor dashboard — with the recipient\'s thank-you note, a photo from delivery day, and our 90-day check-in.',
+        "Every device you funded shows up in your donor dashboard — with the recipient's thank-you note, a photo from delivery day, and our 90-day check-in.",
       linkText: 'See Donor Dashboard',
       linkHref: '/about#impact',
     },

@@ -1,414 +1,155 @@
-# KC Digital Drive Market v3 (Vite Edition)
+# KC Digital Drive Market v3
 
-Modern, full-stack marketplace with React + Vite + Clerk + Supabase + Stripe
+Full-stack marketplace connecting Kansas City donors with community-based organizations (CBOs) for technology equipment donations. React + Vite frontend, Express.js backend, Supabase database, Clerk authentication, Stripe payments.
 
 ## Quick Start
 
 ```bash
-# One-command setup
-./setup-vite.sh
+# Terminal 1 — Supabase full stack (Postgres, Auth, Storage, Studio)
+cd backend && pnpm db:start
 
-# Then start the app (3 terminals)
-cd backend && docker-compose up -d              # Terminal 1: Supabase
-cd backend/api && npm start                     # Terminal 2: API
-cd frontend-vite && npm run dev                 # Terminal 3: Frontend
+# Terminal 2 — Express API server (port 4000)
+cd backend/api && pnpm dev
+
+# Terminal 3 — Vite frontend (port 3000)
+cd frontend-vite && pnpm dev
 ```
 
-**Access your app:**
-- **Application**: http://localhost:3000
-- **Database Admin**: http://localhost:54323
-- **Email Testing**: http://localhost:54324
-- **API Health**: http://localhost:4000/health
+**Access points:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:4000/health
+- Supabase Studio: http://localhost:54323
+- Email testing (Inbucket): http://localhost:54324
 
----
-
-## Ready to Deploy?
-
-**Simple deployment guide:** [VERCEL_SETUP.md](./VERCEL_SETUP.md) - Step-by-step Vercel deployment  
-**Quick checklist:** [DEPLOYMENT_CHECKLIST.txt](./DEPLOYMENT_CHECKLIST.txt) - Print-friendly checklist
-
-**Cost:** FREE using Hobby tiers (Vercel + Clerk + Supabase + Stripe)
+**Package manager**: pnpm only (never npm or yarn). Pinned to `pnpm@11.1.2` via the `packageManager` field; CI enforces this via corepack.
 
 ---
 
 ## Documentation
 
-All documentation is in the [`docs/`](./docs) folder.
-
-**Start here:** [docs/README.md](./docs/README.md) - Documentation hub with navigation
-
-### Quick Links
-
-| Document | Description |
-|----------|-------------|
-| **[docs/QUICK_START_VITE.md](./docs/QUICK_START_VITE.md)** | Get started in 5 minutes |
-| **[docs/SETUP_GUIDE.md](./docs/SETUP_GUIDE.md)** | Complete setup instructions |
-| **[docs/MIGRATION_GUIDE.md](./docs/MIGRATION_GUIDE.md)** | Next.js to Vite migration guide |
-| **[VERCEL_SETUP.md](./VERCEL_SETUP.md)** | **Simple deployment guide** (START HERE!) |
-| **[DEPLOYMENT_CHECKLIST.txt](./DEPLOYMENT_CHECKLIST.txt)** | **Print-friendly checklist** |
-| **[docs/VERCEL_DEPLOYMENT.md](./docs/VERCEL_DEPLOYMENT.md)** | Detailed deployment guide (comprehensive) |
-| **[docs/DEPLOYMENT_CHECKLIST.md](./docs/DEPLOYMENT_CHECKLIST.md)** | Production deployment checklist (detailed) |
-| **[docs/GITHUB_ACTIONS_GUIDE.md](./docs/GITHUB_ACTIONS_GUIDE.md)** | CI/CD & accessibility checks |
-| **[docs/CI_CD_SETUP_SUMMARY.md](./docs/CI_CD_SETUP_SUMMARY.md)** | Quick CI/CD reference |
-| **[docs/IMPLEMENTATION_SUMMARY.md](./docs/IMPLEMENTATION_SUMMARY.md)** | What was built (v3) |
-| **[docs/DOCUMENTATION_INDEX_VITE.md](./docs/DOCUMENTATION_INDEX_VITE.md)** | Find any documentation |
-| **[docs/ARCHIVED_FILES.md](./docs/ARCHIVED_FILES.md)** | Archived files info |
-| **[docs/ORGANIZATION_SUMMARY.md](./docs/ORGANIZATION_SUMMARY.md)** | Project organization changes |
-| **[docs/DOCS_MOVED.md](./docs/DOCS_MOVED.md)** | Documentation migration notice |
-| **[docs/ROOT_FILES_GUIDE.md](./docs/ROOT_FILES_GUIDE.md)** | File organization rules |
-| **[docs/CLEANUP_COMPLETE.md](./docs/CLEANUP_COMPLETE.md)** | Cleanup summary |
-| **[frontend-vite/README.md](./frontend-vite/README.md)** | Frontend documentation |
-| **[backend/api/README.md](./backend/api/README.md)** | Backend API documentation |
+| File | Purpose |
+|---|---|
+| **[howtoexecute.local.md](./docs/howtoexecute.local.md)** | Complete local dev setup, troubleshooting, debugging |
+| **[howtodeploy.prod.md](./docs/howtodeploy.prod.md)** | Production deployment (Vercel + Supabase Cloud + Stripe) |
+| **[CLAUDE.md](./CLAUDE.md)** | Project conventions, architecture, env vars, file structure |
+| `_docs/architecture.md` | Architecture decisions (local-only — `_docs/` is gitignored) |
+| `_docs/stripe-webhook.md` | Webhook flow + idempotency + reconciliation strategy |
+| `_docs/clerk-supabase-auth.md` | How Supabase validates Clerk JWTs (Third-Party Auth) |
+| `_docs/debug-payment-flow.md` | Postmortem: BUG-8 → BUG-11 cascade debug walkthrough |
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Frontend** | React 18 + Vite | UI framework & build tool |
-| **Styling** | Tailwind CSS + shadcn/ui | Styling & components |
-| **Auth** | Clerk | User authentication |
-| **Database** | Supabase (PostgreSQL) | Data storage & real-time |
-| **Payments** | Stripe | Payment processing |
-| **API** | Express.js | Payment webhooks |
-| **Language** | TypeScript | Type safety |
-| **Routing** | React Router v6 | Client-side routing |
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 + Vite + TypeScript + Tailwind CSS + shadcn/ui |
+| Routing | React Router v6 |
+| Auth | Clerk (JWT) synced to Supabase via Third-Party Auth |
+| Database | Supabase (PostgreSQL 15) with Row-Level Security |
+| Payments | Stripe (frontend Elements + backend webhooks + Connect) |
+| State | Zustand |
+| Forms | React Hook Form + Zod |
+| Backend | Express.js (payment + request lifecycle handling) |
+
+---
+
+## Environment Variables
+
+Copy `.env.example` files and fill in real values:
+
+```bash
+cp frontend-vite/.env.example frontend-vite/.env.local
+cp backend/api/.env.example backend/api/.env
+```
+
+Production-required additions (see `docs/howtodeploy.prod.md`):
+- `IP_HASH_SALT` — `openssl rand -hex 32` (PH-2 payment metadata IP hashing)
+- `GIT_SHA` — `VERCEL_GIT_COMMIT_SHA` on Vercel (backend version tracking)
+- `CRON_SECRET` — `openssl rand -hex 32` (A6 Slack cron auth; `/api/cron/flush-slack-queue` returns 401 without it)
+- `SLACK_WEBHOOK_URL` — Slack Incoming Webhook (optional; unset = dev `[slack:dev]` console fallback, queue still drains)
+- `APP_URL` — link prefix in Slack alert bodies (e.g. `https://kcdd-market.vercel.app`)
 
 ---
 
 ## Project Structure
 
 ```
-kcdd-market_v2/
-├── docs/                          # All documentation (12 guides)
-│   ├── README.md                  # Documentation hub
-│   ├── QUICK_START_VITE.md        # 5-minute guide
-│   ├── SETUP_GUIDE.md             # Complete setup (15+ pages)
-│   ├── MIGRATION_GUIDE.md         # Migration guide
-│   ├── VERCEL_DEPLOYMENT.md       # Deploy guide (20+ pages)
-│   ├── DEPLOYMENT_CHECKLIST.md    # Deployment checklist
-│   ├── GITHUB_ACTIONS_GUIDE.md    # CI/CD guide (20+ pages)
-│   ├── CI_CD_SETUP_SUMMARY.md     # CI/CD summary
-│   ├── IMPLEMENTATION_SUMMARY.md  # What was built
-│   ├── DOCUMENTATION_INDEX_VITE.md # Find anything
-│   └── ARCHIVED_FILES.md          # Archive info
-│
-├── Frontend (Vite)
-│   ├── frontend-vite/
-│   │   ├── src/
-│   │   │   ├── components/        # React components + UI
-│   │   │   ├── pages/             # Page components
-│   │   │   ├── layouts/           # Layout wrappers
-│   │   │   ├── routes/            # Route config
-│   │   │   ├── lib/               # Utilities
-│   │   │   ├── hooks/             # Custom hooks
-│   │   │   ├── config/            # Centralized config
-│   │   │   └── types/             # TypeScript types
-│   │   ├── .env.example           # Environment template
-│   │   ├── vite.config.ts         # Vite configuration
-│   │   └── README.md              # Frontend docs
-│   │
-├── Backend
-│   ├── api/                       # Express API server
-│   │   ├── server.js              # Main server
-│   │   ├── .env.example           # Environment template
-│   │   └── README.md              # API docs
-│   │
-│   ├── supabase/                  # Database
-│   │   ├── migrations/            # SQL migrations
-│   │   └── config.toml            # Supabase config
-│   │
-│   └── docker-compose.yml         # Local Supabase
-│
-├── Root Files
-│   ├── README.md                  # Main project documentation
-│   ├── setup-vite.sh              # Automated setup script
-│   └── .gitignore                 # Git ignore rules
-│
-└── archive/                       # Old files (in .gitignore)
-    ├── old-frontend/              # Next.js v2
-    └── old-docs/                  # v2 documentation
+kcdd-market2/
+├── frontend-vite/        # React + Vite app (port 3000)
+├── backend/
+│   ├── api/              # Express server (port 4000)
+│   │   ├── server.js
+│   │   ├── middleware/clerkAuth.js
+│   │   ├── helpers/      # paymentMetadata.js, disputes.js (PH-1~3), slack.js (A6-S1)
+│   │   ├── routes/       # users.js
+│   │   ├── services/pdfGenerator.js
+│   │   └── vercel.json   # crons: /api/cron/flush-slack-queue every 5 min (A6-S3)
+│   └── supabase/
+│       ├── migrations/   # SQL migrations (run in order)
+│       ├── seed.sql      # Mock orgs/donors/campaigns + tax-documents bucket
+│       └── config.toml   # Supabase CLI config (Clerk TPA registered)
+├── _docs/                # Project documentation (gitignored — local only)
+├── docs/                 # Tracked documentation (howto, changelog, branch plan, references)
+│   ├── howtoexecute.local.md
+│   ├── howtodeploy.prod.md
+│   ├── CHANGELOG.feat-post-launch-feedback.md
+│   ├── feat-post-launch-feedback.md   # branch entry point — Theme 1-4 definitions + D1-D5
+│   └── …                 # plus reference: GITHUB_ACTIONS_GUIDE / MAZE_TESTING / TAX_DOCUMENTS / USER_TYPES / VERCEL_DEPLOYMENT
+├── CLAUDE.md             # AI-collaboration project conventions
+└── README.md             # This file
 ```
 
----
-
-## What's Included
-
-### 26 Beautiful UI Components
-- **24 shadcn/ui components** (Button, Card, Dialog, Select, etc.)
-- **2 custom components** (RequestCard, Navbar)
-- **Fully accessible** (WCAG 2.1 compliant)
-
-### Complete Authentication (Clerk)
-- Email/password login
-- Social authentication (Google, etc.)
-- User management dashboard
-- Protected routes
-- JWT integration with Supabase
-
-### Payment Processing (Stripe)
-- Secure card payments
-- Payment intents
-- Webhook handling
-- Test mode for development
-- Production-ready
-
-### Database & Real-time (Supabase)
-- PostgreSQL database with 11 tables
-- Row-level security
-- Real-time subscriptions
-- Auto-generated REST API
-- Type-safe queries
-
-### Modern Frontend (React + Vite)
-- TypeScript for type safety
-- Tailwind CSS styling
-- Fast hot reload (~200ms)
-- 11 fully-built pages
-- Responsive design
+The local Supabase stack runs via the Supabase CLI (`pnpm db:start`), managed by `backend/supabase/config.toml`.
 
 ---
 
-## Features
-
-### For Donors
-- Browse technology requests
-- Filter by urgency, location, cause
-- Secure payment processing
-- Track donation impact
-- Beautiful dashboard
-
-### For Organizations (CBOs)
-- Create equipment requests
-- Track request status
-- Manage organization profile
-- Dashboard with analytics
-- Vetting system
-
-### For Admins
-- Approve organizations
-- Review requests
-- Manage users
-- Platform analytics
-
----
-
-## Configuration
-
-All configuration is centralized in:
-
-### Frontend: `frontend-vite/src/config/index.ts`
-
-```typescript
-import { clerkConfig, supabaseConfig, stripeConfig } from '@/config'
-
-// All environment variables in one place
-// Validates required variables
-// Type-safe configuration
-```
-
-### Environment Files
-
-#### `frontend-vite/.env.local`
-```env
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxx
-VITE_SUPABASE_URL=http://localhost:54321
-VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
-VITE_API_URL=http://localhost:4000
-```
-
-#### `backend/api/.env`
-```env
-STRIPE_SECRET_KEY=sk_test_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-SUPABASE_URL=http://localhost:54321
-SUPABASE_SERVICE_ROLE_KEY=your-service-key
-```
-
-See `.env.example` files for complete configuration.
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- Docker Desktop
-- Clerk account ([clerk.com](https://clerk.com))
-- Stripe account ([stripe.com](https://stripe.com))
-
-### Installation
-
-1. **Clone and setup:**
-   ```bash
-   ./setup-vite.sh
-   ```
-
-2. **Get API keys:**
-   - Clerk: [dashboard.clerk.com](https://dashboard.clerk.com)
-   - Stripe: [dashboard.stripe.com](https://dashboard.stripe.com)
-
-3. **Update `.env` files** with your keys
-
-4. **Start the app:**
-   ```bash
-   # Terminal 1: Database
-   cd backend && docker-compose up -d
-   
-   # Terminal 2: API
-   cd backend/api && npm start
-   
-   # Terminal 3: Frontend
-   cd frontend-vite && npm run dev
-   ```
-
-5. **Open http://localhost:3000**
-
-**Detailed instructions:** See [SETUP_GUIDE.md](./SETUP_GUIDE.md)
-
----
-
-## Project Stats
-
-- **80+ project files** (excluding dependencies)
-- **5,000+ lines of code**
-- **26 UI components** (24 shadcn + 2 custom)
-- **15+ pages** fully built
-- **11 database tables** with full security
-- **3 environment files** (documented)
-- **Comprehensive documentation**
-
----
-
-## Security Features
-
-- JWT authentication (Clerk)
-- Row-level security (Supabase)
-- Role-based access control
-- Secure payment processing (Stripe)
-- HTTPS enforcement
-- Environment variable protection
-- CORS configuration
-- Input validation
-
----
-
-## Performance Features
-
-- **Vite** for lightning-fast development
-- **Code splitting** for smaller bundles
-- **Lazy loading** for faster initial load
-- **Database indexes** for fast queries
-- **Connection pooling** (Supabase)
-- **CDN-ready** static assets
-
----
-
-## Deployment
-
-### Quick Deploy to Vercel (Recommended - FREE Tier!)
+## Database Commands
 
 ```bash
-# 1. Push to GitHub
-git push origin main
-
-# 2. Go to vercel.com
-# 3. Import your repository
-# 4. Configure:
-#    - Framework: Vite
-#    - Root: frontend-vite
-#    - Add environment variables
-# 5. Deploy!
+cd backend
+pnpm db:start        # Start local Supabase stack
+pnpm db:stop         # Stop stack
+pnpm db:status       # Show keys + URLs
+pnpm db:reset        # Wipe + replay all migrations + seed
+pnpm db:push         # Push to REMOTE project (requires `pnpx supabase link` first)
 ```
 
-**Cost:** $0/month (Hobby tier) - Perfect for this project!
+For applying a single new migration without losing local data:
+```bash
+docker exec -i supabase_db_backend psql -U postgres < backend/supabase/migrations/<file>.sql
+```
 
-### Detailed Guides
-
-- **[docs/VERCEL_DEPLOYMENT.md](./docs/VERCEL_DEPLOYMENT.md)** - Complete deployment guide with costs
-- **[docs/DEPLOYMENT_CHECKLIST.md](./docs/DEPLOYMENT_CHECKLIST.md)** - Step-by-step checklist
-
-### What You Get (FREE)
-
-- Frontend hosting (Vercel Hobby)
-- Backend API (Vercel Serverless)
-- HTTPS/SSL automatic
-- Custom domain support
-- 100 GB bandwidth/month
-- CI/CD automatic deployments
-- Preview deployments for PRs
-
-**Total Cost: $0/month** + transaction fees (Stripe)
-
-See [docs/VERCEL_DEPLOYMENT.md](./docs/VERCEL_DEPLOYMENT.md) for complete pricing breakdown and upgrade options.
+See [CLAUDE.md](./CLAUDE.md) "Adding a new DB table — required workflow" for the RLS validation checklist that runs after every migration.
 
 ---
 
-## Contributing
+## Branch State
 
-1. Read [docs/SETUP_GUIDE.md](./docs/SETUP_GUIDE.md)
-2. Create feature branch
-3. Follow coding standards
-4. Test thoroughly
-5. Submit pull request
+Current branch: **`feat/post-launch-feedback`** — post-launch UX + ops hardening. PR #6 has the full description; per-commit task/what/why is in `docs/CHANGELOG.feat-post-launch-feedback.md`.
 
----
+- **Theme 1 — Campaign approval lifecycle** (Waves 1-3 + W4-A/B): `campaign_details` versioned JSONB store, derived states (PENDING_INITIAL / PENDING_EDIT / ACTIVE / SOFT_DELETED), admin approval queue + diff viewer, owner soft-delete + restore, public "Updated {time}" badge (W4-A), `/admin/audit-log` page + `admin_activity_log` RLS tightening (W4-B)
+- **Theme 2 — Homepage CTA clarity** (W4-C/D): navbar Sign in/Sign up split, hero "Browse requests & donate" + "For organizations" split CTA
+- **Theme 3 — Campaign detail UX** (W4-E/F/G/H): above-the-fold org identity chip, Campaign Lead click affordance, owner-only outline empty-state CTA, card Donate button
+- **Theme 4 — Wave 5 CBO productivity** (W5-A1/B1/B2): CBO Duplicate campaign action, `organizations.default_campaign_template` JSONB + `/cbo/campaign-defaults` page, new-campaign form prefill
+- **Phase A6 — Slack admin alerts** (S1/S2/S3): `slack_notification_queue` (partial UNIQUE on `dedupe_key WHERE status='pending'` as the batching primitive) + `enqueueSlackAlert` helper + `/api/cron/flush-slack-queue` route + Vercel cron config. Dev mode (no `SLACK_WEBHOOK_URL`) logs `[slack:dev]` and still flips rows to `sent`. Email feature scrubbed
+- **Hotfix series H1-H7**: security, schema drift, concurrency, auth UX, PR #6 security review, pre-merge cleanup, CI workspace fix
 
-## Support & Resources
-
-### Documentation
-- **Quick Start:** [docs/QUICK_START_VITE.md](./docs/QUICK_START_VITE.md)
-- **Setup Guide:** [docs/SETUP_GUIDE.md](./docs/SETUP_GUIDE.md)
-- **Migration:** [docs/MIGRATION_GUIDE.md](./docs/MIGRATION_GUIDE.md)
-
-### External Docs
-- [React](https://react.dev/)
-- [Vite](https://vitejs.dev/)
-- [Clerk](https://clerk.com/docs)
-- [Supabase](https://supabase.com/docs)
-- [Stripe](https://stripe.com/docs)
-- [shadcn/ui](https://ui.shadcn.com/)
-
-### Get Help
-- **Issues:** Create GitHub issue
-- **Email:** info@kcdigitaldrive.org
-- **Community:** Join our Discord
+Inherits everything from `feat/payment-hardening` (PH-1/2/3 idempotency + metadata + disputes) and `feat/pnpm-jwt-integration` (pnpm + Clerk JWT bridge + campaigns-only mock seed). Phase 8 / 8.5 / 9 / 10 features (in-kind pledges, match alerts, tax cron, public impact page) remain backlog — see "What does NOT ship on this branch" in `docs/CHANGELOG.feat-post-launch-feedback.md`.
 
 ---
 
-## What Makes This Special
+## Security & Conventions
 
-- **Modern Stack** - Latest React, Vite, and TypeScript
-- **Best-in-Class Auth** - Clerk provides excellent UX
-- **Payment Ready** - Stripe integration included
-- **Fast Development** - Vite's HMR is fast
-- **Beautiful UI** - 26 professional components
-- **Well Documented** - Comprehensive guides
-- **Production Ready** - Secure, tested, and optimized
-- **Easy Setup** - Get started in minutes
-
----
-
-## v2 vs v3
-
-| Feature | v2 (Next.js) | v3 (Vite) |
-|---------|--------------|-----------|
-| Build Tool | Next.js | Vite |
-| Auth | Supabase Auth | Clerk |
-| Payments | None | Stripe |
-| Routing | App Router | React Router |
-| Dev Server | ~3-5s cold start | ~1-2s cold start |
-| Hot Reload | ~1-2s | ~200ms |
-| Deployment | Vercel (SSR) | Any static host |
-
-**See full comparison:** [docs/MIGRATION_GUIDE.md](./docs/MIGRATION_GUIDE.md)
+- **Amount handling**: Backend always reads `amount` from DB (`requests.amount` or `campaigns`), never from client body
+- **Webhook idempotency**: `stripe_events` PK on `event_id` prevents double-processing of Stripe retries
+- **Payment metadata**: every `payment_transactions` row has a `metadata` JSONB snapshot (stripe / lifecycle / target / client / diagnostics). IP is hashed (SHA-256 + salt), never stored raw
+- **PII**: Never store card data, raw IP, session tokens, or PAN — Stripe Elements handles all card I/O client-side
+- **RLS**: Every public table has explicit policies; service-role-only tables document the intent in their migration (e.g. `stripe_events`, `stripe_disputes`)
+- **Admin audit log**: `admin_activity_log` enforces self-attribution — admin rows are INSERT-able only when `clerk_user_id() = admin_id`. SELECT is restricted to `user_type = 'admin'`. Wide-open dev policies from `20240310000000_platform_settings.sql` were replaced in `20260618000000_admin_activity_log_soft_delete_writes.sql`
+- **Slack admin alerts**: queue-based via `slack_notification_queue` (PK + `dedupe_key UNIQUE WHERE status='pending'`). Webhook URL never logged. Dev fallback (`[slack:dev]` console line) keeps local flows testable without a real workspace. Local recipe: `docs/howtoexecute.local.md` → Testing Slack admin alerts locally. Prod setup: `docs/howtodeploy.prod.md` Step 5
 
 ---
 
-**Version**: 3.0.0 (Vite Edition)  
-**Status**: Production-Ready  
-**Last Updated**: November 17, 2024
-
+**License**: MIT
+**Version**: 3.0.0

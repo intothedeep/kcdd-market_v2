@@ -35,7 +35,7 @@ export function HomePage() {
     description:
       'KC DIME connects donors with community-based organizations to bridge the digital divide in Kansas City. Every contribution helps provide technology access and digital literacy to those who need it most.',
     linkText: 'Browse open requests',
-    linkHref: '/requests',
+    linkHref: '/campaigns',
   }
 
   useEffect(() => {

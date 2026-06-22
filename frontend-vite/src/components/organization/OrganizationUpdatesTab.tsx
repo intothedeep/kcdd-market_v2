@@ -79,11 +79,7 @@ export function OrganizationUpdatesTab({
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-[#0a0a0a]">Latest Updates</h2>
         {isOwner && !composing && (
-          <Button
-            onClick={openCompose}
-            className="bg-[#1b5858] hover:bg-[#103032]"
-            size="sm"
-          >
+          <Button onClick={openCompose} className="bg-[#1b5858] hover:bg-[#103032]" size="sm">
             <Plus className="mr-1 h-4 w-4" />
             Post Update
           </Button>
@@ -139,11 +135,7 @@ export function OrganizationUpdatesTab({
               <Button type="button" variant="outline" onClick={close} disabled={saving}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={saving}
-                className="bg-[#1b5858] hover:bg-[#103032]"
-              >
+              <Button type="submit" disabled={saving} className="bg-[#1b5858] hover:bg-[#103032]">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Post Update
               </Button>

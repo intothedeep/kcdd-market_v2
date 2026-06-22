@@ -4,20 +4,21 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useUser } from '@clerk/clerk-react'
+import { useUser, useAuth } from '@clerk/clerk-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+// W7-10 Phase 1: requests table removed (campaigns-only). Reversible — uncomment.
+// import {
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableHeader,
+//   TableRow,
+// } from '@/components/ui/table'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,23 +32,25 @@ import { Textarea } from '@/components/ui/textarea'
 import { OnboardingModal } from '@/components/OnboardingModal'
 import { CampaignForm } from '@/components/CampaignForm'
 import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
+  // ChevronDown, // W7-10 Phase 1: requests table removed (reversible)
+  // ChevronLeft, // W7-10 Phase 1: requests table removed (reversible)
+  // ChevronRight, // W7-10 Phase 1: requests table removed (reversible)
+  // ChevronsLeft, // W7-10 Phase 1: requests table removed (reversible)
+  // ChevronsRight, // W7-10 Phase 1: requests table removed (reversible)
   CheckCircle2,
-  Columns2,
+  // Columns2, // W7-10 Phase 1: requests table removed (reversible)
   Loader,
   PanelLeft,
   Plus,
   TrendingUp,
   MoreVertical,
+  Copy,
   LayoutDashboard,
   List,
   BarChart3,
   FileText,
   Settings,
+  Settings2,
   HelpCircle,
   Search,
   AlertTriangle,
@@ -74,6 +77,8 @@ import {
   checkOnboardingStatus,
   getOrganizationByUserId,
   getCampaignsByOrganization,
+  duplicateCampaign,
+  type CampaignWithDerivedStatus,
   fetchOrganizationQuestions,
   answerQuestion,
   dismissQuestion,
@@ -91,7 +96,9 @@ import {
   type OrganizationQuestion,
   type OrganizationDocument,
 } from '@/lib/supabase'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { api } from '@/lib/api'
+import { useToast } from '@/components/ui/use-toast'
 import { StripeConnectCard } from '@/components/StripeConnectButton'
 import { useStripeConnect } from '@/hooks/useStripeConnect'
 import { IconByName, IconPicker } from '@/components/ui/icon-picker'
@@ -106,6 +113,7 @@ interface Campaign {
   amount_raised?: number
   supporters_count?: number
   created_at: string
+  deleted_at?: string | null
 }
 
 // Default empty states
@@ -129,6 +137,22 @@ type SidebarSection =
   | 'settings'
   | 'support'
   | 'search'
+
+const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
+  'dashboard',
+  'profile',
+  'campaigns',
+  'create-campaign',
+  'questions',
+  'analytics',
+  'documents',
+  'settings',
+  'support',
+  'search',
+]
+
+const isSidebarSection = (value: string | null): value is SidebarSection =>
+  value !== null && (SIDEBAR_SECTIONS as readonly string[]).includes(value)
 
 // Stats data config
 const getStatsCards = (stats: CBODashboardStats) => [
@@ -205,6 +229,11 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
   )
 }
 
+// W7-10 Phase 1: StatusBadge + UrgencyBadge only fed the removed requests table.
+// Kept defined for reversibility; referenced here so noUnusedLocals stays green.
+void StatusBadge
+void UrgencyBadge
+
 // ============ CONTENT COMPONENTS ============
 
 // Dashboard Content (Main view)
@@ -230,10 +259,20 @@ function DashboardContent({
   onCreateRequest: () => void
 }) {
   const statsCards = getStatsCards(stats)
-  const filteredRequests = requests.filter((r) => {
-    if (activeTab === 'all') return true
-    return r.status === activeTab
-  })
+  // W7-10 Phase 1: requests-management table hidden (campaigns-only). Reversible.
+  // const filteredRequests = requests.filter((r) => {
+  //   if (activeTab === 'all') return true
+  //   return r.status === activeTab
+  // })
+  // Keep these props referenced so noUnusedParameters stays green while the
+  // table JSX below is commented out. One-line delete to fully restore.
+  void requests
+  void selectedRows
+  void toggleRowSelection
+  void toggleAllRows
+  void activeTab
+  void setActiveTab
+  void onCreateRequest
 
   return (
     <>
@@ -264,178 +303,10 @@ function DashboardContent({
         ))}
       </div>
 
-      {/* Table Section */}
-      <div className="space-y-6">
-        {/* Filters */}
-        <div className="flex items-center justify-between">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
-            <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="open">Open</TabsTrigger>
-              <TabsTrigger value="claimed">In Progress</TabsTrigger>
-              <TabsTrigger value="fulfilled">Fulfilled</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Columns2 className="h-4 w-4" />
-                  <span>Customize Columns</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem>Description</DropdownMenuItem>
-                <DropdownMenuItem>Cause Area</DropdownMenuItem>
-                <DropdownMenuItem>Urgency</DropdownMenuItem>
-                <DropdownMenuItem>Status</DropdownMenuItem>
-                <DropdownMenuItem>Amount</DropdownMenuItem>
-                <DropdownMenuItem>Date</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button size="sm" className="bg-[#1b5858] hover:bg-[#164444]" onClick={onCreateRequest}>
-              <Plus className="h-4 w-4" />
-              <span>New Campaign</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-hidden rounded-lg border border-[#e5e5e5]">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-12">
-                    <div className="flex items-center justify-center">
-                      <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 16 16">
-                        <circle cx="6" cy="4" r="1" fill="currentColor" />
-                        <circle cx="10" cy="4" r="1" fill="currentColor" />
-                        <circle cx="6" cy="8" r="1" fill="currentColor" />
-                        <circle cx="10" cy="8" r="1" fill="currentColor" />
-                        <circle cx="6" cy="12" r="1" fill="currentColor" />
-                        <circle cx="10" cy="12" r="1" fill="currentColor" />
-                      </svg>
-                    </div>
-                  </TableHead>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={
-                        selectedRows.size === filteredRequests.length && filteredRequests.length > 0
-                      }
-                      onCheckedChange={toggleAllRows}
-                    />
-                  </TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Cause Area</TableHead>
-                  <TableHead>Urgency</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell>
-                      <div className="flex items-center justify-center">
-                        <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 16 16">
-                          <circle cx="6" cy="4" r="1" fill="currentColor" />
-                          <circle cx="10" cy="4" r="1" fill="currentColor" />
-                          <circle cx="6" cy="8" r="1" fill="currentColor" />
-                          <circle cx="10" cy="8" r="1" fill="currentColor" />
-                          <circle cx="6" cy="12" r="1" fill="currentColor" />
-                          <circle cx="10" cy="12" r="1" fill="currentColor" />
-                        </svg>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedRows.has(request.id)}
-                        onCheckedChange={() => toggleRowSelection(request.id)}
-                      />
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">{request.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{request.cause_area_name}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <UrgencyBadge urgency={request.urgency} />
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={request.status} />
-                    </TableCell>
-                    <TableCell>${request.amount.toLocaleString()}</TableCell>
-                    <TableCell>{new Date(request.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">
-            {selectedRows.size} of {filteredRequests.length} row(s) selected.
-          </span>
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span>Rows per page</span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8">
-                    10
-                    <ChevronDown className="ml-1 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>10</DropdownMenuItem>
-                  <DropdownMenuItem>20</DropdownMenuItem>
-                  <DropdownMenuItem>50</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <span>Page 1 of 1</span>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* W7-10 Phase 1: requests-management Table Section removed (campaigns-only).
+          Reversible — restore the table JSX from git history (commit removing it)
+          and uncomment filteredRequests + drop the `void` lines above. Stats Cards
+          above stay. Campaign creation lives in the Campaigns sidebar section. */}
     </>
   )
 }
@@ -444,13 +315,80 @@ function DashboardContent({
 function CampaignsContent({
   campaigns,
   onCreateCampaign,
+  onRefresh,
 }: {
   campaigns: Campaign[]
   onCreateCampaign: () => void
+  onRefresh: () => void
 }) {
-  const pendingCampaigns = campaigns.filter((c) => c.status === 'pending')
-  const _activeCampaigns = campaigns.filter((c) => c.status === 'active')
-  const completedCampaigns = campaigns.filter((c) => c.status === 'completed')
+  const { getToken } = useAuth()
+  const { user } = useUser()
+  const { toast } = useToast()
+  const [showDeleted, setShowDeleted] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
+  const visibleCampaigns = showDeleted ? campaigns : campaigns.filter((c) => !c.deleted_at)
+  // Derived status values come from getCampaignsByOrganization() and
+  // mirror the backend state machine: draft / pending / active / rejected /
+  // deleted. There is no "completed" state post-REFB; the previous
+  // "completed" count card was dead code and has been removed (H3-F).
+  const pendingCampaigns = visibleCampaigns.filter((c) => c.status === 'pending')
+
+  const handleSoftDelete = async (campaignId: string, title: string) => {
+    if (
+      !window.confirm(
+        `Delete campaign "${title}"? It will be hidden from donors but kept for audit and admin restore.`
+      )
+    ) {
+      return
+    }
+    setDeletingId(campaignId)
+    try {
+      await api.post(`/api/campaigns/${campaignId}/soft-delete`, {}, getToken)
+      toast({ title: 'Campaign deleted', description: title })
+      onRefresh()
+    } catch (err) {
+      toast({
+        title: 'Delete failed',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive',
+      })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  // W5-A1: duplicate a campaign via createCampaign — new copy enters
+  // pending_initial_approval (no fast-track). Soft-deleted campaigns are
+  // disabled at the menu level; the helper also guards defensively.
+  const handleDuplicate = async (campaign: Campaign) => {
+    const adminClerkId = user?.id
+    if (!adminClerkId) {
+      toast({
+        title: 'Sign in to duplicate',
+        description: 'Your session is not loaded yet — try again in a moment.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setDuplicatingId(campaign.id)
+    try {
+      await duplicateCampaign(campaign as unknown as CampaignWithDerivedStatus, adminClerkId)
+      toast({
+        title: 'Campaign duplicated',
+        description: 'A draft copy is pending admin review.',
+      })
+      onRefresh()
+    } catch (err) {
+      toast({
+        title: 'Duplicate failed',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive',
+      })
+    } finally {
+      setDuplicatingId(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -459,13 +397,19 @@ function CampaignsContent({
           <h2 className="text-xl font-semibold text-[#0a0a0a]">My Campaigns</h2>
           <p className="text-sm text-[#737373]">Create and manage your donation campaigns</p>
         </div>
-        <Button className="bg-[#1b5858] hover:bg-[#164444]" onClick={onCreateCampaign}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Campaign
-        </Button>
+        <div className="flex items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-[#737373]">
+            <Checkbox checked={showDeleted} onCheckedChange={(v) => setShowDeleted(v === true)} />
+            Show deleted
+          </label>
+          <Button className="bg-[#1b5858] hover:bg-[#164444]" onClick={onCreateCampaign}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Campaign
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <Card
           className="cursor-pointer p-5 text-center transition-shadow hover:shadow-md"
           onClick={onCreateCampaign}
@@ -485,21 +429,14 @@ function CampaignsContent({
             {pendingCampaigns.length} campaigns awaiting review
           </p>
         </Card>
-        <Card className="cursor-pointer p-5 text-center transition-shadow hover:shadow-md">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
-            <CheckCircle2 className="h-6 w-6 text-green-600" />
-          </div>
-          <h3 className="font-medium">Completed</h3>
-          <p className="text-sm text-[#737373]">{completedCampaigns.length} campaigns completed</p>
-        </Card>
       </div>
 
       {/* Active/Recent Campaigns List */}
-      {campaigns.length > 0 && (
+      {visibleCampaigns.length > 0 && (
         <div className="space-y-4">
           <h3 className="font-medium">Your Campaigns</h3>
-          {campaigns.map((campaign) => (
-            <Card key={campaign.id} className="p-4">
+          {visibleCampaigns.map((campaign) => (
+            <Card key={campaign.id} className={`p-4 ${campaign.deleted_at ? 'opacity-60' : ''}`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="mb-1 flex items-center gap-2">
@@ -508,18 +445,21 @@ function CampaignsContent({
                       className="font-medium text-[#0a0a0a] hover:text-[#1b5858] hover:underline"
                     >
                       {campaign.title}
+                      {campaign.deleted_at ? ' (deleted)' : ''}
                     </Link>
                     <Badge
                       variant="outline"
                       className={
-                        campaign.status === 'active'
-                          ? 'border-green-200 bg-green-50 text-green-700'
-                          : campaign.status === 'pending'
-                            ? 'border-amber-200 bg-amber-50 text-amber-700'
-                            : 'border-gray-200 bg-gray-50 text-gray-700'
+                        campaign.deleted_at
+                          ? 'border-red-200 bg-red-50 text-red-700'
+                          : campaign.status === 'active'
+                            ? 'border-green-200 bg-green-50 text-green-700'
+                            : campaign.status === 'pending'
+                              ? 'border-amber-200 bg-amber-50 text-amber-700'
+                              : 'border-gray-200 bg-gray-50 text-gray-700'
                       }
                     >
-                      {campaign.status}
+                      {campaign.deleted_at ? 'deleted' : campaign.status}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-[#737373]">
@@ -550,10 +490,23 @@ function CampaignsContent({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Edit Campaign</DropdownMenuItem>
-                      <DropdownMenuItem>View Analytics</DropdownMenuItem>
-                      <DropdownMenuItem>Share</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                      <DropdownMenuItem disabled>Edit Campaign</DropdownMenuItem>
+                      <DropdownMenuItem disabled>View Analytics</DropdownMenuItem>
+                      <DropdownMenuItem disabled>Share</DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!!campaign.deleted_at || duplicatingId === campaign.id}
+                        onClick={() => handleDuplicate(campaign)}
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        {duplicatingId === campaign.id ? 'Duplicating...' : 'Duplicate'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        disabled={!!campaign.deleted_at || deletingId === campaign.id}
+                        onClick={() => handleSoftDelete(campaign.id, campaign.title)}
+                      >
+                        {campaign.deleted_at ? 'Deleted' : 'Delete'}
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -578,7 +531,7 @@ function CampaignsContent({
         </div>
       )}
 
-      {campaigns.length === 0 && (
+      {visibleCampaigns.length === 0 && (
         <Card className="p-6">
           <h3 className="mb-4 font-medium">Quick Tips</h3>
           <ul className="space-y-2 text-sm text-[#737373]">
@@ -1930,9 +1883,7 @@ function AnalyticsContent({
       <div className="mb-6 grid grid-cols-3 gap-4">
         <Card className="p-5 text-center">
           <Users className="mx-auto mb-2 h-8 w-8 text-[#1b5858]" />
-          <p className="text-2xl font-semibold">
-            {stats.beneficiariesHelped.toLocaleString()}
-          </p>
+          <p className="text-2xl font-semibold">{stats.beneficiariesHelped.toLocaleString()}</p>
           <p className="text-sm text-[#737373]">People Helped</p>
         </Card>
         <Card className="p-5 text-center">
@@ -2883,8 +2834,24 @@ export function CBODashboard() {
   const { user, isLoaded } = useUser()
 
   // State
+  const [searchParams, setSearchParams] = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeSection, setActiveSection] = useState<SidebarSection>('dashboard')
+  const [activeSection, setActiveSection] = useState<SidebarSection>(() => {
+    const param = searchParams.get('section')
+    return isSidebarSection(param) ? param : 'dashboard'
+  })
+
+  // Sidebar tab <-> ?section= URL sync (preserves other params).
+  const selectSection = (section: SidebarSection) => {
+    setActiveSection(section)
+    setSearchParams(
+      (prev) => {
+        prev.set('section', section)
+        return prev
+      },
+      { replace: true }
+    )
+  }
   const [activeTab, setActiveTab] = useState('all')
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
@@ -2968,7 +2935,7 @@ export function CBODashboard() {
   }
 
   const handleCreateCampaign = () => {
-    setActiveSection('create-campaign')
+    selectSection('create-campaign')
   }
 
   const fetchQuestions = useCallback(async () => {
@@ -3031,14 +2998,20 @@ export function CBODashboard() {
       case 'profile':
         return <ProfileContent organization={organization} onRefresh={fetchData} />
       case 'campaigns':
-        return <CampaignsContent campaigns={campaigns} onCreateCampaign={handleCreateCampaign} />
+        return (
+          <CampaignsContent
+            campaigns={campaigns}
+            onCreateCampaign={handleCreateCampaign}
+            onRefresh={fetchData}
+          />
+        )
       case 'create-campaign':
         return (
           <CampaignForm
             organizationId={organization?.id}
-            onCancel={() => setActiveSection('campaigns')}
+            onCancel={() => selectSection('campaigns')}
             onComplete={() => {
-              setActiveSection('campaigns')
+              selectSection('campaigns')
               fetchData()
             }}
           />
@@ -3124,7 +3097,7 @@ export function CBODashboard() {
           {/* Main Navigation */}
           <nav className="space-y-1 p-2">
             <button
-              onClick={() => setActiveSection('dashboard')}
+              onClick={() => selectSection('dashboard')}
               className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
                 activeSection === 'dashboard'
                   ? 'bg-[#1b5858] text-white'
@@ -3136,7 +3109,7 @@ export function CBODashboard() {
             </button>
 
             <button
-              onClick={() => setActiveSection('profile')}
+              onClick={() => selectSection('profile')}
               className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
                 activeSection === 'profile'
                   ? 'bg-[#1b5858] text-white'
@@ -3148,7 +3121,7 @@ export function CBODashboard() {
             </button>
 
             <button
-              onClick={() => setActiveSection('campaigns')}
+              onClick={() => selectSection('campaigns')}
               className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
                 activeSection === 'campaigns'
                   ? 'bg-[#1b5858] text-white'
@@ -3182,7 +3155,7 @@ export function CBODashboard() {
                 ))}
                 {campaigns.length > 5 && (
                   <button
-                    onClick={() => setActiveSection('campaigns')}
+                    onClick={() => selectSection('campaigns')}
                     className="block px-2 py-1.5 text-xs text-[#1b5858] hover:underline"
                   >
                     View all ({campaigns.length})
@@ -3192,7 +3165,7 @@ export function CBODashboard() {
             )}
 
             <button
-              onClick={() => setActiveSection('questions')}
+              onClick={() => selectSection('questions')}
               className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
                 activeSection === 'questions'
                   ? 'bg-[#1b5858] text-white'
@@ -3213,7 +3186,7 @@ export function CBODashboard() {
             </button>
 
             <button
-              onClick={() => setActiveSection('analytics')}
+              onClick={() => selectSection('analytics')}
               className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
                 activeSection === 'analytics'
                   ? 'bg-[#1b5858] text-white'
@@ -3225,7 +3198,7 @@ export function CBODashboard() {
             </button>
 
             <button
-              onClick={() => setActiveSection('documents')}
+              onClick={() => selectSection('documents')}
               className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
                 activeSection === 'documents'
                   ? 'bg-[#1b5858] text-white'
@@ -3259,7 +3232,7 @@ export function CBODashboard() {
         {/* Footer Navigation */}
         <div className="space-y-1 overflow-hidden border-t border-gray-200 p-2 pt-2">
           <button
-            onClick={() => setActiveSection('settings')}
+            onClick={() => selectSection('settings')}
             className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
               activeSection === 'settings'
                 ? 'bg-[#1b5858] text-white'
@@ -3270,8 +3243,17 @@ export function CBODashboard() {
             {sidebarOpen && <span className="text-sm">Settings</span>}
           </button>
 
+          {/* W5-B1: link to per-org campaign defaults page */}
+          <Link
+            to="/cbo/campaign-defaults"
+            className="flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 text-[#0a0a0a] transition-colors hover:bg-gray-100"
+          >
+            <Settings2 className="h-4 w-4 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm">Campaign defaults</span>}
+          </Link>
+
           <button
-            onClick={() => setActiveSection('support')}
+            onClick={() => selectSection('support')}
             className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
               activeSection === 'support'
                 ? 'bg-[#1b5858] text-white'
@@ -3283,7 +3265,7 @@ export function CBODashboard() {
           </button>
 
           <button
-            onClick={() => setActiveSection('search')}
+            onClick={() => selectSection('search')}
             className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
               activeSection === 'search'
                 ? 'bg-[#1b5858] text-white'

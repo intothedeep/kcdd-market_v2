@@ -312,7 +312,9 @@ export function OnboardingModal({ isOpen, onClose, onComplete, userType }: Onboa
                       id="website"
                       type="url"
                       value={formData.website}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, website: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, website: e.target.value }))
+                      }
                       placeholder="https://example.org"
                       className="h-9 rounded-lg border-[#1b5858] bg-[#183c3f] text-white placeholder:text-white/50"
                     />

@@ -524,7 +524,7 @@ export function OrganizationProfilePage() {
         <p className="mb-6 text-[#737373]">
           The organization you're looking for doesn't exist or has been removed.
         </p>
-        <Link to="/requests">
+        <Link to="/campaigns">
           <Button>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Browse Requests
@@ -568,7 +568,7 @@ export function OrganizationProfilePage() {
 
         {/* Back Link */}
         <Link
-          to="/requests"
+          to="/campaigns"
           className="mb-6 inline-flex items-center gap-2 text-sm text-[#737373] transition-colors hover:text-[#0a0a0a]"
         >
           <ArrowLeft className="h-4 w-4" />

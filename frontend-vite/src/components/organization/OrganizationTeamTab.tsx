@@ -129,11 +129,7 @@ export function OrganizationTeamTab({
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-[#0a0a0a]">Our Team</h2>
         {isOwner && !showForm && (
-          <Button
-            onClick={openAdd}
-            className="bg-[#1b5858] hover:bg-[#103032]"
-            size="sm"
-          >
+          <Button onClick={openAdd} className="bg-[#1b5858] hover:bg-[#103032]" size="sm">
             <Plus className="mr-1 h-4 w-4" />
             Add Team Member
           </Button>
@@ -212,11 +208,7 @@ export function OrganizationTeamTab({
               <Button type="button" variant="outline" onClick={close} disabled={saving}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={saving}
-                className="bg-[#1b5858] hover:bg-[#103032]"
-              >
+              <Button type="submit" disabled={saving} className="bg-[#1b5858] hover:bg-[#103032]">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editing.mode === 'add' ? 'Add Member' : 'Save Changes'}
               </Button>

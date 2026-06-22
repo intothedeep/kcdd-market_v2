@@ -157,7 +157,7 @@ export function OrganizationSidebar({
 
         {/* Support CTA */}
         {showSupportButton && (
-          <Link to={`/requests?organization=${organization.id}`} className="block pt-2">
+          <Link to={`/campaigns?organization=${organization.id}`} className="block pt-2">
             <Button className="h-11 w-full rounded-full bg-[#ea580c] text-base font-medium text-white hover:bg-[#dc4c06]">
               Support This Organization
             </Button>

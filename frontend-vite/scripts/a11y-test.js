@@ -20,7 +20,7 @@ const BASE_URL = `http://localhost:${SERVER_PORT}`
 // Pages to test for accessibility
 const PAGES_TO_TEST = [
   '/',
-  '/requests',
+  '/campaigns',
   '/about',
   // Add more pages as needed
 ]

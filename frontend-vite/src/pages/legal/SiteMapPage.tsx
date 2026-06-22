@@ -86,16 +86,6 @@ export function SiteMapPage() {
                 </Link>
               </li>
               <li>
-                <Link to={routes.cbo.requests} className="text-primary hover:underline">
-                  Manage Requests
-                </Link>
-              </li>
-              <li>
-                <Link to={routes.cbo.newRequest} className="text-primary hover:underline">
-                  Submit New Request
-                </Link>
-              </li>
-              <li>
                 <Link to={routes.cbo.profile} className="text-primary hover:underline">
                   Organization Profile
                 </Link>

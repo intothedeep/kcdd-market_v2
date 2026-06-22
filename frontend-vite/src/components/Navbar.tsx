@@ -4,7 +4,7 @@
  */
 
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { UserButton, useUser, SignInButton, SignUpButton } from '@clerk/clerk-react'
+import { UserButton, useUser, SignInButton } from '@clerk/clerk-react'
 import { routes } from '@/config'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ChevronDown, LayoutDashboard, Heart, Building2, Shield } from 'lucide-react'
 import { useUserType } from '@/hooks/useClerkSupabase'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 export function Navbar() {
   const { isSignedIn } = useUser()
@@ -23,6 +24,16 @@ export function Navbar() {
   const navigate = useNavigate()
 
   const isActive = (path: string) => location.pathname === path
+
+  // On dashboard routes, show the dashboard name in the brand spot;
+  // on public routes keep the "KC DIME" brand. The link target stays home.
+  const brandTitle = (() => {
+    const path = location.pathname
+    if (path.startsWith('/admin')) return 'Admin Dashboard'
+    if (path.startsWith('/cbo/')) return 'Organization Dashboard'
+    if (path.startsWith('/donor/')) return 'Donor Dashboard'
+    return 'KC DIME'
+  })()
 
   // Determine which dashboards the user has access to
   const getDashboardOptions = () => {
@@ -68,7 +79,7 @@ export function Navbar() {
                   : 'font-normal text-black hover:text-[hsl(var(--brand-primary))]'
               }`}
             >
-              Browse Requests
+              Browse Campaigns
             </Link>
             <Link
               to={routes.about}
@@ -89,7 +100,7 @@ export function Navbar() {
             className="whitespace-nowrap text-[30px] font-black text-[hsl(var(--brand-primary))]"
             style={{ fontFamily: 'Inter, sans-serif' }}
           >
-            KC DIME
+            {brandTitle}
           </h1>
         </Link>
 
@@ -142,37 +153,24 @@ export function Navbar() {
                   </Button>
                 </Link>
               )}
+              {/* In-app notification inbox — mounted for every signed-in user.
+                  The bell hides itself when the inbox is empty for donors; the
+                  current notification kinds (campaign_*) only fan out to
+                  admins and CBOs, so donors will simply see an empty inbox. */}
+              <NotificationBell />
               <UserButton afterSignOutUrl={routes.home} />
             </>
           ) : (
             <>
               <SignInButton mode="modal">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-9 rounded-full px-4 text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary)/0.08)]"
+                  className="h-9 rounded-full border-2 border-[hsl(var(--brand-primary))] px-4 text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
                 >
                   Sign in
                 </Button>
               </SignInButton>
-              <SignInButton mode="modal">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 rounded-full border-[hsl(var(--brand-primary))] px-4 text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
-                >
-                  For Organizations
-                </Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button
-                  size="sm"
-                  className="h-9 gap-2 rounded-full bg-[hsl(var(--brand-primary))] px-4 text-white hover:bg-[hsl(var(--brand-primary)/0.9)]"
-                >
-                  <Heart className="h-4 w-4 fill-white" />
-                  Donate
-                </Button>
-              </SignUpButton>
             </>
           )}
         </div>

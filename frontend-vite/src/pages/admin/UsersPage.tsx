@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/clerk-react'
 import { Search, Filter, ChevronDown, Check, Shield, Building2, User } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { supabase, logAdminActivity } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -62,7 +62,7 @@ interface UserProfile {
 }
 
 export function AdminUsersPage() {
-  const { user: _user } = useUser()
+  const { user } = useUser()
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -118,6 +118,7 @@ export function AdminUsersPage() {
 
   const updateVerificationStatus = async (userId: string, newStatus: VerificationStatus) => {
     setUpdating(userId)
+    const beforeStatus = users.find((u) => u.id === userId)?.verification_status ?? null
     try {
       const { error } = await supabase
         .from('user_profiles')
@@ -129,6 +130,20 @@ export function AdminUsersPage() {
         .eq('id', userId)
 
       if (error) throw error
+
+      // W4-B: audit log — admin changed verification status of a user.
+      // Action mirrors transition direction: -> verified vs. -> unverified.
+      if (user?.id) {
+        const action =
+          beforeStatus === VERIFICATION_STATUS.VERIFIED &&
+          newStatus === VERIFICATION_STATUS.UNVERIFIED
+            ? 'user_unverified'
+            : 'user_verified'
+        await logAdminActivity(user.id, action, 'user', userId, {
+          before_status: beforeStatus,
+          after_status: newStatus,
+        })
+      }
 
       setUsers(
         users.map((u) =>

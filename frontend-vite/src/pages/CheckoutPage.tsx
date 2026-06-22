@@ -9,7 +9,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -41,6 +41,7 @@ export function CheckoutPage() {
   const stripe = useStripe()
   const elements = useElements()
   const { user } = useUser()
+  const { getToken } = useAuth()
 
   const [request, setRequest] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -83,11 +84,11 @@ export function CheckoutPage() {
 
     try {
       // Create payment intent
-      const clientSecret = await createPaymentIntent(
+      const clientSecret = await createPaymentIntent(getToken, {
         requestId,
-        toStripeAmount(request.amount),
-        user?.id
-      )
+        amount: toStripeAmount(request.amount),
+        donorId: user?.id,
+      })
 
       // Confirm payment
       const cardElement = elements.getElement(CardElement)

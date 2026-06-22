@@ -13,32 +13,36 @@ import { createClient } from '@supabase/supabase-js'
 import { supabaseConfig } from '@/config'
 import type { Database } from '@/types/database'
 
+import { api } from '@/lib/api'
 // Clerk-Supabase JWT bridge.
 //
-// Two-step setup:
-//  1. Code side (this file + App.tsx): wires a getter for the current Clerk
-//     session token. Always installed.
-//  2. Supabase side: in Supabase Dashboard → Auth → Third Party Auth, add
-//     Clerk as a provider so the project trusts Clerk-signed JWTs. Until
-//     that's done, sending a Clerk JWT in Authorization makes every request
-//     401 because Supabase tries to verify it and can't.
-//
-// To avoid breaking the app before TPA is configured, the bridge is gated by
-// VITE_ENABLE_CLERK_SUPABASE_BRIDGE='true'. Flip the env var on once TPA is
-// set up; the app then sends Clerk JWTs and `auth.uid()` in RLS becomes the
-// signed-in Clerk user ID.
+// Code side (this file + App.tsx) wires a getter for the current Clerk
+// session token. Always installed — once Supabase Third Party Auth trusts
+// Clerk, `auth.uid()` in RLS becomes the signed-in Clerk user ID.
 type ClerkTokenGetter = (() => Promise<string | null>) | null
+type ClerkSignedInGetter = (() => boolean) | null
 let clerkTokenGetter: ClerkTokenGetter = null
+let clerkIsSignedInGetter: ClerkSignedInGetter = null
 
-const BRIDGE_ENABLED = import.meta.env.VITE_ENABLE_CLERK_SUPABASE_BRIDGE === 'true'
+// H4-A: thrown when a signed-in user's Clerk session token cannot be
+// refreshed for a Supabase request. The anon-key fallback is reserved
+// for signed-out users only; a signed-in user with a stale/missing
+// token must fail loud so callers don't silently render anon-keyed
+// (RLS-blocked) empty data.
+export class SupabaseAuthRefreshError extends Error {
+  constructor(cause?: unknown) {
+    super('Failed to refresh Clerk session for Supabase request')
+    this.name = 'SupabaseAuthRefreshError'
+    ;(this as any).cause = cause
+  }
+}
 
-export const ClerkSupabaseBridge = {
-  setTokenGetter(getter: ClerkTokenGetter) {
-    clerkTokenGetter = getter
-  },
-  isEnabled() {
-    return BRIDGE_ENABLED
-  },
+export const registerClerkTokenGetter = (
+  getter: ClerkTokenGetter,
+  isSignedInGetter: ClerkSignedInGetter = null
+) => {
+  clerkTokenGetter = getter
+  clerkIsSignedInGetter = isSignedInGetter
 }
 
 // Create Supabase client
@@ -48,23 +52,34 @@ export const supabase = createClient<Database>(supabaseConfig.url, supabaseConfi
     autoRefreshToken: false,
   },
   // supabase-js >= 2.42 — called per-request, used as the Bearer in Authorization.
+  //
+  // H4-A: distinguish "signed out" (return anon, valid) from "signed in
+  // but token fetch failed" (throw SupabaseAuthRefreshError). The anon
+  // path is preserved only for signed-out users to keep public pages
+  // working; signed-in transient failures must surface, not silently
+  // degrade authority to anon (which RLS returns 0 rows for protected
+  // queries).
   accessToken: async () => {
-    if (BRIDGE_ENABLED) {
-      try {
-        if (clerkTokenGetter) {
-          const token = await clerkTokenGetter()
-          if (token) return token
-        }
-      } catch {
-        // fall through to anon key
-      }
+    const signedIn = clerkIsSignedInGetter ? clerkIsSignedInGetter() : false
+    if (!signedIn) {
+      return supabaseConfig.anonKey
     }
-    return supabaseConfig.anonKey
+    if (!clerkTokenGetter) {
+      throw new SupabaseAuthRefreshError('clerkTokenGetter not registered while signed in')
+    }
+    try {
+      const token = await clerkTokenGetter()
+      if (token) return token
+      throw new SupabaseAuthRefreshError('Clerk getToken returned null while signed in')
+    } catch (err) {
+      if (err instanceof SupabaseAuthRefreshError) throw err
+      throw new SupabaseAuthRefreshError(err)
+    }
   },
 } as any)
 
 /**
- * @deprecated Use ClerkSupabaseBridge.setTokenGetter instead.
+ * @deprecated Use registerClerkTokenGetter instead.
  */
 export const setSupabaseAuth = async (_clerkToken: string | null) => {
   // no-op; preserved for backwards compatibility with callers
@@ -393,6 +408,39 @@ export const updateOrganization = async (
   return { data, error }
 }
 
+// W5-B1 (Phase C / Theme 4) — Per-org default campaign template
+// Persisted as JSONB on organizations.default_campaign_template; consumed
+// by W5-B2 to prefill the new-campaign form.
+export interface OrganizationDefaults {
+  creator_name?: string
+  creator_role?: string
+  contact_email?: string
+  cause_area_ids?: string[]
+  faqs?: Array<{ question: string; answer: string }>
+}
+
+export async function getOrganizationDefaults(orgId: string): Promise<OrganizationDefaults | null> {
+  const { data, error } = await (supabase.from('organizations') as any)
+    .select('default_campaign_template')
+    .eq('id', orgId)
+    .maybeSingle()
+  if (error) {
+    console.error('getOrganizationDefaults error:', error)
+    return null
+  }
+  return (data?.default_campaign_template as OrganizationDefaults | null) ?? null
+}
+
+export async function updateOrganizationDefaults(
+  orgId: string,
+  payload: OrganizationDefaults
+): Promise<void> {
+  const { error } = await (supabase.from('organizations') as any)
+    .update({ default_campaign_template: payload })
+    .eq('id', orgId)
+  if (error) throw error
+}
+
 // Save donor onboarding data
 export const saveDonorOnboarding = async (
   userId: string,
@@ -687,7 +735,12 @@ export const fetchDonorDonations = async (
       status,
       created_at,
       completed_at,
-      campaign:campaigns(id, title, slug),
+      campaign:campaigns(
+        id,
+        slug,
+        organization_id,
+        detail:campaign_details(content, status, version)
+      ),
       organization:organizations(name, logo_emoji)
     `
     )
@@ -715,9 +768,17 @@ export const fetchDonorDonations = async (
 
   const campaignDonations: DonationRecord[] = (txResult.data || []).map((item: any) => {
     const mappedStatus = mapTxStatusToDonationStatus(item.status)
+    const campaignDetails: Array<{ content?: any; status?: string; version?: number }> =
+      Array.isArray(item.campaign?.detail) ? item.campaign.detail : []
+    const sortedDetails = [...campaignDetails].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+    const approvedDetail = sortedDetails.find((d) => d.status === 'approved')
+    const sourceContent = (approvedDetail?.content ?? sortedDetails[0]?.content ?? {}) as {
+      title?: string
+    }
+    const campaignTitle = sourceContent.title || 'Campaign donation'
     return {
       id: item.id,
-      description: item.campaign?.title || 'Campaign donation',
+      description: campaignTitle,
       // payment_transactions.amount_total is stored in cents
       amount: Number(item.amount_total || 0) / 100,
       status: mappedStatus,
@@ -958,59 +1019,224 @@ export interface CampaignData {
   website_url?: string
 }
 
-// Create a new campaign
-export const createCampaign = async (campaignData: CampaignData) => {
-  const { data, error } = await supabase
-    .from('campaigns')
-    .insert({
-      ...campaignData,
-      status: 'pending',
-      amount_raised: 0,
-      supporters_count: 0,
-    })
-    .select()
-    .single()
+// Slugify a campaign title for the campaigns.slug column. Lower-case,
+// strip non-alphanumerics down to single dashes, trim leading/trailing
+// dashes. Matches the generate_org_slug() shape used elsewhere.
+const slugifyTitle = (title: string): string =>
+  title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 200)
 
-  if (error) throw error
-  return data
+// Create a new campaign.
+//
+// Post-REFB the campaigns row is metadata-only — title, funding_goal,
+// story_content, social URLs, etc. all live in campaign_details.content.
+// Both inserts MUST commit together; otherwise a failure on the
+// campaign_details A14 CHECK leaves an orphan campaigns row.
+//
+// H3-E: collapsed two-step pattern into a single SECURITY DEFINER RPC
+// (public.create_campaign_with_detail, migration 20260617000003). The
+// RPC validates org ownership and stamps created_by/changed_by from the
+// caller's clerk_user_id() — the client cannot spoof either field.
+//
+// Required content keys per migration A14: title, funding_goal,
+// contact_email. The returned shape preserves { id, slug, ...campaign }
+// for caller compatibility (callers navigate via campaign.slug).
+export const createCampaign = async (campaignData: CampaignData) => {
+  const slug = `${slugifyTitle(campaignData.title)}-${Date.now().toString(36)}`
+
+  const content: Record<string, unknown> = {
+    title: campaignData.title,
+    funding_goal: campaignData.funding_goal,
+    contact_email: campaignData.contact_email,
+  }
+  if (campaignData.creator_name !== undefined) content.creator_name = campaignData.creator_name
+  if (campaignData.creator_role !== undefined) content.creator_role = campaignData.creator_role
+  if (campaignData.cause_area_ids !== undefined)
+    content.cause_area_ids = campaignData.cause_area_ids
+  if (campaignData.short_description !== undefined)
+    content.short_description = campaignData.short_description
+  if (campaignData.story_title !== undefined) content.story_title = campaignData.story_title
+  if (campaignData.story_content !== undefined) content.story_content = campaignData.story_content
+  if (campaignData.image_url !== undefined) content.image_url = campaignData.image_url
+  if (campaignData.logo_url !== undefined) content.logo_url = campaignData.logo_url
+  if (campaignData.phone !== undefined) content.phone = campaignData.phone
+  if (campaignData.facebook_url !== undefined) content.facebook_url = campaignData.facebook_url
+  if (campaignData.twitter_url !== undefined) content.twitter_url = campaignData.twitter_url
+  if (campaignData.instagram_url !== undefined) content.instagram_url = campaignData.instagram_url
+  if (campaignData.linkedin_url !== undefined) content.linkedin_url = campaignData.linkedin_url
+  if (campaignData.youtube_url !== undefined) content.youtube_url = campaignData.youtube_url
+  if (campaignData.tiktok_url !== undefined) content.tiktok_url = campaignData.tiktok_url
+  if (campaignData.website_url !== undefined) content.website_url = campaignData.website_url
+
+  const { data: rpcResult, error: rpcError } = await (supabase as any).rpc(
+    'create_campaign_with_detail',
+    {
+      p_organization_id: campaignData.organization_id,
+      p_slug: slug,
+      p_created_by: campaignData.created_by,
+      p_content: content,
+      p_change_summary: null,
+    }
+  )
+
+  if (rpcError) throw rpcError
+  if (!rpcResult) throw new Error('createCampaign: RPC returned no row')
+
+  const { campaign_id, detail_id } = rpcResult as {
+    campaign_id: string
+    detail_id: string
+  }
+
+  // Preserve the prior return shape: { id, slug, ...other campaign cols,
+  // detail }. The two columns callers actually read are .id and .slug;
+  // everything else (organization_id, created_by, timestamps) is
+  // reconstructable from inputs or fetched later. Skipping the extra
+  // SELECT keeps the path single-roundtrip.
+  const result: Record<string, unknown> = {
+    id: campaign_id,
+    slug,
+    organization_id: campaignData.organization_id,
+    created_by: campaignData.created_by,
+    detail: { id: detail_id, version: 1, status: 'pending_initial_approval', content },
+  }
+  return result
 }
 
 // Get campaign by slug or id
-export const getCampaignBySlug = async (slugOrId: string) => {
+/**
+ * Shape returned by getCampaignsByOrganization — flat-spread of campaigns
+ * row + latest content JSONB + derived lifecycle status.
+ *
+ * Used by duplicateCampaign and CBO dashboard kebab actions.
+ */
+export interface CampaignWithDerivedStatus {
+  // Identity (from campaigns row)
+  id: string
+  organization_id: string
+  slug?: string | null
+  created_by?: string | null
+  created_at?: string | null
+  deleted_at?: string | null
+
+  // Lifecycle (derived in getCampaignsByOrganization)
+  status: 'draft' | 'pending' | 'active' | 'rejected' | 'deleted'
+
+  // Content (flat-spread from latest campaign_details.content)
+  // Mirrors CampaignData optional fields — see L997+
+  title?: string
+  funding_goal?: number | string
+  contact_email?: string
+  creator_name?: string
+  creator_role?: string
+  cause_area_ids?: string[]
+  short_description?: string
+  story_title?: string
+  story_content?: string
+  image_url?: string | null
+  logo_url?: string | null
+  phone?: string | null
+  facebook_url?: string | null
+  twitter_url?: string | null
+  instagram_url?: string | null
+  linkedin_url?: string | null
+  youtube_url?: string | null
+  tiktok_url?: string | null
+  website_url?: string | null
+
+  // Forward-compat nested shapes (some callers may preserve these)
+  latestApproved?: { content?: Record<string, unknown> }
+  latest?: { content?: Record<string, unknown> }
+
+  // Allow unknown extras (campaigns row may have other columns spread in)
+  [key: string]: unknown
+}
+
+// Get campaigns by organization with derived title + status.
+//
+// Post-REFB, campaigns has no title / funding_goal / status. The CBO
+// dashboard reads those, so we embed every campaign_details row, then
+// reduce client-side to (a) the latest version's status — which maps
+// to the lifecycle bucket — and (b) the latest APPROVED version's
+// content (falling back to the latest version's content for draft /
+// pending campaigns that have never been approved).
+//
+// Returned shape adds top-level `title`, `funding_goal`, `status` so
+// existing JSX in DashboardPage keeps working unchanged.
+export const getCampaignsByOrganization = async (organizationId: string) => {
   const { data, error } = await supabase
     .from('campaigns')
     .select(
       `
       *,
-      organization:organizations(id, name, slug, mission, logo_url)
+      details:campaign_details(content, status, version)
     `
     )
-    .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
-    .single()
-
-  if (error) throw error
-  return data
-}
-
-// Get campaigns by organization
-export const getCampaignsByOrganization = async (organizationId: string) => {
-  const { data, error } = await supabase
-    .from('campaigns')
-    .select('*')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data || []
+
+  return (data || []).map((row: any) => {
+    const details: Array<{ content: any; status: string; version: number }> = Array.isArray(
+      row.details
+    )
+      ? row.details
+      : []
+    const sorted = [...details].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+    const latest = sorted[0]
+    const latestApproved = sorted.find((d) => d.status === 'approved')
+
+    // Lifecycle derivation mirrors backend/api/services/campaignStateMachine.js
+    let derivedStatus: string
+    if (row.deleted_at) {
+      derivedStatus = 'deleted'
+    } else if (!latest) {
+      derivedStatus = 'draft'
+    } else if (latest.status === 'pending_initial_approval') {
+      derivedStatus = 'pending'
+    } else if (latest.status === 'pending_edit_approval') {
+      derivedStatus = 'pending'
+    } else if (latestApproved) {
+      derivedStatus = 'active'
+    } else if (latest.status === 'rejected') {
+      derivedStatus = 'rejected'
+    } else {
+      derivedStatus = 'draft'
+    }
+
+    const sourceContent = (latestApproved?.content ?? latest?.content ?? {}) as Record<
+      string,
+      unknown
+    >
+    const { details: _details, ...rest } = row
+    return {
+      ...sourceContent,
+      ...rest,
+      status: derivedStatus,
+    }
+  })
 }
 
-// Update campaign
-export const updateCampaign = async (
+// Update campaign metadata (slug / deleted_at only).
+//
+// Post-REFB, content edits MUST flow through the state machine via
+// POST /api/campaigns/:id/submit-edit (the route inserts a new
+// campaign_details row with status pending_*_approval). This client
+// helper exists only for the small whitelist of campaign-level
+// metadata fields that genuinely live on the campaigns row.
+export interface CampaignMetadataUpdate {
+  slug?: string
+  deleted_at?: string | null
+}
+
+export const updateCampaignMetadata = async (
   campaignId: string,
-  updates: Partial<CampaignData> & { status?: string }
+  updates: CampaignMetadataUpdate
 ) => {
-  const { data, error } = await supabase
-    .from('campaigns')
+  const { data, error } = await (supabase.from('campaigns') as any)
     .update(updates)
     .eq('id', campaignId)
     .select()
@@ -1020,27 +1246,57 @@ export const updateCampaign = async (
   return data
 }
 
-// Get active campaigns (for public listing)
-// includePending: also show pending campaigns. Default false so unapproved
-// campaigns aren't visible on the public Browse page.
-export const getActiveCampaigns = async (limit: number = 10, includePending: boolean = false) => {
-  let query = supabase.from('campaigns').select(`
+// Get active campaigns (for public listing).
+//
+// Post-REFB, "active" = at least one approved campaign_details row exists
+// AND the campaign is not soft-deleted. There is no meaningful "pending"
+// public view (pending campaigns are draft-only and hidden by RLS).
+//
+// We use an INNER embed on campaign_details filtered to status=approved
+// so PostgREST drops campaigns with no approved detail row. Each result
+// row also gets the detail.content fields spread onto the top-level
+// campaign object so downstream consumers can still read campaign.title,
+// campaign.funding_goal, etc.
+export const getActiveCampaigns = async (limit: number = 10) => {
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select(
+      `
       *,
-      organization:organizations(id, name, slug, logo_url)
-    `)
-
-  if (includePending) {
-    // Show both active and pending campaigns
-    query = query.in('status', ['active', 'pending'])
-  } else {
-    // Only show active campaigns
-    query = query.eq('status', 'active')
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false }).limit(limit)
+      organization:organizations(id, name, slug, logo_url),
+      detail:campaign_details!inner(content, status, version)
+    `
+    )
+    .eq('detail.status', 'approved')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(limit)
 
   if (error) throw error
-  return data || []
+
+  type Detail = { content?: Record<string, unknown>; status?: string; version?: number }
+  const mapped = (data || []).map((row: any) => {
+    // PostgREST can return the inner embed as an array OR a single object
+    // depending on FK cardinality. Normalize.
+    const detail: Detail = Array.isArray(row.detail) ? row.detail[0] : row.detail
+    const content = (detail?.content as Record<string, unknown> | undefined) || {}
+    const version = detail?.version ?? 0
+    const { detail: _detail, ...rest } = row
+    return { ...content, ...rest, __detail_version: version }
+  })
+
+  // H3-D: a campaign with multiple approved detail versions (post
+  // edit-approval) will appear once per approved row. PostgREST's !inner
+  // join expands them into duplicate parent rows. Collapse to one row per
+  // campaign.id, keeping the highest detail.version.
+  const byId = new Map<string, any>()
+  for (const row of mapped) {
+    const existing = byId.get(row.id)
+    if (!existing || (row.__detail_version ?? 0) > (existing.__detail_version ?? 0)) {
+      byId.set(row.id, row)
+    }
+  }
+  return Array.from(byId.values()).map(({ __detail_version: _v, ...rest }) => rest)
 }
 
 // Upload campaign image
@@ -1079,10 +1335,17 @@ export interface OrganizationQuestion {
 export const fetchOrganizationQuestions = async (
   organizationId: string
 ): Promise<OrganizationQuestion[]> => {
-  // Get all campaigns for this org
+  // Get all campaigns for this org. Title lives in campaign_details.content
+  // post-REFB; embed the detail rows so we can pick the latest approved
+  // (falling back to latest) title for display.
   const { data: campaigns, error: campaignsError } = await supabase
     .from('campaigns')
-    .select('id, title')
+    .select(
+      `
+      id,
+      details:campaign_details(content, status, version)
+    `
+    )
     .eq('organization_id', organizationId)
 
   if (campaignsError) {
@@ -1092,7 +1355,20 @@ export const fetchOrganizationQuestions = async (
 
   if (!campaigns?.length) return []
 
-  const campaignIds = campaigns.map((c) => c.id)
+  const titleByCampaignId = new Map<string, string>()
+  for (const c of campaigns as any[]) {
+    const details: Array<{ content?: any; status?: string; version?: number }> = Array.isArray(
+      c.details
+    )
+      ? c.details
+      : []
+    const sorted = [...details].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+    const approved = sorted.find((d) => d.status === 'approved')
+    const content = (approved?.content ?? sorted[0]?.content ?? {}) as { title?: string }
+    titleByCampaignId.set(c.id, content.title || 'Unknown Campaign')
+  }
+
+  const campaignIds = Array.from(titleByCampaignId.keys())
 
   // Get all questions for these campaigns
   const { data: questions, error: questionsError } = await (
@@ -1110,7 +1386,7 @@ export const fetchOrganizationQuestions = async (
   // Join campaign titles to questions
   return (questions || []).map((q: any) => ({
     ...q,
-    campaign_title: campaigns.find((c) => c.id === q.campaign_id)?.title || 'Unknown Campaign',
+    campaign_title: titleByCampaignId.get(q.campaign_id) || 'Unknown Campaign',
   }))
 }
 
@@ -1188,18 +1464,19 @@ export const fetchDonorDocuments = async (userId: string): Promise<DonorDocument
 
 /**
  * Get download URL for a document
+ *
+ * H5-D: backend route now enforces clerkAuth + per-doc ownership, so we
+ * route the call through api.get() to pass the Clerk Bearer token.
  */
-export const getDocumentDownloadUrl = async (documentId: string): Promise<string | null> => {
+export const getDocumentDownloadUrl = async (
+  documentId: string,
+  getToken: (options?: { template?: string }) => Promise<string | null>
+): Promise<string | null> => {
   try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-    const response = await fetch(`${apiUrl}/api/documents/download/${documentId}`)
-
-    if (!response.ok) {
-      console.error('Error fetching download URL')
-      return null
-    }
-
-    const data = await response.json()
+    const data = await api.get<{ url?: string | null }>(
+      `/api/documents/download/${documentId}`,
+      getToken
+    )
     return data.url || null
   } catch (error) {
     console.error('Error getting document download URL:', error)
@@ -1209,25 +1486,21 @@ export const getDocumentDownloadUrl = async (documentId: string): Promise<string
 
 /**
  * Generate annual summary for a donor
+ *
+ * H5-D: backend route now enforces clerkAuth + self-only guard, so we
+ * route the call through api.post() to pass the Clerk Bearer token.
  */
 export const generateAnnualSummary = async (
   donorId: string,
-  year: number
+  year: number,
+  getToken: (options?: { template?: string }) => Promise<string | null>
 ): Promise<DonorDocument | null> => {
   try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-    const response = await fetch(`${apiUrl}/api/documents/generate-annual-summary`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ donorId, year }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to generate summary')
-    }
-
-    const data = await response.json()
+    const data = await api.post<{ document?: DonorDocument | null }>(
+      '/api/documents/generate-annual-summary',
+      { donorId, year },
+      getToken
+    )
     return data.document || null
   } catch (error) {
     console.error('Error generating annual summary:', error)
@@ -1494,16 +1767,26 @@ export interface OrganizationTeamMember {
 export const fetchOrganizationProfile = async (
   organizationIdOrSlug: string
 ): Promise<OrganizationProfile | null> => {
-  const { data: org, error } = await supabase
-    .from('organizations')
-    .select(
-      `
+  // organizations.id is a uuid column. When called with a slug, putting it in
+  // an `id.eq.<slug>` predicate makes Postgres try to cast the slug to uuid and
+  // throws 22P02 (invalid input syntax for type uuid), failing the whole query.
+  // Only include the id predicate when the argument actually looks like a uuid.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    organizationIdOrSlug
+  )
+
+  const baseQuery = supabase.from('organizations').select(
+    `
       *,
       user_profile:user_profiles!organizations_user_id_fkey(is_vetted)
     `
-    )
-    .or(`id.eq.${organizationIdOrSlug},slug.eq.${organizationIdOrSlug}`)
-    .maybeSingle()
+  )
+
+  const { data: org, error } = await (
+    isUuid
+      ? baseQuery.or(`id.eq.${organizationIdOrSlug},slug.eq.${organizationIdOrSlug}`)
+      : baseQuery.eq('slug', organizationIdOrSlug)
+  ).maybeSingle()
 
   if (error || !org) {
     if (error) console.error('Error fetching organization:', error)
@@ -1829,7 +2112,12 @@ export const fetchCampaignReports = async (status?: string): Promise<CampaignRep
     .select(
       `
       *,
-      campaign:campaigns(id, title, slug, organization_id)
+      campaign:campaigns(
+        id,
+        slug,
+        organization_id,
+        detail:campaign_details(content, status, version)
+      )
     `
     )
     .order('created_at', { ascending: false })
@@ -1845,7 +2133,26 @@ export const fetchCampaignReports = async (status?: string): Promise<CampaignRep
     return []
   }
 
-  return data || []
+  // Post-process: derive campaign.title from the latest approved detail
+  // (fallback to latest) so downstream callers keep reading report.campaign.title.
+  return (data || []).map((row: any) => {
+    const detail: Array<{ content?: any; status?: string; version?: number }> = Array.isArray(
+      row.campaign?.detail
+    )
+      ? row.campaign.detail
+      : []
+    const sorted = [...detail].sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+    const approved = sorted.find((d) => d.status === 'approved')
+    const content = (approved?.content ?? sorted[0]?.content ?? {}) as { title?: string }
+    if (row.campaign) {
+      row.campaign = {
+        ...row.campaign,
+        title: content.title || 'Untitled campaign',
+      }
+      delete row.campaign.detail
+    }
+    return row
+  })
 }
 
 // Update campaign report status (for admin)
@@ -2026,43 +2333,16 @@ export const fetchUserGrowthData = async (months: number = 6): Promise<MonthlyDa
   })
 }
 
-// Fetch donation trends data (fulfilled requests per month with amounts)
-export const fetchDonationTrendsData = async (months: number = 6): Promise<MonthlyDataPoint[]> => {
-  const { data, error } = await (supabase.from('requests') as any)
-    .select('fulfilled_at, amount, status')
-    .eq('status', 'fulfilled')
-    .not('fulfilled_at', 'is', null)
-    .order('fulfilled_at', { ascending: true })
+// Token getter shape matching Clerk's useAuth().getToken (mirrors api.ts).
+type DonationTrendsTokenGetter = (options?: { template?: string }) => Promise<string | null>
 
-  if (error) {
-    console.error('Error fetching donation trends:', error)
-    return []
-  }
-
-  // Group by month
-  const monthData: Record<string, { count: number; amount: number }> = {}
-  const now = new Date()
-
-  // Initialize last N months with 0
-  for (let i = months - 1; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    monthData[key] = { count: 0, amount: 0 }
-  }
-
-  // Sum donations per month
-  for (const request of data || []) {
-    if (request.fulfilled_at) {
-      const date = new Date(request.fulfilled_at)
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      if (key in monthData) {
-        monthData[key].count++
-        monthData[key].amount += Number(request.amount || 0)
-      }
-    }
-  }
-
-  // Convert to array format
+// Donation trends — re-sourced from GET /api/admin/donations (the requests
+// table is dead). Returns the backend's last-6-month succeeded buckets mapped
+// to MonthlyDataPoint (month name + dollars). Signature/return type preserved
+// so the AnalyticsContent→Overview chart consumer is unchanged.
+export const fetchDonationTrendsData = async (
+  getToken: DonationTrendsTokenGetter
+): Promise<MonthlyDataPoint[]> => {
   const monthNames = [
     'Jan',
     'Feb',
@@ -2077,15 +2357,24 @@ export const fetchDonationTrendsData = async (months: number = 6): Promise<Month
     'Nov',
     'Dec',
   ]
-  return Object.entries(monthData).map(([key, data]) => {
-    const [year, month] = key.split('-').map(Number)
-    return {
-      month: monthNames[month - 1],
-      year,
-      count: data.count,
-      amount: data.amount,
-    }
-  })
+  try {
+    const data = await api.get<{
+      totals?: {
+        monthlyTrends?: { month: number; year: number; count: number; amount: number }[]
+      }
+    }>('/api/admin/donations', getToken)
+    const trends = data.totals?.monthlyTrends ?? []
+    return trends.map((t) => ({
+      // backend month is 1-12; amount is in cents → dollars for the chart.
+      month: monthNames[t.month - 1] ?? String(t.month),
+      year: t.year,
+      count: t.count,
+      amount: t.amount / 100,
+    }))
+  } catch (err) {
+    console.error('Error fetching donation trends:', err)
+    return []
+  }
 }
 
 // ============================================
@@ -2124,12 +2413,24 @@ export const logAdminActivity = async (
   }
 }
 
-// Fetch recent admin activity
-export const fetchAdminActivity = async (limit: number = 20): Promise<AdminActivity[]> => {
-  const { data, error } = await (supabase.from('admin_activity_log') as any)
+// Fetch recent admin activity.
+// W4-B (Phase A8): signature extended to support filter + cursor pagination
+// for AuditLogPage. `sinceIso` is exclusive upper bound on created_at, so
+// callers can keep paging by passing the oldest item's timestamp.
+export const fetchAdminActivity = async (
+  opts: { limit?: number; action?: string; entityType?: string; sinceIso?: string } = {}
+): Promise<AdminActivity[]> => {
+  const { limit = 50, action, entityType, sinceIso } = opts
+  let query = (supabase.from('admin_activity_log') as any)
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit)
+
+  if (action) query = query.eq('action', action)
+  if (entityType) query = query.eq('entity_type', entityType)
+  if (sinceIso) query = query.lt('created_at', sinceIso)
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching admin activity:', error)
@@ -2137,6 +2438,33 @@ export const fetchAdminActivity = async (limit: number = 20): Promise<AdminActiv
   }
 
   return data || []
+}
+
+// W7-12: resolve admin_id (TEXT, no FK) -> email/name for the audit log.
+// admin_activity_log.admin_id has no FK to user_profiles, so a PostgREST
+// embed won't resolve. Caller collects unique ids per page and accumulates
+// the returned id->profile map across pages.
+export const fetchUserProfilesByIds = async (
+  ids: string[]
+): Promise<Record<string, { email: string | null; name: string | null }>> => {
+  if (ids.length === 0) return {}
+
+  const { data, error } = await (supabase.from('user_profiles') as any)
+    .select('id,email,name')
+    .in('id', ids)
+
+  if (error) {
+    console.error('Error fetching user profiles by ids:', error)
+    return {}
+  }
+
+  return ((data || []) as { id: string; email: string | null; name: string | null }[]).reduce(
+    (acc, row) => {
+      acc[row.id] = { email: row.email ?? null, name: row.name ?? null }
+      return acc
+    },
+    {} as Record<string, { email: string | null; name: string | null }>
+  )
 }
 
 // ============================================
@@ -2319,4 +2647,100 @@ function formatFileSize(bytes: number): string {
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+// Duplicate an existing campaign.
+//
+// W5-A1: copies the source campaign's content into a brand-new campaign
+// that lands in `pending_initial_approval` (no fast-track) via the
+// existing create_campaign_with_detail RPC. No new RPC, no Storage
+// re-upload — image URLs are shared with the source.
+//
+// The source object is whatever `getCampaignsByOrganization` returns:
+// post-REFB that helper spreads `latestApproved?.content ?? latest?.content`
+// flat onto the campaign row, so title / funding_goal / contact_email /
+// story_content / etc. are read directly off `sourceCampaign`. The
+// `latestApproved.content` shape from the architect brief is also
+// honoured if present, for forward compatibility.
+export const duplicateCampaign = async (
+  sourceCampaign: CampaignWithDerivedStatus,
+  createdBy: string
+): Promise<Awaited<ReturnType<typeof createCampaign>>> => {
+  if (!sourceCampaign) {
+    throw new Error('No source campaign to duplicate')
+  }
+  if (sourceCampaign.deleted_at) {
+    throw new Error('Cannot duplicate a deleted campaign')
+  }
+  if (!sourceCampaign.organization_id) {
+    throw new Error('Source campaign is missing organization_id')
+  }
+
+  // Prefer the architect-spec'd nested content if a future caller
+  // provides it; otherwise read the flat fields that the current
+  // getCampaignsByOrganization() spread produces.
+  const nestedContent =
+    sourceCampaign.latestApproved?.content ?? sourceCampaign.latest?.content ?? null
+  const source: Record<string, unknown> = nestedContent
+    ? { ...(nestedContent as Record<string, unknown>) }
+    : { ...(sourceCampaign as Record<string, unknown>) }
+
+  const sourceTitle =
+    (source.title as string | undefined) ||
+    (sourceCampaign.title as string | undefined) ||
+    'Untitled campaign'
+
+  const fundingGoalRaw = source.funding_goal ?? sourceCampaign.funding_goal
+  const fundingGoal =
+    typeof fundingGoalRaw === 'number'
+      ? fundingGoalRaw
+      : typeof fundingGoalRaw === 'string'
+        ? parseFloat(fundingGoalRaw) || 0
+        : 0
+
+  const contactEmail =
+    (source.contact_email as string | undefined) ||
+    (sourceCampaign.contact_email as string | undefined) ||
+    ''
+
+  if (!contactEmail) {
+    throw new Error('Source campaign is missing contact_email; cannot duplicate')
+  }
+
+  const payload: CampaignData = {
+    organization_id: sourceCampaign.organization_id,
+    created_by: createdBy,
+    title: `Copy of ${sourceTitle}`,
+    funding_goal: fundingGoal,
+    contact_email: contactEmail,
+  }
+
+  // Copy every optional content field that exists on the source.
+  // Skip undefined so createCampaign omits the key from the RPC payload.
+  const optionalKeys: Array<keyof CampaignData> = [
+    'creator_name',
+    'creator_role',
+    'cause_area_ids',
+    'short_description',
+    'story_title',
+    'story_content',
+    'image_url',
+    'logo_url',
+    'phone',
+    'facebook_url',
+    'twitter_url',
+    'instagram_url',
+    'linkedin_url',
+    'youtube_url',
+    'tiktok_url',
+    'website_url',
+  ]
+  for (const key of optionalKeys) {
+    const value = source[key as string]
+    if (value !== undefined && value !== null) {
+      ;(payload as unknown as Record<string, unknown>)[key as string] = value
+    }
+  }
+
+  return createCampaign(payload)
 }

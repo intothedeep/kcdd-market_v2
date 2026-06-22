@@ -9,8 +9,11 @@
 
 import { loadStripe, Stripe } from '@stripe/stripe-js'
 import { stripeConfig, apiConfig } from '@/config'
+import { api } from '@/lib/api'
 
 let stripePromise: Promise<Stripe | null>
+
+type GetToken = (options?: { template?: string }) => Promise<string | null>
 
 /**
  * Get Stripe instance (singleton)
@@ -24,30 +27,24 @@ export const getStripe = () => {
 
 /**
  * Create a payment intent for a request
+ *
+ * H5-A: routes through authenticated api.post() helper so the backend
+ * clerkAuth middleware (added in H1) can validate the Bearer token.
  */
 export const createPaymentIntent = async (
-  requestId: string,
-  amount: number,
-  donorId?: string
+  getToken: GetToken,
+  params: { requestId: string; amount: number; donorId?: string }
 ): Promise<string> => {
-  const response = await fetch(`${apiConfig.baseUrl}${apiConfig.endpoints.payments.createIntent}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const { clientSecret } = await api.post<{ clientSecret: string }>(
+    apiConfig.endpoints.payments.createIntent,
+    {
+      requestId: params.requestId,
+      amount: params.amount,
+      donorId: params.donorId,
     },
-    body: JSON.stringify({
-      requestId,
-      amount,
-      donorId,
-    }),
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to create payment intent')
-  }
-
-  const data = await response.json()
-  return data.clientSecret
+    getToken
+  )
+  return clientSecret
 }
 
 /**

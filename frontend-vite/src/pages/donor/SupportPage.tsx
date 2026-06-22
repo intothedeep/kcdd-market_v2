@@ -122,10 +122,10 @@ export function DonorSupport() {
           </SidebarItem>
           <SidebarItem
             icon={<Heart className="h-4 w-4 text-gray-700" />}
-            active={isActive('/requests')}
-            onClick={() => navigate('/requests')}
+            active={isActive('/campaigns')}
+            onClick={() => navigate('/campaigns')}
           >
-            {sidebarOpen && 'Browse Requests'}
+            {sidebarOpen && 'Browse Campaigns'}
           </SidebarItem>
           <SidebarItem
             icon={<BarChart3 className="h-4 w-4 text-gray-700" />}

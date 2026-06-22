@@ -7,9 +7,16 @@
 
 import { Link } from 'react-router-dom'
 import { routes } from '@/config'
+import { SignInButton, useUser } from '@clerk/clerk-react'
+import { useUserType } from '@/hooks/useClerkSupabase'
 import { Button } from '@/components/ui/button'
 
 export function HeroSection() {
+  const { isSignedIn } = useUser()
+  const { userType } = useUserType()
+  const orgCtaClass =
+    'h-10 w-full rounded-full border-2 border-[hsl(var(--brand-primary))] bg-transparent px-6 text-[hsl(var(--brand-primary))] transition-all duration-200 hover:bg-[hsl(var(--brand-primary))] hover:text-white focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-primary))] focus-visible:ring-offset-2 active:scale-95 sm:w-auto'
+
   return (
     <section className="w-full bg-white" aria-labelledby="hero-heading">
       <div className="w-full max-w-none px-5 py-5 md:py-8">
@@ -83,23 +90,40 @@ export function HeroSection() {
               individuals — so the digital divide gets smaller, one device at a time.
             </p>
 
-            <nav className="flex items-center gap-4" aria-label="Primary actions">
-              <Link to={routes.requests}>
+            <nav
+              className="flex w-full flex-col items-stretch gap-4 sm:w-auto sm:flex-row sm:items-center"
+              aria-label="Primary actions"
+            >
+              <Link to={routes.requests} className="block w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="h-10 rounded-full border-2 border-[hsl(var(--brand-primary))] bg-[hsl(var(--brand-primary))] px-4 text-white transition-all duration-200 hover:bg-transparent hover:text-[hsl(var(--brand-primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-primary))] focus-visible:ring-offset-2 active:scale-95"
+                  className="h-10 w-full rounded-full border-2 border-[hsl(var(--brand-primary))] bg-[hsl(var(--brand-primary))] px-6 text-white transition-all duration-200 hover:bg-transparent hover:text-[hsl(var(--brand-primary))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-primary))] focus-visible:ring-offset-2 active:scale-95 sm:w-auto"
                 >
-                  Browse Requests
+                  Browse campaigns &amp; donate
                 </Button>
               </Link>
-              <Link to={routes.about}>
-                <Button
-                  size="lg"
-                  className="h-10 rounded-full border-2 border-[hsl(var(--brand-primary))] bg-transparent px-4 text-[hsl(var(--brand-primary))] transition-all duration-200 hover:bg-[hsl(var(--brand-primary))] hover:text-white focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-primary))] focus-visible:ring-offset-2 active:scale-95"
+              {isSignedIn && userType === 'cbo' ? (
+                <Link
+                  to={`${routes.cbo.dashboard}?section=create-campaign`}
+                  className="block w-full sm:w-auto"
                 >
-                  Learn More
-                </Button>
-              </Link>
+                  <Button size="lg" className={orgCtaClass}>
+                    Create new campaign
+                  </Button>
+                </Link>
+              ) : isSignedIn ? (
+                <Link to={routes.cbo.setup} className="block w-full sm:w-auto">
+                  <Button size="lg" className={orgCtaClass}>
+                    Register organization
+                  </Button>
+                </Link>
+              ) : (
+                <SignInButton mode="modal">
+                  <Button size="lg" className={orgCtaClass}>
+                    Register organization
+                  </Button>
+                </SignInButton>
+              )}
             </nav>
           </div>
 

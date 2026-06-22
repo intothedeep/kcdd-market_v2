@@ -4,7 +4,7 @@ export const homeTextWithImage: TextWithImageSectionData = {
   subtitle: 'For Individuals',
   heading: "Don't have an organization in your corner? You can apply directly.",
   description:
-    "Students who need a laptop for AP coursework. Seniors who need a tablet for telehealth. Reentry clients starting from zero. KC DIME Direct is our in-house intake program — apply, get verified, get matched with a donor.",
+    'Students who need a laptop for AP coursework. Seniors who need a tablet for telehealth. Reentry clients starting from zero. KC DIME Direct is our in-house intake program — apply, get verified, get matched with a donor.',
   listItems: [
     'No org sponsorship required',
     'We verify need (a brief conversation, not a maze)',

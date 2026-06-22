@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -21,7 +21,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
-import { apiConfig, routes } from '@/config'
+import { routes } from '@/config'
+import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { AlertTriangle, ArrowLeft, Loader2, Heart } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -52,6 +53,7 @@ export function CampaignDonatePage() {
   const stripe = useStripe()
   const elements = useElements()
   const { user } = useUser()
+  const { getToken } = useAuth()
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [loading, setLoading] = useState(true)
@@ -65,28 +67,59 @@ export function CampaignDonatePage() {
     const loadCampaign = async () => {
       if (!slug) return
 
+      // H1-4 pattern: shape-validated single .eq() instead of unescaped .or()
+      const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      const slugRe = /^[a-z0-9-]+$/i
+      const column: 'id' | 'slug' | null = uuidRe.test(slug)
+        ? 'id'
+        : slugRe.test(slug)
+          ? 'slug'
+          : null
+      if (!column) {
+        setError('Campaign not found')
+        setLoading(false)
+        return
+      }
+
       try {
+        // Post-REFB: title / short_description / funding_goal / image_url
+        // live in campaign_details.content; campaigns row carries only
+        // metadata + runtime counters. Embed latest approved detail.
         const { data, error } = await supabase
           .from('campaigns')
           .select(
             `
             id,
-            title,
             slug,
-            short_description,
-            funding_goal,
             amount_raised,
-            image_url,
             organization_id,
-            organization:organizations(id, name, slug, stripe_charges_enabled, stripe_account_id)
+            organization:organizations(id, name, slug, stripe_charges_enabled, stripe_account_id),
+            detail:campaign_details!inner(content)
           `
           )
-          .or(`slug.eq.${slug},id.eq.${slug}`)
+          .eq(column, slug)
+          .eq('detail.status', 'approved')
+          .is('deleted_at', null)
           .single()
 
         if (error) throw error
 
-        setCampaign(data)
+        // Hoist content fields onto the campaign object to preserve the
+        // existing JSX shape (campaign.title, campaign.short_description, ...).
+        const detail = Array.isArray((data as { detail?: unknown }).detail)
+          ? ((data as { detail: Array<{ content: Record<string, unknown> }> }).detail[0] ?? null)
+          : ((data as { detail?: { content: Record<string, unknown> } | null }).detail ?? null)
+        const content = (detail?.content ?? {}) as Record<string, unknown>
+        const merged = {
+          ...(data as Record<string, unknown>),
+          title: typeof content.title === 'string' ? content.title : '',
+          short_description:
+            typeof content.short_description === 'string' ? content.short_description : '',
+          funding_goal: typeof content.funding_goal === 'number' ? content.funding_goal : 0,
+          image_url: typeof content.image_url === 'string' ? content.image_url : null,
+        }
+
+        setCampaign(merged as unknown as Campaign)
       } catch (err) {
         console.error('Error loading campaign:', err)
         setError('Failed to load campaign')
@@ -129,25 +162,16 @@ export function CampaignDonatePage() {
     setError(null)
 
     try {
-      // Create payment intent for campaign donation
-      const response = await fetch(`${apiConfig.baseUrl}/api/payments/create-campaign-intent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Create payment intent for campaign donation via authenticated helper (H5-A)
+      const { clientSecret } = await api.post<{ clientSecret: string }>(
+        '/api/payments/create-campaign-intent',
+        {
           campaignId: campaign.id,
           amount: Math.round(amount * 100), // Convert to cents
           donorId: user?.id,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create payment')
-      }
-
-      const { clientSecret } = await response.json()
+        },
+        getToken
+      )
 
       // Confirm payment
       const cardElement = elements.getElement(CardElement)
