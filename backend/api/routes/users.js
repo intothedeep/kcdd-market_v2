@@ -98,9 +98,14 @@ router.post('/sync', async (req, res) => {
 
     if (!current) {
       // New profile: seed email/name + role (override or donor default).
-      const { error } = await supabase
-        .from('user_profiles')
-        .insert({ id: clerkUserId, email, name, user_type: overrideRole ?? 'donor' })
+      const insertFields = { id: clerkUserId, email, name, user_type: overrideRole ?? 'donor' }
+      if (overrideRole) {
+        // DEV-ONLY: designated dev accounts skip the onboarding banner +
+        // verification friction so they land straight in their dashboard.
+        insertFields.onboarding_complete = true
+        insertFields.is_vetted = true
+      }
+      const { error } = await supabase.from('user_profiles').insert(insertFields)
       if (error) throw error
       return res.json({ success: true })
     }
@@ -108,7 +113,13 @@ router.post('/sync', async (req, res) => {
     // Existing profile: always refresh email/name. Only touch user_type when a
     // dev override applies — non-listed users keep their current admin/cbo role.
     const update = { email, name }
-    if (overrideRole) update.user_type = overrideRole
+    if (overrideRole) {
+      update.user_type = overrideRole
+      // DEV-ONLY: designated dev accounts skip the onboarding banner +
+      // verification friction so they land straight in their dashboard.
+      update.onboarding_complete = true
+      update.is_vetted = true
+    }
 
     const { error } = await supabase.from('user_profiles').update(update).eq('id', clerkUserId)
     if (error) throw error
