@@ -196,13 +196,48 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 No separate scripts, no `--mode` flag. Just the env vars.
 
-### Set up the Stripe webhook (production)
+### Set up the Stripe webhook (cloud — test vs live)
 
-See `_docs/stripe-webhook.md` for the setup checklist. The production webhook URL points at your deployed backend:
+Unlike local dev (`stripe listen` CLI), a deployed backend has a public URL, so
+you **register a webhook endpoint in the Stripe Dashboard** pointing at it:
 
 ```
 https://your-api.example.com/api/payments/webhook
 ```
+
+This app uses **one endpoint + one secret** (`STRIPE_WEBHOOK_SECRET`) for all
+events. When adding the endpoint, select these **9 events**:
+
+```
+payment_intent.succeeded         payment_intent.payment_failed
+charge.refunded                  charge.dispute.created
+charge.dispute.funds_withdrawn   charge.dispute.funds_reinstated
+charge.dispute.closed            account.updated                      (Connect)
+                                 account.application.deauthorized     (Connect)
+```
+
+> ⚠️ The two `account.*` events are **Connect events** — enable **"Listen to
+> events on Connected accounts"** on the endpoint or they won't be delivered.
+
+**Test mode ≠ Live mode.** Stripe keeps separate keys, endpoints, signing
+secrets, and connected accounts per mode; a test secret only verifies test
+events. So run a **test cloud deploy** and **production** with different env:
+
+| | Test cloud deploy (Vercel **Preview**) | Production (Vercel **Production**) |
+| --- | --- | --- |
+| Dashboard mode | Test | **Live** |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | `pk_test_…` | `pk_live_…` |
+| `STRIPE_SECRET_KEY` | `sk_test_…` | `sk_live_…` |
+| Webhook endpoint | registered in **Test** at the preview URL | registered in **Live** at the prod URL |
+| `STRIPE_WEBHOOK_SECRET` | that test endpoint's `whsec_…` | that live endpoint's `whsec_…` |
+| `STRIPE_BYPASS_CONNECT` | `true` (or onboard test connected accounts) | **unset** — orgs complete real Connect onboarding |
+| Cards | test card `4242 4242 4242 4242` | real cards (real charges) |
+
+Verify a deploy: make a donation, then Dashboard → Webhooks → your endpoint →
+recent deliveries should show `200 OK`; the `payment_transactions` row +
+`requests`/campaign totals should update. Going live also requires **activating**
+your Stripe account (business details). Deeper dive (idempotency, reconciliation,
+per-event handlers): `_docs/stripe-webhook.md`.
 
 ---
 
