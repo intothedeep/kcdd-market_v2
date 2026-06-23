@@ -274,6 +274,53 @@ row flips to `status='sent'`.
 
 ---
 
+## Step 6 — Create the first admin user
+
+Production has **no seeded users** — `seed.sql` only runs against the local
+Docker stack (`pnpm db:reset`), never on `db push`. The dev convenience
+`DEV_ROLE_OVERRIDES` is also fully inert when `NODE_ENV=production`
+(`resolveDevRoleOverride()` returns `null`), so you **cannot** mint an admin via
+env vars in prod. There is no "mock" admin either: `user_profiles.id` is a real
+Clerk user id, so every account must be a genuine Clerk sign-in.
+
+Bootstrap the first admin once, by hand:
+
+1. **Sign in to the production app with Clerk** using the account that should be
+   admin. The `POST /api/users/sync` call creates its `user_profiles` row with
+   the default `user_type='donor'`.
+
+2. **Find that account's Clerk user id** — Supabase Dashboard → Table editor →
+   `user_profiles` (filter by email), or the Clerk Dashboard → Users.
+
+3. **Promote it in Supabase Dashboard → SQL Editor:**
+
+   ```sql
+   -- The prevent_user_type_escalation trigger (migration 20260620000002) only
+   -- lets a service_role caller change user_type. The SQL Editor connects as
+   -- `postgres` (auth.role() is NULL), so set the service_role claim for this
+   -- transaction to satisfy the trigger's bypass, then promote.
+   SET LOCAL request.jwt.claims = '{"role":"service_role"}';
+
+   UPDATE public.user_profiles
+   SET user_type          = 'admin',
+       verification_status = 'verified',
+       onboarding_complete = true
+   WHERE id = 'user_XXXXXXXXXXXXXXXX';   -- the Clerk user id from step 2
+   ```
+
+   > Without the `SET LOCAL request.jwt.claims` line the UPDATE fails with the
+   > escalation guard. (Alternative for a superuser session:
+   > `ALTER TABLE public.user_profiles DISABLE TRIGGER check_user_type_escalation;`
+   > … `UPDATE` … then re-`ENABLE TRIGGER`.)
+
+4. **Re-sign-in** (or refresh) the account → `/admin` is now reachable.
+
+This is a **one-time bootstrap**. After the first admin exists, promote any
+further admins from the in-app **`/admin` user management** UI — the trigger
+permits an existing admin to assign roles, so no more SQL is needed.
+
+---
+
 ## How Env Switching Works (Reference)
 
 ### Vite frontend — uses mode
@@ -365,6 +412,7 @@ Before first deploy:
 - [ ] Clerk `supabase` JWT template created in Clerk Dashboard
 - [ ] Clerk registered as Third-Party Auth provider in cloud Supabase Dashboard (see Step 1)
 - [ ] `/health` endpoint reachable from frontend (check the live API banner on home page)
+- [ ] First admin bootstrapped via SQL (Step 6) — no seeded/mock admin exists in prod
 
 After each deploy:
 
