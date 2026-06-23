@@ -137,6 +137,7 @@ _scripts
 00.architecture.md
 _docs
 z_*
+x_*
 # LOCAL_DEV.node_modules
 
 # Supabase seed and backup files (from origin/main)
