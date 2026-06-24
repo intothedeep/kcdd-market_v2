@@ -13,16 +13,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ChevronDown, LayoutDashboard, Heart, Building2, Shield } from 'lucide-react'
+import { ChevronDown, Menu, LayoutDashboard, Heart, Building2, Shield } from 'lucide-react'
 import { useUserType } from '@/hooks/useClerkSupabase'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { MobileNavSheet } from '@/components/MobileNavSheet'
+import { useMobileNavStore } from '@/stores/mobileNavStore'
 
 export function Navbar() {
   const { isSignedIn } = useUser()
   const { userType, loading: userTypeLoading } = useUserType()
   const location = useLocation()
   const navigate = useNavigate()
+  const openNav = useMobileNavStore((s) => s.openNav)
 
   const isActive = (path: string) => location.pathname === path
 
@@ -61,6 +63,15 @@ export function Navbar() {
       <div className="flex items-center px-5 py-5">
         {/* Left side - Navigation Links */}
         <div className="flex flex-1 items-center">
+          {/* Mobile hamburger — opens the bottom-sheet nav (same modal as the FAB) */}
+          <button
+            type="button"
+            onClick={openNav}
+            aria-label="Open menu"
+            className="-ml-1 mr-1 flex h-10 w-10 items-center justify-center rounded-md text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))]/10 md:hidden"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
           <nav className="hidden items-center gap-[15px] md:flex">
             <Link
               to={routes.home}
@@ -165,7 +176,7 @@ export function Navbar() {
               <UserButton afterSignOutUrl={routes.home} />
             </>
           ) : (
-            <>
+            <div className="hidden items-center md:flex">
               <SignInButton mode="modal">
                 <Button
                   variant="outline"
@@ -175,7 +186,7 @@ export function Navbar() {
                   Sign in / Sign up
                 </Button>
               </SignInButton>
-            </>
+            </div>
           )}
         </div>
       </div>

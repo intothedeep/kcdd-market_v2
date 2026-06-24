@@ -1952,9 +1952,9 @@ function ReportsContent({
               key={report.id}
               className={`p-4 ${report.status === 'pending' ? 'border-amber-200 bg-amber-50/30' : ''}`}
             >
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex-1">
-                  <div className="mb-2 flex items-center gap-3">
+                  <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                     {getStatusBadge(report.status)}
                     <span className="text-sm font-medium">{getReasonLabel(report.reason)}</span>
                     <span className="text-xs text-[#737373]">
@@ -2001,7 +2001,7 @@ function ReportsContent({
                   )}
                 </div>
 
-                <div className="ml-4 flex items-center gap-2">
+                <div className="flex items-center gap-2 sm:ml-4">
                   {(report as any).campaign?.slug && (
                     <Button
                       variant="outline"
