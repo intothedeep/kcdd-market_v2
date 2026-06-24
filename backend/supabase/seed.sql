@@ -268,7 +268,7 @@ INSERT INTO campaign_details (
      'contact_email', 'campaigns@connectingroots.org',
      'phone', '+1-816-555-0111',
      'image_url', 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&q=80',
-     'logo_url', 'https://example.com/img/connecting-roots-logo.png',
+     'logo_url', 'https://ui-avatars.com/api/?name=Connecting+Roots&size=256&background=0D8ABC&color=fff',
      'facebook_url', 'https://facebook.com/connectingrootskc',
      'instagram_url', 'https://instagram.com/connectingrootskc'
    ),
@@ -291,7 +291,7 @@ INSERT INTO campaign_details (
      'contact_email', 'campaigns@digitalfutureskc.org',
      'phone', '+1-816-555-0133',
      'image_url', 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&q=80',
-     'logo_url', 'https://example.com/img/digital-futures-logo.png',
+     'logo_url', 'https://ui-avatars.com/api/?name=Digital+Futures&size=256&background=2E7D32&color=fff',
      'instagram_url', 'https://instagram.com/digitalfutureskc'
    ),
    '00000000-0000-0000-0002-000000000003',
@@ -353,7 +353,7 @@ INSERT INTO campaign_details (
      'story_content', '<p>Our community hub already hosts 200+ visits per month. A self-serve telehealth booth lets neighbors talk to a nurse without a doctor visit.</p>',
      'contact_email', 'campaigns@connectingroots.org',
      'phone', '+1-816-555-0111',
-     'logo_url', 'https://example.com/img/connecting-roots-logo.png'
+     'logo_url', 'https://ui-avatars.com/api/?name=Connecting+Roots&size=256&background=0D8ABC&color=fff'
    ),
    '00000000-0000-0000-0002-000000000001',
    'approved',
@@ -405,7 +405,7 @@ INSERT INTO campaign_details (
      'story_content', '<p>Our community hub already hosts 200+ visits per month. A self-serve telehealth booth lets neighbors talk to a nurse without a doctor visit.</p>',
      'contact_email', 'campaigns@connectingroots.org',
      'phone', '+1-816-555-0111',
-     'logo_url', 'https://example.com/img/connecting-roots-logo.png'
+     'logo_url', 'https://ui-avatars.com/api/?name=Connecting+Roots&size=256&background=0D8ABC&color=fff'
    ),
    '00000000-0000-0000-0002-000000000001',
    'pending_edit_approval',
