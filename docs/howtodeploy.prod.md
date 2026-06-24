@@ -115,6 +115,39 @@ will error until you `link` again — it does **not** fall back to the local
 stack. To apply migrations to the **local** Docker DB, use `pnpm db:reset`
 (replays all migrations + seed; wipes local data) — never `db push`.
 
+### Cloud DB push gotchas (local works ≠ cloud works)
+
+The local Supabase Docker stack is more permissive than Supabase Cloud, so some
+things that pass `pnpm db:reset` can fail or silently no-op on `db push`. Known
+ones (all addressed in-repo as of Wave 9):
+
+- **`uuid_generate_v4()` fails on Cloud** — Cloud installs `uuid-ossp` in the
+  `extensions` schema, which is **not** on the migration runner's search_path, so
+  `uuid_generate_v4()` errors with *"function does not exist"* on the first
+  migration. Fix: the repo uses core **`gen_random_uuid()`** (Postgres 15
+  `pg_catalog`, no extension) everywhere. If you add SQL, use `gen_random_uuid()`.
+- **`seed.sql` does NOT run on `db push`** — seed only runs on local `db:reset`.
+  So a fresh Cloud DB has the schema but **no data** (no campaigns/orgs) and
+  anything seed-only is missing. Two consequences:
+  - To get demo data, load seed manually (Supabase SQL Editor → paste
+    `backend/supabase/seed.sql`, or `psql "$CLOUD_URL" < backend/supabase/seed.sql`).
+    For real production, create data through the app instead.
+  - Anything a migration *assumed* seed would create must move into a migration.
+    The **`tax-documents` storage bucket** (previously seed-only) is now created by
+    `20260623000100_tax_documents_bucket.sql` so the PDF receipt pipeline works on
+    Cloud.
+- **Migration filenames must match `<timestamp>_name.sql`** — otherwise the CLI
+  **skips** them with a warning (this is why the old empty `99-realtime.sql` was
+  removed). If a push log says "Skipping migration …", that file never applies.
+- **`auth.users` trigger removed** — the legacy `on_auth_user_created` trigger
+  (this app uses Clerk, not Supabase Auth) is dropped by
+  `20260623000000_drop_obsolete_auth_user_trigger.sql` to avoid orphan
+  `user_profiles` rows on Cloud.
+
+After a successful `db push`, run the RLS validation query (see `CLAUDE.md` →
+"Adding a new DB table") against Cloud via the SQL Editor to confirm no table is
+`rls_enabled=true` with `policy_count=0`.
+
 ---
 
 ## Step 3 — Deploy the Frontend (Vercel)
