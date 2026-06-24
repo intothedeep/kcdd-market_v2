@@ -90,6 +90,7 @@ import {
   uploadOrganizationDocument,
   deleteOrganizationDocument,
   ORGANIZATION_DOCUMENT_TYPES,
+  updateOrganization,
   supabase,
   type CBODashboardStats,
   type RequestRecord,
@@ -762,7 +763,6 @@ function ProfileContent({ organization, onRefresh }: { organization: any; onRefr
         },
       }
 
-      const { updateOrganization } = await import('@/lib/supabase')
       const { error } = await updateOrganization(organization.id, updateData)
 
       if (error) {
@@ -2327,7 +2327,6 @@ function SettingsContent({
     setSaveMessage(null)
 
     try {
-      const { updateOrganization } = await import('@/lib/supabase')
       const { error } = await updateOrganization(organization.id, formData)
 
       if (error) {

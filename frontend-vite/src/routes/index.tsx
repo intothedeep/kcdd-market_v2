@@ -6,55 +6,106 @@
  * - Clerk Protected Routes: https://clerk.com/docs/components/protect
  */
 
+import { lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { SignIn, SignUp, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react'
 import { routes } from '@/config'
 
-// Layouts
+// Layouts (kept static)
 import { MainLayout } from '@/layouts/MainLayout'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 
-// Pages
+// Pages (HomePage kept static — eager above-the-fold)
 import { HomePage } from '@/pages/HomePage'
-import { AboutPage } from '@/pages/AboutPage'
-import { FaqPage } from '@/pages/FaqPage'
-import { ContactPage } from '@/pages/ContactPage'
-import { RequestsPage } from '@/pages/RequestsPage'
+const AboutPage = lazy(() => import('@/pages/AboutPage').then((m) => ({ default: m.AboutPage })))
+const FaqPage = lazy(() => import('@/pages/FaqPage').then((m) => ({ default: m.FaqPage })))
+const ContactPage = lazy(() =>
+  import('@/pages/ContactPage').then((m) => ({ default: m.ContactPage }))
+)
+const RequestsPage = lazy(() =>
+  import('@/pages/RequestsPage').then((m) => ({ default: m.RequestsPage }))
+)
 // W7-10 Phase 1: requests surfaces unrouted (campaigns-only). Reversible — uncomment.
 // import { RequestDetailPage } from '@/pages/RequestDetailPage'
-import { DonorDashboard } from '@/pages/donor/DashboardPage'
-import { DonorProfile } from '@/pages/donor/ProfilePage'
-import { DonorImpact } from '@/pages/donor/ImpactPage'
-import { DonorDocuments } from '@/pages/donor/DocumentsPage'
-import { DonorSupport } from '@/pages/donor/SupportPage'
-import { CBODashboard } from '@/pages/cbo/DashboardPage'
-import { CBOSetup } from '@/pages/cbo/SetupPage'
+const DonorDashboard = lazy(() =>
+  import('@/pages/donor/DashboardPage').then((m) => ({ default: m.DonorDashboard }))
+)
+const DonorProfile = lazy(() =>
+  import('@/pages/donor/ProfilePage').then((m) => ({ default: m.DonorProfile }))
+)
+const DonorImpact = lazy(() =>
+  import('@/pages/donor/ImpactPage').then((m) => ({ default: m.DonorImpact }))
+)
+const DonorDocuments = lazy(() =>
+  import('@/pages/donor/DocumentsPage').then((m) => ({ default: m.DonorDocuments }))
+)
+const DonorSupport = lazy(() =>
+  import('@/pages/donor/SupportPage').then((m) => ({ default: m.DonorSupport }))
+)
+const CBODashboard = lazy(() =>
+  import('@/pages/cbo/DashboardPage').then((m) => ({ default: m.CBODashboard }))
+)
+const CBOSetup = lazy(() => import('@/pages/cbo/SetupPage').then((m) => ({ default: m.CBOSetup })))
 // import { CBORequests } from '@/pages/cbo/RequestsPage'
 // import { NewRequestPage } from '@/pages/cbo/NewRequestPage'
-import { CBOProfile } from '@/pages/cbo/ProfilePage'
-import { CBOProfileEdit } from '@/pages/cbo/ProfileEditPage'
-import { CampaignDefaultsPage } from '@/pages/cbo/CampaignDefaultsPage'
-import { OrganizationProfilePage } from '@/pages/organizations/OrganizationProfilePage'
-import { CheckoutPage } from '@/pages/CheckoutPage'
-import { PaymentSuccessPage } from '@/pages/PaymentSuccessPage'
-import { CampaignPage } from '@/pages/CampaignPage'
-import { CampaignDonatePage } from '@/pages/CampaignDonatePage'
+const CBOProfile = lazy(() =>
+  import('@/pages/cbo/ProfilePage').then((m) => ({ default: m.CBOProfile }))
+)
+const CBOProfileEdit = lazy(() =>
+  import('@/pages/cbo/ProfileEditPage').then((m) => ({ default: m.CBOProfileEdit }))
+)
+const CampaignDefaultsPage = lazy(() =>
+  import('@/pages/cbo/CampaignDefaultsPage').then((m) => ({ default: m.CampaignDefaultsPage }))
+)
+const OrganizationProfilePage = lazy(() =>
+  import('@/pages/organizations/OrganizationProfilePage').then((m) => ({
+    default: m.OrganizationProfilePage,
+  }))
+)
+const CheckoutPage = lazy(() =>
+  import('@/pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage }))
+)
+const PaymentSuccessPage = lazy(() =>
+  import('@/pages/PaymentSuccessPage').then((m) => ({ default: m.PaymentSuccessPage }))
+)
+const CampaignPage = lazy(() =>
+  import('@/pages/CampaignPage').then((m) => ({ default: m.CampaignPage }))
+)
+const CampaignDonatePage = lazy(() =>
+  import('@/pages/CampaignDonatePage').then((m) => ({ default: m.CampaignDonatePage }))
+)
 // RoleSelectionPage removed - now using RoleSelectionModal in App.tsx
-import { AdminDashboard } from '@/pages/admin/DashboardPage'
-import { AdminUsersPage } from '@/pages/admin/UsersPage'
-import { CampaignsAdminPage } from '@/pages/admin/CampaignsAdminPage'
-import { AuditLogPage } from '@/pages/admin/AuditLogPage'
+const AdminDashboard = lazy(() =>
+  import('@/pages/admin/DashboardPage').then((m) => ({ default: m.AdminDashboard }))
+)
+const AdminUsersPage = lazy(() =>
+  import('@/pages/admin/UsersPage').then((m) => ({ default: m.AdminUsersPage }))
+)
+const CampaignsAdminPage = lazy(() =>
+  import('@/pages/admin/CampaignsAdminPage').then((m) => ({ default: m.CampaignsAdminPage }))
+)
+const AuditLogPage = lazy(() =>
+  import('@/pages/admin/AuditLogPage').then((m) => ({ default: m.AuditLogPage }))
+)
 import { useRealUserType } from '@/hooks/useClerkSupabase'
 
-// Legal Pages
-import {
-  PrivacyStatementPage,
-  DoNotSellPage,
-  AccessibilityStatementPage,
-  TermsAndConditionsPage,
-  CPSIACompliancePage,
-  SiteMapPage,
-} from '@/pages/legal'
+// Legal Pages (shared chunk via @/pages/legal barrel)
+const PrivacyStatementPage = lazy(() =>
+  import('@/pages/legal').then((m) => ({ default: m.PrivacyStatementPage }))
+)
+const DoNotSellPage = lazy(() =>
+  import('@/pages/legal').then((m) => ({ default: m.DoNotSellPage }))
+)
+const AccessibilityStatementPage = lazy(() =>
+  import('@/pages/legal').then((m) => ({ default: m.AccessibilityStatementPage }))
+)
+const TermsAndConditionsPage = lazy(() =>
+  import('@/pages/legal').then((m) => ({ default: m.TermsAndConditionsPage }))
+)
+const CPSIACompliancePage = lazy(() =>
+  import('@/pages/legal').then((m) => ({ default: m.CPSIACompliancePage }))
+)
+const SiteMapPage = lazy(() => import('@/pages/legal').then((m) => ({ default: m.SiteMapPage })))
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
