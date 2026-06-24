@@ -267,8 +267,8 @@ INSERT INTO campaign_details (
      'story_content', '<h2>Why this matters</h2><p>Last semester, 18 of our 25 enrolled students had to share a single shelf of Chromebooks. Homework went home unfinished, and our retention dropped from 82% to 64% in the spring.</p><p>With <strong>$12,000</strong> we can buy 25 refurbished Lenovo ThinkPads, accessory bundles, and a year of break/fix support.</p>',
      'contact_email', 'campaigns@connectingroots.org',
      'phone', '+1-816-555-0111',
-     'image_url', 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&q=80',
-     'logo_url', 'https://ui-avatars.com/api/?name=Connecting+Roots&size=256&background=0D8ABC&color=fff',
+     'image_url', '/demo-images/cover-1.svg',
+     'logo_url', '/demo-images/logo-connecting-roots.svg',
      'facebook_url', 'https://facebook.com/connectingrootskc',
      'instagram_url', 'https://instagram.com/connectingrootskc'
    ),
@@ -290,8 +290,8 @@ INSERT INTO campaign_details (
      'story_content', '<h2>A classroom on wheels</h2><p>Our fixed-site classes have a 4-month waitlist while seniors in the Northland tell us they cannot reach our downtown office. This mobile lab — a 2018 Ford Transit retrofitted with 15 laptop stations and Starlink uplink — will bring 6 weekly classes to 4 community centers north of the river.</p>',
      'contact_email', 'campaigns@digitalfutureskc.org',
      'phone', '+1-816-555-0133',
-     'image_url', 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&q=80',
-     'logo_url', 'https://ui-avatars.com/api/?name=Digital+Futures&size=256&background=2E7D32&color=fff',
+     'image_url', '/demo-images/cover-2.svg',
+     'logo_url', '/demo-images/logo-digital-futures.svg',
      'instagram_url', 'https://instagram.com/digitalfutureskc'
    ),
    '00000000-0000-0000-0002-000000000003',
@@ -312,7 +312,7 @@ INSERT INTO campaign_details (
      'story_content', '<p>Our partners refer 80–90 adults a year who need entry-level digital skills. We currently rent lab time at the library — limited to 2 hours per week. A dedicated 12-station lab unlocks evening and weekend training.</p>',
      'contact_email', 'campaigns@kctechbridge.org',
      'phone', '+1-816-555-0122',
-     'image_url', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80'
+     'image_url', '/demo-images/cover-3.svg'
    ),
    '00000000-0000-0000-0002-000000000002',
    'approved',
@@ -332,7 +332,7 @@ INSERT INTO campaign_details (
      'story_content', '<p>Our Saturday teens have been making zines for 3 years. Half now ask about digital art and beat production. Hardware is the only thing standing between them and a portfolio they can take to art school.</p>',
      'contact_email', 'campaigns@connectingroots.org',
      'phone', '+1-816-555-0111',
-     'image_url', 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=1200&q=80',
+     'image_url', '/demo-images/cover-4.svg',
      'facebook_url', 'https://facebook.com/connectingrootskc'
    ),
    '00000000-0000-0000-0002-000000000001',
@@ -353,7 +353,7 @@ INSERT INTO campaign_details (
      'story_content', '<p>Our community hub already hosts 200+ visits per month. A self-serve telehealth booth lets neighbors talk to a nurse without a doctor visit.</p>',
      'contact_email', 'campaigns@connectingroots.org',
      'phone', '+1-816-555-0111',
-     'logo_url', 'https://ui-avatars.com/api/?name=Connecting+Roots&size=256&background=0D8ABC&color=fff'
+     'logo_url', '/demo-images/logo-connecting-roots.svg'
    ),
    '00000000-0000-0000-0002-000000000001',
    'approved',
@@ -405,7 +405,7 @@ INSERT INTO campaign_details (
      'story_content', '<p>Our community hub already hosts 200+ visits per month. A self-serve telehealth booth lets neighbors talk to a nurse without a doctor visit.</p>',
      'contact_email', 'campaigns@connectingroots.org',
      'phone', '+1-816-555-0111',
-     'logo_url', 'https://ui-avatars.com/api/?name=Connecting+Roots&size=256&background=0D8ABC&color=fff'
+     'logo_url', '/demo-images/logo-connecting-roots.svg'
    ),
    '00000000-0000-0000-0002-000000000001',
    'pending_edit_approval',
@@ -454,7 +454,7 @@ INSERT INTO campaign_details (
      'story_content', '<p>Caseworkers report 3 in 10 housing placements fail in the first 90 days because clients cannot be reached for utility setup, employer call-backs, or appointments. A phone changes that.</p>',
      'contact_email', 'campaigns@digitalfutureskc.org',
      'phone', '+1-816-555-0133',
-     'image_url', 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&q=80',
+     'image_url', '/demo-images/cover-5.svg',
      'instagram_url', 'https://instagram.com/digitalfutureskc'
    ),
    '00000000-0000-0000-0002-000000000003',
@@ -729,24 +729,24 @@ WHERE id = '00000000-0000-0000-0004-000000000005';
 -- M6-4: logo + cover images for ALL 5 orgs (logo_url / cover_image_url were null
 -- → public profile + cards looked empty). Logos via ui-avatars; covers via Unsplash.
 UPDATE organizations SET
-  logo_url        = 'https://ui-avatars.com/api/?name=Connecting+Roots+KC&size=256&background=2E7D32&color=fff&bold=true',
-  cover_image_url = 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1600&q=80'
+  logo_url        = '/demo-images/logo-connecting-roots-kc.svg',
+  cover_image_url = '/demo-images/cover-6.svg'
 WHERE id = '00000000-0000-0000-0004-000000000001';
 UPDATE organizations SET
-  logo_url        = 'https://ui-avatars.com/api/?name=KC+Tech+Bridge&size=256&background=1565C0&color=fff&bold=true',
-  cover_image_url = 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1600&q=80'
+  logo_url        = '/demo-images/logo-kc-tech-bridge.svg',
+  cover_image_url = '/demo-images/cover-1.svg'
 WHERE id = '00000000-0000-0000-0004-000000000002';
 UPDATE organizations SET
-  logo_url        = 'https://ui-avatars.com/api/?name=Digital+Futures+KC&size=256&background=6A1B9A&color=fff&bold=true',
-  cover_image_url = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1600&q=80'
+  logo_url        = '/demo-images/logo-digital-futures-kc.svg',
+  cover_image_url = '/demo-images/cover-2.svg'
 WHERE id = '00000000-0000-0000-0004-000000000003';
 UPDATE organizations SET
-  logo_url        = 'https://ui-avatars.com/api/?name=Northland+Code+Coalition&size=256&background=00695C&color=fff&bold=true',
-  cover_image_url = 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1600&q=80'
+  logo_url        = '/demo-images/logo-northland-code-coalition.svg',
+  cover_image_url = '/demo-images/cover-3.svg'
 WHERE id = '00000000-0000-0000-0004-000000000004';
 UPDATE organizations SET
-  logo_url        = 'https://ui-avatars.com/api/?name=Heartland+Device+Bank&size=256&background=E65100&color=fff&bold=true',
-  cover_image_url = 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=1600&q=80'
+  logo_url        = '/demo-images/logo-heartland-device-bank.svg',
+  cover_image_url = '/demo-images/cover-4.svg'
 WHERE id = '00000000-0000-0000-0004-000000000005';
 
 -- M6-5: 6 campaigns (3 per new org)
@@ -770,7 +770,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','Three schools, one laptop cart',
      'story_content','<p>Our after-school CS clubs rotate a single 10-laptop cart between three middle schools. Kids code one week, then wait two. With 20 dedicated laptops every club meets weekly.</p>',
      'contact_email','campaigns@northlandcode.org','phone','+1-816-555-0404',
-     'image_url','https://images.unsplash.com/photo-1588072432836-e10032774350?w=1200&q=80'
+     'image_url','/demo-images/cover-5.svg'
    ), '00000000-0000-0000-0002-000000000004','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days'),
   ('00000000-0000-0000-0009-000000000010', 1, jsonb_build_object(
      'title','Robotics Kits for Northland Middle',
@@ -779,7 +779,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','From clubs to competition',
      'story_content','<p>Our coders are ready for the next step. Robotics kits let them build, program, and compete — and every competition season we turn away kids for lack of hardware.</p>',
      'contact_email','campaigns@northlandcode.org','phone','+1-816-555-0404',
-     'image_url','https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200&q=80'
+     'image_url','/demo-images/cover-6.svg'
    ), '00000000-0000-0000-0002-000000000004','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days'),
   ('00000000-0000-0000-0009-000000000011', 1, jsonb_build_object(
      'title','Summer Code Camp Scholarships 2026',
@@ -788,7 +788,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','A summer that changes a trajectory',
      'story_content','<p>Two weeks of full-day coding, robotics, and a showcase project. Last year every scholarship student finished; 40% enrolled in a school CS course in the fall.</p>',
      'contact_email','campaigns@northlandcode.org','phone','+1-816-555-0404',
-     'image_url','https://images.unsplash.com/photo-1503424886307-b090341d25d1?w=1200&q=80'
+     'image_url','/demo-images/cover-1.svg'
    ), '00000000-0000-0000-0002-000000000004','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days'),
   ('00000000-0000-0000-0009-000000000012', 1, jsonb_build_object(
      'title','Refurb-to-Home: 500 Devices for KC Families',
@@ -797,7 +797,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','A device is the difference',
      'story_content','<p>Donated machines arrive in bins. Turning them into a working, wiped, warrantied laptop in a family''s home costs about $80 in parts and labor. Your gift moves 500 of them.</p>',
      'contact_email','campaigns@heartlanddevicebank.org','phone','+1-913-555-0505',
-     'image_url','https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1200&q=80'
+     'image_url','/demo-images/cover-2.svg'
    ), '00000000-0000-0000-0002-000000000005','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days'),
   ('00000000-0000-0000-0009-000000000013', 1, jsonb_build_object(
      'title','Student Hotspot Lending Library',
@@ -806,7 +806,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','The homework gap is a connectivity gap',
      'story_content','<p>A refurbished laptop is half the answer. The other half is getting online. A lending library of 100 hotspots keeps students connected through the school year.</p>',
      'contact_email','campaigns@heartlanddevicebank.org','phone','+1-913-555-0505',
-     'image_url','https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=1200&q=80'
+     'image_url','/demo-images/cover-3.svg'
    ), '00000000-0000-0000-0002-000000000005','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days'),
   ('00000000-0000-0000-0009-000000000014', 1, jsonb_build_object(
      'title','Repair Bench Tools for the Volunteer Corps',
@@ -815,7 +815,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','Volunteers are our engine',
      'story_content','<p>120 volunteers refurbished 1,800 devices last year sharing two toolkits. Six proper repair benches doubles our throughput without adding staff.</p>',
      'contact_email','campaigns@heartlanddevicebank.org','phone','+1-913-555-0505',
-     'image_url','https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=1200&q=80'
+     'image_url','/demo-images/cover-4.svg'
    ), '00000000-0000-0000-0002-000000000005','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days')
 ON CONFLICT (campaign_id, version) DO NOTHING;
 
@@ -1111,49 +1111,49 @@ VALUES
   ('0000000b-0000-0000-000c-000000000001','00000000-0000-0000-0004-000000000001',
    'Amara Diallo','Executive Director',
    'Amara founded Connecting Roots KC after a decade of resettlement casework, determined to close the technology gap she saw holding families back.',
-   'https://ui-avatars.com/api/?name=Amara+Diallo&size=256&background=2E7D32&color=fff&bold=true',
+   '/demo-images/logo-amara-diallo.svg',
    'amara@connectingrootskc.org',1,true),
   ('0000000b-0000-0000-000c-000000000002','00000000-0000-0000-0004-000000000001',
    'Luis Mendoza','Director of Programs',
    'Luis runs our multilingual digital-literacy curriculum and trains the volunteer coaches who sit beside families at every class.',
-   'https://ui-avatars.com/api/?name=Luis+Mendoza&size=256&background=2E7D32&color=fff&bold=true',
+   '/demo-images/logo-luis-mendoza.svg',
    'luis@connectingrootskc.org',2,true),
   ('0000000b-0000-0000-000c-000000000003','00000000-0000-0000-0004-000000000001',
    'Priya Nair','Refurbishment Lead',
    'Priya leads the intake bench, wiping and rebuilding every donated laptop before it reaches a family.',
-   'https://ui-avatars.com/api/?name=Priya+Nair&size=256&background=2E7D32&color=fff&bold=true',
+   '/demo-images/logo-priya-nair.svg',
    'priya@connectingrootskc.org',3,true),
   -- Digital Futures KC
   ('0000000b-0000-0000-000c-000000000004','00000000-0000-0000-0004-000000000003',
    'Marcus Bell','Founder & CEO',
    'A self-taught engineer from the east side, Marcus started Digital Futures KC to build the on-ramp into tech he never had growing up.',
-   'https://ui-avatars.com/api/?name=Marcus+Bell&size=256&background=6A1B9A&color=fff&bold=true',
+   '/demo-images/logo-marcus-bell.svg',
    'marcus@digitalfutureskc.org',1,true),
   ('0000000b-0000-0000-000c-000000000005','00000000-0000-0000-0004-000000000003',
    'Jasmine Carter','Lead Instructor',
    'Jasmine designs and teaches our coding bootcamp, mentoring students from their first line of code to their first job offer.',
-   'https://ui-avatars.com/api/?name=Jasmine+Carter&size=256&background=6A1B9A&color=fff&bold=true',
+   '/demo-images/logo-jasmine-carter.svg',
    'jasmine@digitalfutureskc.org',2,true),
   ('0000000b-0000-0000-000c-000000000006','00000000-0000-0000-0004-000000000003',
    'Daniel Okeke','Partnerships Manager',
    'Daniel builds the employer relationships that turn our graduates into paid interns and full-time hires.',
-   'https://ui-avatars.com/api/?name=Daniel+Okeke&size=256&background=6A1B9A&color=fff&bold=true',
+   '/demo-images/logo-daniel-okeke.svg',
    'daniel@digitalfutureskc.org',3,true),
   -- Heartland Device Bank
   ('0000000b-0000-0000-000c-000000000007','00000000-0000-0000-0004-000000000005',
    'Samuel Reyes','Executive Director',
    'Samuel turned a garage refurbishing hobby into a regional device bank that has placed thousands of computers across the metro.',
-   'https://ui-avatars.com/api/?name=Samuel+Reyes&size=256&background=E65100&color=fff&bold=true',
+   '/demo-images/logo-samuel-reyes.svg',
    'samuel@heartlanddevicebank.org',1,true),
   ('0000000b-0000-0000-000c-000000000008','00000000-0000-0000-0004-000000000005',
    'Grace Liu','Operations Manager',
    'Grace manages intake, secure data-wiping, and the logistics of getting refurbished devices to forty partner agencies.',
-   'https://ui-avatars.com/api/?name=Grace+Liu&size=256&background=E65100&color=fff&bold=true',
+   '/demo-images/logo-grace-liu.svg',
    'grace@heartlanddevicebank.org',2,true),
   ('0000000b-0000-0000-000c-000000000009','00000000-0000-0000-0004-000000000005',
    'Tom Becker','Lead Technician',
    'Tom heads the volunteer repair bench, coaxing life back into machines other recyclers would scrap.',
-   'https://ui-avatars.com/api/?name=Tom+Becker&size=256&background=E65100&color=fff&bold=true',
+   '/demo-images/logo-tom-becker.svg',
    'tom@heartlanddevicebank.org',3,true)
 ON CONFLICT (id) DO NOTHING;
 
@@ -1166,49 +1166,49 @@ VALUES
   ('0000000b-0000-0000-000d-000000000001','00000000-0000-0000-0004-000000000001',
    '50 Families Connected This Spring',
    'Thanks to a wave of laptop donations, we placed devices with 50 immigrant and refugee families this spring and ran our largest digital-literacy cohort yet.',
-   'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=80',
+   '/demo-images/cover-5.svg',
    true, NOW() - INTERVAL '7 days'),
   ('0000000b-0000-0000-000d-000000000002','00000000-0000-0000-0004-000000000001',
    'New Saturday Digital-Literacy Class',
    'We have added a Saturday morning class in Swahili and Dari so working parents can join. Volunteer coaches make it possible — reach out if you can help.',
-   'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&q=80',
+   '/demo-images/cover-1.svg',
    true, NOW() - INTERVAL '21 days'),
   ('0000000b-0000-0000-000d-000000000003','00000000-0000-0000-0004-000000000001',
    'Partnering With Three New Schools',
    'Connecting Roots KC is now embedded in three more KCPS schools, helping newcomer students and parents log in to school portals with confidence.',
-   'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1200&q=80',
+   '/demo-images/cover-6.svg',
    true, NOW() - INTERVAL '45 days'),
   -- Digital Futures KC
   ('0000000b-0000-0000-000d-000000000004','00000000-0000-0000-0004-000000000003',
    'Spring Bootcamp Graduates 28 Students',
    'Our spring coding bootcamp graduated 28 students — and 19 have already started paid internships with local tech employers. We could not be prouder.',
-   'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&q=80',
+   '/demo-images/cover-1.svg',
    true, NOW() - INTERVAL '10 days'),
   ('0000000b-0000-0000-000d-000000000005','00000000-0000-0000-0004-000000000003',
    'Second Community Lab Opens',
    'We cut the ribbon on our second east-side community lab this month, doubling the number of students who can train on professional-grade hardware.',
-   'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&q=80',
+   '/demo-images/cover-2.svg',
    true, NOW() - INTERVAL '30 days'),
   ('0000000b-0000-0000-000d-000000000006','00000000-0000-0000-0004-000000000003',
    'Hardware-Repair Apprenticeship Launches',
    'A new paid apprenticeship teaches students to diagnose and repair laptops — a marketable skill and a way to keep our own labs running.',
-   'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80',
+   '/demo-images/cover-3.svg',
    true, NOW() - INTERVAL '55 days'),
   -- Heartland Device Bank
   ('0000000b-0000-0000-000d-000000000007','00000000-0000-0000-0004-000000000005',
    '1,800 Devices Placed Last Year',
    'Our Refurb-to-Home pipeline wiped, repaired, and placed 1,800 devices last year through a network of 40 partner agencies. On to 2,000 this year.',
-   'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=1200&q=80',
+   '/demo-images/cover-4.svg',
    true, NOW() - INTERVAL '5 days'),
   ('0000000b-0000-0000-000d-000000000008','00000000-0000-0000-0004-000000000005',
    'Corporate Donation: 200 Laptops',
    'A local employer retired its fleet and donated 200 laptops to Heartland Device Bank. Our volunteer bench is busy turning them into home computers.',
-   'https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?w=1200&q=80',
+   '/demo-images/cover-5.svg',
    true, NOW() - INTERVAL '24 days'),
   ('0000000b-0000-0000-000d-000000000009','00000000-0000-0000-0004-000000000005',
    'Certified Data-Wiping Now Standard',
    'Every device that leaves our shop is now wiped to a certified data-sanitization standard, so donors and recipients can trust their information is gone for good.',
-   'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&q=80',
+   '/demo-images/cover-2.svg',
    true, NOW() - INTERVAL '50 days')
 ON CONFLICT (id) DO NOTHING;
 
@@ -1314,8 +1314,8 @@ WHERE id = '00000000-0000-0000-0004-000000000006';
 
 -- M11-4: logo + cover image
 UPDATE organizations SET
-  logo_url        = 'https://ui-avatars.com/api/?name=KC+Connect+Hub&size=256&background=00838F&color=fff&bold=true',
-  cover_image_url = 'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=1600&q=80'
+  logo_url        = '/demo-images/logo-kc-connect-hub.svg',
+  cover_image_url = '/demo-images/cover-6.svg'
 WHERE id = '00000000-0000-0000-0004-000000000006';
 
 -- M11-5: complete public-profile fields (M10 style)
@@ -1343,17 +1343,17 @@ VALUES
   ('0000000e-0000-0000-000c-000000000001','00000000-0000-0000-0004-000000000006',
    'Tariq Hassan','Executive Director',
    'Tariq founded KC Connect Hub after years as a public-library tech aide, where he watched residents turned away from jobs and benefits for lack of a device and a connection.',
-   'https://ui-avatars.com/api/?name=Tariq+Hassan&size=256&background=00838F&color=fff&bold=true',
+   '/demo-images/logo-tariq-hassan.svg',
    'tariq@kcconnecthub.org',1,true),
   ('0000000e-0000-0000-000c-000000000002','00000000-0000-0000-0004-000000000006',
    'Rosa Martinez','Director of Digital Navigation',
    'Rosa builds and leads our team of bilingual digital navigators who coach families one-on-one from first login to confident daily use.',
-   'https://ui-avatars.com/api/?name=Rosa+Martinez&size=256&background=00838F&color=fff&bold=true',
+   '/demo-images/logo-rosa-martinez.svg',
    'rosa@kcconnecthub.org',2,true),
   ('0000000e-0000-0000-000c-000000000003','00000000-0000-0000-0004-000000000006',
    'James Whitfield','Refurbishment Manager',
    'James runs the intake bench, securely wiping and rebuilding every donated laptop and tablet before it ships to a household.',
-   'https://ui-avatars.com/api/?name=James+Whitfield&size=256&background=00838F&color=fff&bold=true',
+   '/demo-images/logo-james-whitfield.svg',
    'james@kcconnecthub.org',3,true)
 ON CONFLICT (id) DO NOTHING;
 
@@ -1364,17 +1364,17 @@ VALUES
   ('0000000e-0000-0000-000d-000000000001','00000000-0000-0000-0004-000000000006',
    '600 Households Connected This Year',
    'We hit a milestone this quarter: 600 households now have a refurbished device, subsidized home internet, and a digital navigator on call. Thank you to every donor who made it possible.',
-   'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=80',
+   '/demo-images/cover-5.svg',
    true, NOW() - INTERVAL '6 days'),
   ('0000000e-0000-0000-000d-000000000002','00000000-0000-0000-0004-000000000006',
    'New Telehealth Navigation Clinic',
    'Our navigators now run a weekly walk-in clinic helping residents set up and join telehealth visits — no more missed appointments because the video link would not load.',
-   'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&q=80',
+   '/demo-images/cover-1.svg',
    true, NOW() - INTERVAL '20 days'),
   ('0000000e-0000-0000-000d-000000000003','00000000-0000-0000-0004-000000000006',
    'Corporate Laptop Drive: 150 Devices',
    'A local employer retired its laptop fleet and donated 150 machines to KC Connect Hub. Our refurbishment bench is busy turning them into home computers for waitlisted families.',
-   'https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?w=1200&q=80',
+   '/demo-images/cover-5.svg',
    true, NOW() - INTERVAL '40 days')
 ON CONFLICT (id) DO NOTHING;
 
@@ -1415,7 +1415,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','A device ends the waitlist',
      'story_content','<p>Hundreds of families are on our waitlist with no computer at home. Every refurbished laptop — about $80 in parts and labor — moves one of them off the list and online for good.</p>',
      'contact_email','campaigns@kcconnecthub.org','phone','+1-816-555-0606',
-     'image_url','https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1200&q=80'
+     'image_url','/demo-images/cover-2.svg'
    ), '00000000-0000-0000-0002-000000000006','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '5 days', NULL, NOW() - INTERVAL '5 days'),
   ('00000000-0000-0000-0009-000000000046', 1, jsonb_build_object(
      'title','Grow the Digital Navigator Corps',
@@ -1424,7 +1424,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','Hardware is half the answer',
      'story_content','<p>A laptop and a connection only matter if someone shows you how to use them. Eight trained, bilingual navigators let us coach hundreds more households from first login to confident daily use.</p>',
      'contact_email','campaigns@kcconnecthub.org','phone','+1-816-555-0606',
-     'image_url','https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&q=80'
+     'image_url','/demo-images/cover-1.svg'
    ), '00000000-0000-0000-0002-000000000006','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '5 days', NULL, NOW() - INTERVAL '5 days')
 ON CONFLICT (campaign_id, version) DO NOTHING;
 
