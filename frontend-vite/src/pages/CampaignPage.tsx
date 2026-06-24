@@ -668,10 +668,10 @@ export function CampaignPage() {
     <div className="min-h-screen bg-[#fafafa]">
       <div className="mx-auto max-w-[1200px]">
         {/* Header Section */}
-        <div className="px-6 pb-0 pt-7">
+        <div className="px-4 md:px-6 pb-0 pt-7">
           {/* Edit Mode Banner */}
           {isEditing && (
-            <div className="mb-4 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
               <div className="flex items-center gap-2">
                 <Pencil className="h-4 w-4 text-amber-600" />
                 <span className="font-medium text-amber-800">Editing Campaign</span>
@@ -730,7 +730,7 @@ export function CampaignPage() {
                 placeholder="Campaign Title"
               />
             ) : (
-              <h1 className="mb-3 text-5xl font-bold leading-tight text-[#0a0a0a]">
+              <h1 className="mb-3 text-3xl md:text-5xl font-bold leading-tight text-[#0a0a0a]">
                 {campaign.title}
               </h1>
             )}
@@ -843,11 +843,11 @@ export function CampaignPage() {
           </div>
 
           {/* Hero Section */}
-          <div className="flex gap-5">
+          <div className="flex flex-col gap-5 lg:flex-row">
             {/* Main Image and Gallery */}
-            <div className="w-[824px] flex-shrink-0 space-y-3">
+            <div className="w-full lg:w-[824px] lg:flex-shrink-0 space-y-3">
               {/* Main Display Image (or embedded YouTube video) */}
-              <div className="relative h-[460px] w-full overflow-hidden rounded-[10px] bg-[#f5f5f5]">
+              <div className="relative h-[240px] sm:h-[360px] lg:h-[460px] w-full overflow-hidden rounded-[10px] bg-[#f5f5f5]">
                 {(() => {
                   const src = campaign.image_url || ''
                   if (!src) {
@@ -888,7 +888,7 @@ export function CampaignPage() {
             </div>
 
             {/* Sidebar */}
-            <Card className="flex-1 rounded-[10px] border-[#f5f5f5] p-2">
+            <Card className="w-full lg:flex-1 rounded-[10px] border-[#f5f5f5] p-2">
               <div className="flex h-full flex-col gap-5">
                 {/* Creator Info */}
                 <div className="space-y-2.5">
@@ -1077,7 +1077,7 @@ export function CampaignPage() {
         <div className="px-6 pt-5">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="pb-5">
-              <TabsList className="w-full justify-start rounded-lg bg-[#f5f5f5] p-[3px]">
+              <TabsList className="w-full justify-start overflow-x-auto rounded-lg bg-[#f5f5f5] p-[3px]">
                 <TabsTrigger
                   value="campaign"
                   className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
@@ -1107,9 +1107,9 @@ export function CampaignPage() {
 
             {/* Campaign Content Tab */}
             <TabsContent value="campaign" className="mt-0">
-              <div className="flex gap-2.5">
+              <div className="flex flex-col gap-5 lg:flex-row lg:gap-2.5">
                 {/* Outline Sidebar */}
-                <div className="w-[323px] flex-shrink-0 space-y-4">
+                <div className="w-full lg:w-[323px] lg:flex-shrink-0 space-y-4">
                   {/* YELLOW Y4: hide the Outline heading entirely for visitors
                       when there's no outline to render. Owners still see the
                       heading + empty-state CTA so they're nudged to publish. */}
@@ -1229,7 +1229,7 @@ export function CampaignPage() {
                     />
                   ) : (
                     campaign.story_title && (
-                      <h2 className="text-5xl font-extrabold text-[#0a0a0a]">
+                      <h2 className="text-3xl md:text-5xl font-extrabold text-[#0a0a0a]">
                         {campaign.story_title}
                       </h2>
                     )
@@ -1246,7 +1246,7 @@ export function CampaignPage() {
                     </div>
                   ) : campaign.story_content ? (
                     <div
-                      className="campaign-story max-w-none text-base leading-relaxed text-[#0a0a0a]
+                      className="campaign-story max-w-none text-base leading-relaxed text-[#0a0a0a] [&_img]:max-w-full [&_img]:h-auto [&_iframe]:max-w-full
                                  [&_a]:font-medium [&_a]:text-[#ea580c] [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#ea580c]
                                  [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-[#404040] [&_h2]:mb-3 [&_h2]:mt-8
                                  [&_h2]:text-2xl [&_h2]:font-semibold
@@ -1323,7 +1323,7 @@ export function CampaignPage() {
                               className="resize-none"
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
                               <label
                                 htmlFor="question-name"
