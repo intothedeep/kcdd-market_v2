@@ -312,7 +312,9 @@ All tables use RLS; migrations are in `backend/supabase/migrations/`.
   - `platform_top_organizations` — top 10 orgs by amount received
 
 **Audit tables (service-role writes only):**
-- `annual_summary_runs` — one row per cron invocation; admin-readable via RLS
+- _(none currently)_ — `annual_summary_runs` was specced as a per-cron-invocation
+  audit table but **no migration ever created it**, and the cron route does not
+  write to it (verified 2026-06-24). Treat it as not-yet-implemented, not a live table.
 
 **Postgres RPCs:**
 - `increment_campaign_amount(p_campaign_id UUID, p_amount NUMERIC)` — SECURITY DEFINER, service_role only; atomic UPDATE of `campaigns.amount_raised` + `supporters_count`. Called by the Stripe webhook on `payment_intent.succeeded` for campaign donations.
@@ -461,7 +463,7 @@ Most recently merged from `origin/main` (2026-05-18): full homepage design syste
 Post-merge Phase 9 + 10 work (2026-06-05/06):
 - **Batch B — tax receipts pipeline** wired up. `donor_documents` got the `campaign_id` / `donor_name` / `donor_email` columns the webhook had been INSERTing into nothing; created the `tax-documents` Storage bucket (private, 10 MB, PDF-only) and its RLS policies (donors read their own, service role writes).
 - **Batch C — impact reports**: `payment_transactions` seeded with 10 mock transactions across 3 donors so the donor_impact_* views populate. RLS added so donors can read their own `payment_transactions` (was service-role-only, which silently killed campaign donations on /donor/dashboard "My Donations").
-- **Batch D — annual summary cron**: `POST /api/cron/generate-annual-summaries?year=YYYY` (header `x-cron-secret: $CRON_SECRET`) iterates donors with succeeded transactions in the given year and generates one PDF annual summary per donor via the existing pdfGenerator. Audit table `annual_summary_runs` records every run. Idempotent per (donor, year) via upsert on `donor_documents`. Filters out the literal `'anonymous'` donor_id sentinel.
+- **Batch D — annual summary cron**: `POST /api/cron/generate-annual-summaries?year=YYYY` (header `x-cron-secret: $CRON_SECRET`) iterates donors with succeeded transactions in the given year and generates one PDF annual summary per donor via the existing pdfGenerator. (Note: the `annual_summary_runs` audit table described in earlier drafts was never migrated — no such table exists and the route does not write one.) Idempotent per (donor, year) via upsert on `donor_documents`. Filters out the literal `'anonymous'` donor_id sentinel.
 - **Phase 10 — Public Impact page** at `/impact`. Three new public views (`platform_impact_summary`, `platform_impact_by_cause`, `platform_top_organizations`) marked `security_invoker = off` and `GRANT SELECT TO anon, authenticated`. Aggregate-only — no donor_id, transaction_id, or amount_total exposed. New page shows 5 hero stats, cause-area split bars, top-10 orgs list, and CTAs back to /requests and /campaigns.
 - **Campaign donation increment bug** fixed: added `increment_campaign_amount(uuid, numeric)` SECURITY DEFINER RPC; webhook now actually moves `campaigns.amount_raised` / `supporters_count`. `request_notifications.campaign_id` column added so CBO sees campaign-donation alerts in the same NotificationsBell.
 
