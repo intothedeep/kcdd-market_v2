@@ -74,14 +74,41 @@ does not affect a running deployment).
 
 ### Register Clerk as a Third-Party Auth provider
 
-**Required** — without this, RLS evaluates every request as anonymous in production, and the donor dashboard / CBO profile / notifications all return empty. The local `config.toml` setting does NOT propagate to the cloud.
+**Required** — without this, every frontend Supabase query is rejected with
+**`401 Unauthorized`** (Supabase cannot verify the Clerk JWT), so the donor
+dashboard / CBO profile / notifications / `user_profiles` reads all fail. The
+local `config.toml` `[auth.third_party.clerk]` setting does NOT propagate to the
+cloud — you must do this in the Cloud dashboard. **Two sides:**
 
-1. Dashboard → **Authentication → Sign In / Up → Third Party Auth** (label may vary by Dashboard version; may also appear under JWT settings)
-2. **+ Add provider → Clerk**
-3. Enter your Clerk Frontend API domain — the `iss` claim of your production JWT minus the `https://` prefix (e.g. `clerk.your-app.com` for a production custom domain, or `<slug>.clerk.accounts.dev` if you haven't set one up). Verify by signing in to the production app, copying a JWT via the browser console, and checking `iss` at [jwt.io](https://jwt.io).
-4. Save.
+**A. In Clerk** — enable the Supabase integration (the side that makes Clerk mint
+Supabase-compatible session tokens). Follow Clerk's official guide:
+<https://clerk.com/docs/guides/development/integrations/databases/supabase>.
+This is the step that produces/confirms your Clerk **domain** for the next part.
 
-Full background: `_docs/clerk-supabase-auth.md`.
+**B. In Supabase** — register Clerk as a third-party provider. Direct link
+(replace the ref with yours):
+
+```
+https://supabase.com/dashboard/project/<project-ref>/auth/third-party
+```
+
+1. **Add provider → Clerk** (the page may also surface under
+   **Authentication → Sign In / Up → Third Party Auth**, label varies by version).
+2. Enter your **Clerk domain** — the `iss` claim of your JWT minus `https://`
+   (e.g. `clerk.your-app.com` for a custom prod domain, or
+   `<slug>.clerk.accounts.dev`). If prod reuses your dev Clerk app (`pk_test_…`),
+   it's the **same domain as local** (`config.toml`'s value).
+3. **Save.**
+
+Verify the domain: sign in to the prod app, run
+`await window.Clerk.session.getToken().then(console.log)` in the browser console,
+paste the token at [jwt.io](https://jwt.io), read `iss`.
+
+> **Symptom if missing/wrong**: frontend `GET …supabase.co/rest/v1/user_profiles`
+> returns `401`. After registering Clerk correctly it becomes `200`. (This is
+> separate from a backend `/api/*` **CORS** failure — see Troubleshooting.)
+
+Full background: `_docs/clerk-supabase-auth.md` (local-only).
 
 ---
 
@@ -475,6 +502,32 @@ Bootstrap the first admin once, by hand:
 This is a **one-time bootstrap**. After the first admin exists, promote any
 further admins from the in-app **`/admin` user management** UI — the trigger
 permits an existing admin to assign roles, so no more SQL is needed.
+
+---
+
+## Troubleshooting — auth & CORS on first deploy
+
+The three errors almost everyone hits once, and what each actually means. They
+are **independent** — you can have all three at the same time.
+
+| Symptom (browser console / Network) | Layer | Cause | Fix |
+| ----------------------------------- | ----- | ----- | --- |
+| `…/api/users/sync` URL has a **double slash** `//api/…` | frontend build | `VITE_API_URL` has a trailing slash (inlined into the bundle as `${baseUrl}${path}`) | Set `VITE_API_URL=https://your-api.vercel.app` (no trailing slash) → **redeploy frontend** (build-time var; an env change alone does NOT rebuild) |
+| `blocked by CORS policy: No 'Access-Control-Allow-Origin' header` on `…/api/*` | backend CORS | backend `ALLOWED_ORIGINS` doesn't contain the frontend origin (exact match, `split(',')` is **not** trimmed) | Set `ALLOWED_ORIGINS=https://your-frontend.vercel.app` (no trailing slash, no spaces, comma-separate extras) → **redeploy backend** |
+| `GET …supabase.co/rest/v1/… → 401` (frontend querying Supabase directly) | Supabase TPA | Clerk not registered as Third-Party Auth in the **Cloud** project, or `VITE_SUPABASE_PUBLISHABLE_KEY` is the wrong project's key | Register Clerk (Step 1.B) + confirm the publishable key is this project's. Becomes `200` once fixed |
+| `POST …/api/users/sync → 401 {"error":"Invalid token"}` (request **reaches** the backend) | backend Clerk verify | backend `CLERK_SECRET_KEY` is from a **different Clerk instance** than the frontend's publishable key (e.g. `pk_test_` ↔ `sk_live_`, two different apps, or a stray space/newline) | Copy **both** keys from the **same Clerk instance**'s API Keys page (both `_test_` or both `_live_`); set `CLERK_SECRET_KEY` on the **backend** project → redeploy |
+
+**Key distinction:** a `401 {"error":"Invalid token"}` from `…/api/users/sync`
+means CORS already works (the request reached the backend and got a JSON
+response) — this is purely Clerk key-instance mismatch. A *CORS* failure, by
+contrast, never reaches the backend and returns no body.
+
+**Verify the Clerk instance match:** copy the failing request's
+`Authorization: Bearer …` token, decode at [jwt.io](https://jwt.io), and check
+`iss`. The instance in `iss` (e.g. `immense-stallion-77.clerk.accounts.dev`) must
+be the same instance whose `sk_…` you put in the backend `CLERK_SECRET_KEY` and
+whose domain you registered in Supabase TPA. All three (frontend pk, backend sk,
+Supabase TPA domain) must point at one Clerk instance.
 
 ---
 
