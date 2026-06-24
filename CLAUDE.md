@@ -176,7 +176,8 @@ backend/
 └── supabase/
     ├── migrations/      # SQL migration files (run in order)
     ├── config.toml      # Supabase CLI config (Clerk registered as third-party auth)
-    └── seed.sql         # Mock orgs/donors/campaigns + tax-documents bucket + cause-area taxonomy
+    ├── seed.sql         # Local/demo: mock orgs/donors/campaigns + cause-area taxonomy (full)
+    └── seed.prod.sql    # Prod-safe: taxonomy ONLY (idempotent), no mock data. See docs/howtodeploy.prod.md Step 2 "Seed essential data"
 
 _docs/                                 # Project documentation (gitignored — local only)
 ├── plan.md                            # Feature roadmap; branch + Backlog sections at end
