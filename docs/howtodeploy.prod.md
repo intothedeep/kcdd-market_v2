@@ -146,7 +146,35 @@ ones (all addressed in-repo as of Wave 9):
 
 After a successful `db push`, run the RLS validation query (see `CLAUDE.md` →
 "Adding a new DB table") against Cloud via the SQL Editor to confirm no table is
-`rls_enabled=true` with `policy_count=0`.
+`rls_enabled=true` with `policy_count=0`. The legitimately service-role-only
+tables (`policy_count=0` is correct, by design) are: `stripe_events`,
+`stripe_connect_events`, `stripe_disputes`, `slack_notification_queue`,
+`annual_summary_runs`. Any *other* table showing `true / 0` is a real
+misconfiguration to fix before go-live.
+
+### Seed essential data (taxonomy) — prod vs demo
+
+`db push` applies the schema but does **not** run any seed file. The cause-area /
+challenge / identity **lookup taxonomy** lives only in seed SQL (not in any
+migration), so after `db push` those three tables are empty — which breaks the
+CBO onboarding form, campaign cause-area chips, and the `request_details` view.
+Load the taxonomy once via the Supabase **SQL Editor** (or `psql -f`):
+
+- **Real production** → load **`backend/supabase/seed.prod.sql`** (taxonomy only,
+  idempotent `ON CONFLICT (name) DO NOTHING`). No mock orgs/campaigns/donors. The
+  public campaign list and org directory stay **empty until real CBOs onboard and
+  an admin approves them** — this is the intended behavior, not a bug.
+- **Demo / staging / a throwaway test project** → load the full
+  **`backend/supabase/seed.sql`** to pre-fill the marketplace with the mock orgs +
+  campaigns (verified orgs + approved campaign details, so they render publicly).
+  Never run the full seed against a project real donors will hit — it injects fake
+  501(c)(3) orgs with live-looking donate buttons.
+
+> Do **not** use `supabase db reset` against Cloud to seed — that wipes data and
+> is a local-only workflow. Load the chosen seed file via SQL Editor / `psql`.
+
+For the **first admin** (no seeded admin exists in prod — Clerk-keyed), see
+**Step 6** below.
 
 ---
 
