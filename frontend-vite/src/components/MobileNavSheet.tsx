@@ -84,7 +84,11 @@ export function MobileNavSheet() {
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="flex max-h-[80vh] flex-col md:hidden">
+        <SheetContent
+          side="bottom"
+          className="flex max-h-[80vh] flex-col md:hidden"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           {/* Grab handle */}
           <div className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-gray-300" aria-hidden="true" />
 
@@ -95,7 +99,7 @@ export function MobileNavSheet() {
             </SheetDescription>
           </SheetHeader>
 
-          <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 pb-10">
+          <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 pb-10 pt-2">
             {publicItems.map((item) => (
               <button
                 key={item.path}
