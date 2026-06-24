@@ -39,9 +39,14 @@ export async function clerkAuth(req, res, next) {
   // If Clerk backend SDK is available, use it for verified token
   if (process.env.CLERK_SECRET_KEY) {
     try {
-      const { createClerkClient } = await import('@clerk/backend')
-      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
-      const claims = await clerk.verifyToken(token)
+      // verifyToken is a NAMED export of @clerk/backend, NOT a method on the
+      // client from createClerkClient() (that object has no verifyToken — calling
+      // it throws "clerk.verifyToken is not a function", which the empty catch
+      // used to hide → 401 in prod). Pass secretKey so it can fetch the JWKS.
+      const { verifyToken } = await import('@clerk/backend')
+      const claims = await verifyToken(token, {
+        secretKey: process.env.CLERK_SECRET_KEY,
+      })
       req.auth = { userId: claims.sub }
       return next()
     } catch (err) {
