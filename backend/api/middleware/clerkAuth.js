@@ -44,10 +44,16 @@ export async function clerkAuth(req, res, next) {
       const claims = await clerk.verifyToken(token)
       req.auth = { userId: claims.sub }
       return next()
-    } catch {
+    } catch (err) {
+      // Surface the real verification failure — otherwise the empty catch hides
+      // WHY (e.g. CLERK_SECRET_KEY from the wrong Clerk instance → JWKS/signature
+      // mismatch, expired token, or wrong token type). Logged to the function
+      // logs; `detail` is echoed in the response for quick Network-tab debugging.
+      const reason = err?.message || String(err)
+      console.error('[clerkAuth] verifyToken failed:', reason)
       // Fall through to unverified decode in dev if SDK verification fails
       if (process.env.NODE_ENV === 'production') {
-        return res.status(401).json({ error: 'Invalid token' })
+        return res.status(401).json({ error: 'Invalid token', detail: reason })
       }
     }
   }
