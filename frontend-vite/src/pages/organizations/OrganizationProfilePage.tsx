@@ -425,6 +425,14 @@ export function OrganizationProfilePage() {
         }
       }
 
+      // Only include socials that were actually filled in (empty ones are
+      // omitted rather than stored as blank/undefined).
+      const social_links: Record<string, string> = {}
+      if (updates.facebook_url) social_links.facebook = updates.facebook_url
+      if (updates.twitter_url) social_links.twitter = updates.twitter_url
+      if (updates.instagram_url) social_links.instagram = updates.instagram_url
+      if (updates.linkedin_url) social_links.linkedin = updates.linkedin_url
+
       await updateOrganizationProfile(organization.id, {
         name: updates.name,
         tagline: updates.tagline || null,
@@ -444,13 +452,8 @@ export function OrganizationProfilePage() {
         zipcode: updates.zipcode,
         logo_url: updates.logo_url || null,
         cover_image_url: updates.cover_image_url || null,
-        social_links: {
-          facebook: updates.facebook_url || undefined,
-          twitter: updates.twitter_url || undefined,
-          instagram: updates.instagram_url || undefined,
-          linkedin: updates.linkedin_url || undefined,
-        },
-      } as any)
+        social_links,
+      } satisfies Partial<OrganizationProfile>)
 
       // Save cause areas and populations
       await Promise.all([
