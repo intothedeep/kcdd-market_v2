@@ -44,6 +44,34 @@ Dashboard → **Project Settings → API** → copy:
 | `Publishable key` (anon) | frontend                | safe to expose; RLS-enforced |
 | `Service role key`       | backend only            | **never expose to client**   |
 
+### Database password (≠ the API keys, ≠ your account login)
+
+The **database (Postgres) password** is what you set at project creation (Step 1.2).
+It is a separate secret from everything in the table above:
+
+| Credential | Used for |
+| ---------- | -------- |
+| **DB (Postgres) password** | direct DB connections — the `psql` connection string, and `supabase link` |
+| Supabase account login | signing into supabase.com |
+| `Publishable` / `Service role` API keys | the app calling the Supabase API |
+| CLI access token (`supabase login`) | authenticating the CLI |
+
+It appears in the connection string as `[YOUR-PASSWORD]`:
+
+```
+postgresql://postgres:[YOUR-PASSWORD]@db.<project-ref>.supabase.co:5432/postgres
+```
+
+The password is shown **only once** at creation. If you lost it or **reset** it:
+Dashboard → **Project Settings → Database → Reset database password**. After a
+reset, update it anywhere it is used — your local `supabase link` prompt and any
+saved `psql` connection string (it is NOT stored in the app's env vars, so a reset
+does not affect a running deployment).
+
+> You only need this password for **direct DB access** (`psql -f seed.sql`,
+> `supabase link`). To run SQL or load a seed without it, use the Dashboard
+> **SQL Editor** — it is already authenticated and needs no password.
+
 ### Register Clerk as a Third-Party Auth provider
 
 **Required** — without this, RLS evaluates every request as anonymous in production, and the donor dashboard / CBO profile / notifications all return empty. The local `config.toml` setting does NOT propagate to the cloud.
