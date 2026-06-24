@@ -61,7 +61,7 @@ import {
 interface CauseArea {
   id: string
   name: string
-  description?: string
+  description?: string | null
 }
 
 interface IdentityCategory {

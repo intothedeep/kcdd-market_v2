@@ -101,7 +101,6 @@ export function NewRequestPage() {
         amount: amount,
         urgency: form.urgency,
         zipcode: organization.zipcode || '64101',
-        beneficiaries_count: Math.max(1, parseInt(form.beneficiaries_count, 10) || 1),
       })
 
       setSuccess(true)

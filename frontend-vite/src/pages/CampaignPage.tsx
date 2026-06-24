@@ -303,7 +303,7 @@ export function CampaignPage() {
   const loadFaqs = async () => {
     if (!campaign?.id) return
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('campaign_faqs')
         .select('*')
         .eq('campaign_id', campaign.id)
@@ -320,7 +320,7 @@ export function CampaignPage() {
   const loadUpdates = async () => {
     if (!campaign?.id) return
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('campaign_updates')
         .select('*')
         .eq('campaign_id', campaign.id)
@@ -351,7 +351,7 @@ export function CampaignPage() {
       const { data, error } = await query
 
       if (!error && data) {
-        setSubmittedQuestions(data)
+        setSubmittedQuestions(data as unknown as SubmittedQuestion[])
       }
     } catch (err) {
       console.error('Error loading submitted questions:', err)
@@ -434,7 +434,8 @@ export function CampaignPage() {
   const loadCampaignImages = async () => {
     if (!campaign?.id) return
     try {
-      const { data, error } = await (supabase.from('campaign_images') as any)
+      const { data, error } = await (supabase as any)
+        .from('campaign_images')
         .select('*')
         .eq('campaign_id', campaign.id)
         .order('sort_order', { ascending: true })
@@ -470,7 +471,7 @@ export function CampaignPage() {
 
     setPostingUpdate(true)
     try {
-      const { error } = await supabase.from('campaign_updates').insert({
+      const { error } = await (supabase as any).from('campaign_updates').insert({
         campaign_id: campaign.id,
         title: newUpdateTitle,
         content: newUpdateContent,
@@ -743,22 +744,6 @@ export function CampaignPage() {
       console.error('Error submitting report:', err)
     } finally {
       setSubmittingReport(false)
-    }
-  }
-
-  const _handleShare = (platform: string) => {
-    const url = window.location.href
-    const title = campaign?.title || 'Support this campaign'
-
-    const shareUrls: Record<string, string> = {
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
-      linkedin: `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`,
-      email: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(url)}`,
-    }
-
-    if (shareUrls[platform]) {
-      window.open(shareUrls[platform], '_blank', 'noopener,noreferrer')
     }
   }
 

@@ -450,7 +450,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                 .getPublicUrl(fileName)
 
               // Insert image record
-              await (supabase.from('campaign_images') as any).insert({
+              await (supabase as any).from('campaign_images').insert({
                 campaign_id: campaignId,
                 image_url: urlData.publicUrl,
                 caption: img.caption || null,
@@ -474,7 +474,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
           sort_order: index,
         }))
 
-        await (supabase.from('campaign_faqs') as any).insert(faqsToInsert)
+        await (supabase as any).from('campaign_faqs').insert(faqsToInsert)
       }
 
       onComplete()

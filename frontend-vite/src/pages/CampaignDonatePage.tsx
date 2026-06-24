@@ -108,7 +108,8 @@ export function CampaignDonatePage() {
         // existing JSX shape (campaign.title, campaign.short_description, ...).
         const detail = Array.isArray((data as { detail?: unknown }).detail)
           ? ((data as { detail: Array<{ content: Record<string, unknown> }> }).detail[0] ?? null)
-          : ((data as { detail?: { content: Record<string, unknown> } | null }).detail ?? null)
+          : ((data as unknown as { detail?: { content: Record<string, unknown> } | null }).detail ??
+            null)
         const content = (detail?.content ?? {}) as Record<string, unknown>
         const merged = {
           ...(data as Record<string, unknown>),

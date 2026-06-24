@@ -646,6 +646,7 @@ function ProfileContent({ organization, onRefresh }: { organization: any; onRefr
         year_founded: organization.year_founded || '',
         organization_size: organization.organization_size || '',
         logo_url: organization.logo_url || '',
+        logo_emoji: organization.logo_emoji || 'building2',
         cover_image_url: organization.cover_image_url || '',
         facebook: organization.social_links?.facebook || '',
         twitter: organization.social_links?.twitter || '',
@@ -826,6 +827,7 @@ function ProfileContent({ organization, onRefresh }: { organization: any; onRefr
         year_founded: organization.year_founded || '',
         organization_size: organization.organization_size || '',
         logo_url: organization.logo_url || '',
+        logo_emoji: organization.logo_emoji || 'building2',
         cover_image_url: organization.cover_image_url || '',
         facebook: organization.social_links?.facebook || '',
         twitter: organization.social_links?.twitter || '',
@@ -1848,7 +1850,6 @@ function AnalyticsContent({
     // Get last 6 months
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const _monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 
       // Sum fulfilled requests for this month
       const monthTotal = fulfilledRequests

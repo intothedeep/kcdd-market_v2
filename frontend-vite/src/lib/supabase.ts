@@ -718,7 +718,10 @@ export const fetchDonorDonations = async (
     .order('created_at', { ascending: false })
 
   if (filters?.status && filters.status !== 'all') {
-    requestsQuery = requestsQuery.eq('status', filters.status)
+    requestsQuery = requestsQuery.eq(
+      'status',
+      filters.status as 'open' | 'claimed' | 'fulfilled' | 'denied'
+    )
   }
   if (filters?.search) {
     requestsQuery = requestsQuery.ilike('description', `%${filters.search}%`)
@@ -832,7 +835,7 @@ export const fetchCBODashboardStats = async (userId: string): Promise<CBODashboa
 
   const { data: requests, error } = await supabase
     .from('requests')
-    .select('id, amount, status, beneficiaries_count')
+    .select('id, amount, status')
     .eq('organization_id', org.id)
 
   if (error) throw error
@@ -846,10 +849,7 @@ export const fetchCBODashboardStats = async (userId: string): Promise<CBODashboa
     activeRequests: active.length,
     fulfilledRequests: fulfilled.length,
     pendingRequests: pending.length,
-    beneficiariesHelped: fulfilled.reduce(
-      (sum, r: any) => sum + Number(r.beneficiaries_count ?? 1),
-      0
-    ),
+    beneficiariesHelped: fulfilled.length,
   }
 }
 
@@ -888,7 +888,7 @@ export const fetchCBORequests = async (
     .order('created_at', { ascending: false })
 
   if (filters?.status && filters.status !== 'all') {
-    query = query.eq('status', filters.status)
+    query = query.eq('status', filters.status as 'open' | 'claimed' | 'fulfilled' | 'denied')
   }
 
   if (filters?.search) {
@@ -945,7 +945,6 @@ export const createNewRequest = async (request: {
   amount: number
   urgency: 'low' | 'medium' | 'high'
   zipcode: string
-  beneficiaries_count?: number
 }) => {
   const { data, error } = await supabase
     .from('requests')
@@ -1547,13 +1546,15 @@ export interface DonorImpactData {
 export const fetchDonorImpactData = async (userId: string): Promise<DonorImpactData | null> => {
   try {
     // Fetch summary
-    const { data: summaryData } = await (supabase.from('donor_impact_summary') as any)
+    const { data: summaryData } = await (supabase as any)
+      .from('donor_impact_summary')
       .select('*')
       .eq('user_id', userId)
       .single()
 
     // Fetch impact by cause with cause area names
-    const { data: causeData } = await (supabase.from('donor_impact_by_cause') as any)
+    const { data: causeData } = await (supabase as any)
+      .from('donor_impact_by_cause')
       .select(
         `
         amount,
@@ -1565,13 +1566,15 @@ export const fetchDonorImpactData = async (userId: string): Promise<DonorImpactD
       .order('percentage', { ascending: false })
 
     // Fetch monthly donations
-    const { data: monthlyData } = await (supabase.from('donor_monthly_donations') as any)
+    const { data: monthlyData } = await (supabase as any)
+      .from('donor_monthly_donations')
       .select('month, amount')
       .eq('user_id', userId)
       .order('year', { ascending: true })
 
     // Fetch impact stories
-    const { data: storiesData } = await (supabase.from('donor_impact_stories') as any)
+    const { data: storiesData } = await (supabase as any)
+      .from('donor_impact_stories')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
@@ -1913,10 +1916,12 @@ export const updateOrganizationProfile = async (
   organizationId: string,
   updates: Partial<OrganizationProfile>
 ) => {
+  // Strip joined/virtual properties that are not real columns on organizations
+  const { cause_areas: _ca, populations: _pop, user_profile: _up, ...columns } = updates
   const { data, error } = await supabase
     .from('organizations')
     .update({
-      ...updates,
+      ...columns,
       updated_at: new Date().toISOString(),
     })
     .eq('id', organizationId)

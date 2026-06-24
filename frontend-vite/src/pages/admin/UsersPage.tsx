@@ -89,7 +89,7 @@ export function AdminUsersPage() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setUsers(data || [])
+      setUsers((data || []) as unknown as UserProfile[])
     } catch (err) {
       console.error('Error fetching users:', err)
     } finally {

@@ -1517,7 +1517,7 @@ export function DonorDashboard() {
     setOpenRequestsLoading(true)
     try {
       const data = await fetchOpenRequests()
-      setOpenRequests(data || [])
+      setOpenRequests((data || []) as unknown as OpenRequest[])
     } catch (err) {
       console.error('Error fetching open requests:', err)
       setOpenRequests([])

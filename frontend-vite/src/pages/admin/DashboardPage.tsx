@@ -1340,10 +1340,12 @@ function OrganizationsContent({
 
     setSaving(true)
     try {
+      // Strip joined/virtual props that are not real columns on organizations
+      const { user_profile: _up, ...orgColumns } = editValues
       const { error } = await supabase
         .from('organizations')
         .update({
-          ...editValues,
+          ...(orgColumns as Record<string, unknown>),
           updated_at: new Date().toISOString(),
         })
         .eq('id', selectedOrg.id)
@@ -2896,8 +2898,8 @@ export function AdminDashboard() {
         totalSupporters: campaignRows.reduce((sum, r) => sum + Number(r.supporters_count || 0), 0),
       })
 
-      setUsers(usersData || [])
-      setOrganizations(orgsData || [])
+      setUsers((usersData || []) as unknown as UserProfile[])
+      setOrganizations((orgsData || []) as unknown as Organization[])
       setReports(reportsData || [])
 
       // Transform user-join + admin-action data into the activity feed.
@@ -3008,6 +3010,8 @@ export function AdminDashboard() {
           user_id: newId,
           name: input.name,
           email: input.email,
+          mission: '',
+          zipcode: '',
           created_at: now,
           updated_at: now,
         })
@@ -3066,9 +3070,6 @@ export function AdminDashboard() {
           const campaignIds = campaigns.map((c) => c.id)
           if (campaignIds.length > 0) {
             await supabase.from('campaign_questions').delete().in('campaign_id', campaignIds)
-            await supabase.from('campaign_images').delete().in('campaign_id', campaignIds)
-            await supabase.from('campaign_faqs').delete().in('campaign_id', campaignIds)
-            await supabase.from('campaign_updates').delete().in('campaign_id', campaignIds)
             await supabase.from('campaigns').delete().in('id', campaignIds)
           }
         }

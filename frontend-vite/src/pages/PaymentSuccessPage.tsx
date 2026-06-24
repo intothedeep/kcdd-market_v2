@@ -2,16 +2,13 @@
  * Payment Success Page
  */
 
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { routes } from '@/config'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, Heart, LayoutDashboard } from 'lucide-react'
 
 export function PaymentSuccessPage() {
-  const [searchParams] = useSearchParams()
-  const _donationType = searchParams.get('type') // 'campaign' or null (request)
-
   return (
     <div className="container max-w-2xl py-8">
       <Card className="text-center">
