@@ -127,6 +127,37 @@ pnpx supabase db push
 (`https://supabase.com/dashboard/project/<ref>`, or the `<ref>` in
 `https://<ref>.supabase.co`).
 
+### CLI login + link — one-time setup (per machine)
+
+`supabase login` and `supabase link` are independent and each runs **once per
+machine** (neither is committed to git):
+
+| Command | What it does | Stored where |
+| ------- | ------------ | ------------ |
+| `pnpx supabase login` | authenticates the CLI to your Supabase **account** (opens a browser, or paste an access token). On macOS the token lives in the **Keychain**, not a file — so `ls ~/.supabase` showing no token file is normal. Non-interactive / CI: set `SUPABASE_ACCESS_TOKEN` instead of running `login`. | macOS Keychain / `SUPABASE_ACCESS_TOKEN` |
+| `pnpx supabase link --project-ref <ref>` | points the CLI at one **project**; prompts for the **DB password** | `backend/supabase/.temp/` (gitignored) |
+
+Check the current link any time with `cat backend/supabase/.temp/project-ref`.
+
+> **IPv6 gotcha — "direct connection failed".** The direct DB host
+> `db.<ref>.supabase.co:5432` is **IPv6-only**. On an IPv4-only network (most home /
+> office / CI links) a raw `psql` to that host — or any tool using it — fails with
+> *"could not translate host name"* / timeout, because the hostname has **no IPv4
+> (A) record**, only IPv6 (AAAA). Use the **Supavisor pooler** (IPv4-compatible)
+> instead — note the username gains the project ref:
+>
+> ```
+> postgresql://postgres.<ref>:[PASSWORD]@aws-1-<region>.pooler.supabase.com:5432/postgres
+> ```
+>
+> Port `5432` = session mode (migrations / `psql` / `db reset`); `6543` =
+> transaction mode (app connection pooling). Percent-encode special chars in the
+> password. The Supabase **CLI already uses the pooler** it saved at link time
+> (`backend/supabase/.temp/pooler-url`), so `supabase db push` / `db reset --linked`
+> work over IPv4 with no extra flags — only a raw `psql`/direct connection needs the
+> pooler string above. (Need a true direct IPv4 connection? That requires Supabase's
+> paid **Dedicated IPv4** add-on.)
+
 #### How `db push` picks its target (login vs link)
 
 These are **two independent things** — `db push` takes no URL/path argument, so
@@ -203,9 +234,11 @@ After a successful `db push`, run the RLS validation query (see `CLAUDE.md` →
 "Adding a new DB table") against Cloud via the SQL Editor to confirm no table is
 `rls_enabled=true` with `policy_count=0`. The legitimately service-role-only
 tables (`policy_count=0` is correct, by design) are: `stripe_events`,
-`stripe_connect_events`, `stripe_disputes`, `slack_notification_queue`,
-`annual_summary_runs`. Any *other* table showing `true / 0` is a real
-misconfiguration to fix before go-live.
+`stripe_disputes`, `slack_notification_queue`. Any *other* table showing
+`true / 0` is a real misconfiguration to fix before go-live. (Note:
+`stripe_connect_events` is RLS'd but has 4 service-role policies, so it shows
+`policy_count=4`, not 0; `payment_event_log` / `reconciliation_runs` /
+`reconciliation_discrepancies` each have an admin-read policy → `policy_count=1`.)
 
 ### Seed essential data (taxonomy) — prod vs demo
 
@@ -230,6 +263,88 @@ Load the taxonomy once via the Supabase **SQL Editor** (or `psql -f`):
 
 For the **first admin** (no seeded admin exists in prod — Clerk-keyed), see
 **Step 6** below.
+
+---
+
+## Step 2.5 — Resetting the Cloud Database (test / staging only)
+
+> 🔴 **DESTRUCTIVE — wipes ALL data in the linked cloud project.** Only ever run
+> this against a **test / staging** project. **Never** against a project holding
+> real donor / org data. (CLAUDE.md's "never run `pnpm db:reset` against the
+> cloud" warning is the same rule — this is its remote sibling.)
+
+**When to use it.** When the cloud migration **history has drifted** from local
+and `db push` refuses to proceed — e.g. you renamed or renumbered a migration that
+was already pushed, and push errors with:
+
+```
+Remote migration versions not found in local migrations directory ...
+try repairing the migration history table:
+  supabase migration repair --status reverted <version> ...
+```
+
+On a **test** project, instead of surgically running `migration repair` /
+`db pull` (which desync history from the actual objects and can leave new
+migrations unapplied), a reset replays every local migration from scratch so
+**cloud == local** exactly — no repair needed.
+
+**Prerequisites:** `supabase login` + `supabase link` already done (see Step 2),
+and your **DB password** to hand. The CLI connects via the saved pooler URL, so
+this works on IPv4 (see the IPv6 gotcha above).
+
+### With seed (default — demo / test data)
+
+```bash
+cd backend
+pnpx supabase db reset --linked
+# → confirm "y", then enter the DB password
+```
+
+Drops everything, replays all migrations **in filename (version) order**, then
+runs `supabase/seed.sql` — the **full mock dataset** (fake orgs / campaigns /
+donors). Good for a demo or staging sandbox; **never** for a project real users
+will see (it injects fake 501(c)(3) orgs with live-looking donate buttons).
+
+### Without seed (clean schema — closer to real prod)
+
+```bash
+cd backend
+pnpx supabase db reset --linked --no-seed
+```
+
+Replays migrations only — **no data**. Then load just the lookup **taxonomy**
+(cause-area / challenge / identity), which the app needs for CBO onboarding +
+campaign chips + the `request_details` view:
+
+- **SQL Editor** (no password): paste `backend/supabase/seed.prod.sql` — taxonomy
+  only, idempotent (`ON CONFLICT (name) DO NOTHING`), no mock data — **or**
+- **psql via the pooler** (IPv4):
+  ```bash
+  psql "postgresql://postgres.<ref>:[PASSWORD]@aws-1-<region>.pooler.supabase.com:5432/postgres" \
+    -f supabase/seed.prod.sql
+  ```
+
+The public campaign list / org directory then stay **empty until real CBOs onboard
+and an admin approves them** — intended, not a bug.
+
+### After a reset — verify (SQL Editor)
+
+```sql
+-- storage buckets present (image buckets + tax-documents)
+SELECT id, public, file_size_limit FROM storage.buckets ORDER BY id;
+
+-- no public table is RLS-enabled with ZERO policies, except the documented
+-- service-role-only ones (stripe_events, stripe_disputes, slack_notification_queue)
+SELECT t.tablename, t.rowsecurity AS rls, COUNT(p.policyname) AS policies
+FROM pg_tables t
+LEFT JOIN pg_policies p ON p.schemaname = t.schemaname AND p.tablename = t.tablename
+WHERE t.schemaname = 'public'
+GROUP BY t.tablename, t.rowsecurity
+ORDER BY rls DESC, policies ASC;
+```
+
+A trailing `WARNING (25P01): there is no transaction in progress` printed by the
+seed step is **harmless** (it also appears on a local `db:reset`).
 
 ---
 
