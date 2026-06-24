@@ -21,6 +21,7 @@ import usersRouter from './routes/users.js'
 import { buildPaymentMetadata, appendLifecycle } from './helpers/paymentMetadata.js'
 import { upsertDispute } from './helpers/disputes.js'
 import { postToSlack, formatPayload, enqueueSlackAlert } from './helpers/slack.js'
+import { runReconciliation } from './services/reconciliation.js'
 import {
   STATES as CAMPAIGN_STATES,
   getCampaignState,
@@ -795,6 +796,21 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           p_organization_id: organizationId || null,
           p_donor_id: donorId || null,
           p_lifecycle_entry: lifecycleEntry,
+          p_log_row: {
+            event_type: event.type,
+            outcome: 'ok',
+            stripe_event_id: event.id,
+            stripe_payment_intent_id: pi.id,
+            stripe_charge_id: pi.latest_charge || null,
+            amount_cents: pi.amount,
+            target_kind: requestId ? 'request' : campaignId ? 'campaign' : null,
+            request_id: requestId || null,
+            campaign_id: campaignId || null,
+            organization_id: organizationId || null,
+            actor_clerk_user_id: donorId || null,
+            source: `webhook:${event.type}`,
+            backend_version: process.env.GIT_SHA || null,
+          },
         })
         if (rpcError) {
           if (rpcError.code === '23505') {
@@ -837,6 +853,16 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           p_payment_intent_id: pi.id,
           p_error_message: errorMessage,
           p_lifecycle_entry: lifecycleEntry,
+          p_log_row: {
+            event_type: event.type,
+            outcome: 'error',
+            stripe_event_id: event.id,
+            stripe_payment_intent_id: pi.id,
+            amount_cents: pi.amount || null,
+            error_message: errorMessage,
+            source: `webhook:${event.type}`,
+            backend_version: process.env.GIT_SHA || null,
+          },
         })
         if (rpcError) {
           if (rpcError.code === '23505') {
@@ -870,6 +896,16 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           p_charge_id: charge.id,
           p_new_status: newStatus,
           p_lifecycle_entry: lifecycleEntry,
+          p_log_row: {
+            event_type: event.type,
+            outcome: 'ok',
+            stripe_event_id: event.id,
+            stripe_payment_intent_id: charge.payment_intent,
+            stripe_charge_id: charge.id,
+            amount_cents: charge.amount_refunded,
+            source: `webhook:${event.type}`,
+            backend_version: process.env.GIT_SHA || null,
+          },
         })
         if (rpcError) {
           if (rpcError.code === '23505') {
@@ -994,6 +1030,16 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           p_is_dispute_lost: isDisputeLost,
           p_is_full_dispute: isFullDispute,
           p_lifecycle_entry: lifecycleEntry,
+          p_log_row: {
+            event_type: event.type,
+            outcome: 'ok',
+            stripe_event_id: event.id,
+            stripe_payment_intent_id: dispute.payment_intent,
+            stripe_charge_id: dispute.charge || null,
+            amount_cents: dispute.amount || 0,
+            source: `webhook:${event.type}`,
+            backend_version: process.env.GIT_SHA || null,
+          },
         })
         if (rpcError) {
           if (rpcError.code === '23505') {
@@ -2172,6 +2218,255 @@ async function computeDonationTotals(client) {
     monthlyTrends: [...buckets.values()],
   }
 }
+
+// --- Reconciliation + payment event log (admin) ----------------------------
+
+/**
+ * Shared admin-auth guard for the reconciliation + payment-event routes.
+ * Mirrors the inline block used by GET /api/admin/donations exactly:
+ * resolve req.auth.userId, look up user_profiles.user_type, 403 unless 'admin'.
+ * Returns true if the response was already sent (caller should return).
+ */
+async function requireAdmin(req, res) {
+  const callerUserId = req.auth.userId
+  const { data: profile, error: profileErr } = await supabase
+    .from('user_profiles')
+    .select('user_type')
+    .eq('id', callerUserId)
+    .single()
+  if (profileErr || !profile || profile.user_type !== 'admin') {
+    res.status(403).json({ error: 'Forbidden: admin only' })
+    return true
+  }
+  return false
+}
+
+const RECON_MAX_WINDOW_MS = 31 * 24 * 60 * 60 * 1000
+
+/**
+ * POST /api/admin/reconciliation/run
+ * Body/query: from, to (ISO). Defaults to last 24h. Enforces to > from and a
+ * 31-day max window. Runs the reconciliation service synchronously and returns
+ * its summary. Auth: admin only.
+ */
+app.post('/api/admin/reconciliation/run', clerkAuth, async (req, res) => {
+  try {
+    if (await requireAdmin(req, res)) return
+
+    const rawFrom = req.body?.from ?? req.query.from ?? null
+    const rawTo = req.body?.to ?? req.query.to ?? null
+
+    const now = Date.now()
+    const to = rawTo ? new Date(rawTo) : new Date(now)
+    const from = rawFrom ? new Date(rawFrom) : new Date(now - 24 * 60 * 60 * 1000)
+
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+      return res
+        .status(400)
+        .json({ code: 'INVALID_RANGE', error: 'from/to must be valid ISO dates' })
+    }
+    if (to.getTime() <= from.getTime()) {
+      return res.status(400).json({ code: 'INVALID_RANGE', error: 'to must be after from' })
+    }
+    if (to.getTime() - from.getTime() > RECON_MAX_WINDOW_MS) {
+      return res.status(400).json({ code: 'WINDOW_TOO_LARGE', error: 'window exceeds 31 days' })
+    }
+
+    const summary = await runReconciliation(supabase, stripe, {
+      from: from.toISOString(),
+      to: to.toISOString(),
+      triggeredBy: req.auth.userId,
+      source: 'admin',
+    })
+    return res.json(summary)
+  } catch (err) {
+    console.error('Error in POST /api/admin/reconciliation/run:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * GET /api/admin/reconciliation/runs?cursor=&limit=
+ * Keyset on started_at DESC (id tiebreak). Returns { rows, nextCursor }.
+ * Auth: admin only.
+ */
+app.get('/api/admin/reconciliation/runs', clerkAuth, async (req, res) => {
+  try {
+    if (await requireAdmin(req, res)) return
+
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : null
+    const rawLimit = parseInt(req.query.limit, 10)
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 100) : 20
+
+    // cursor encodes "started_at|id" of the last seen row.
+    let query = supabase
+      .from('reconciliation_runs')
+      .select('*')
+      .order('started_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(limit + 1)
+
+    if (cursor) {
+      const [curStarted, curId] = cursor.split('|')
+      // (started_at < curStarted) OR (started_at = curStarted AND id < curId)
+      query = query.or(
+        `started_at.lt.${curStarted},and(started_at.eq.${curStarted},id.lt.${curId})`
+      )
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    const page = data ?? []
+    const hasMore = page.length > limit
+    const rows = page.slice(0, limit)
+    const last = rows[rows.length - 1]
+    const nextCursor = hasMore && last ? `${last.started_at}|${last.id}` : null
+
+    return res.json({ rows, nextCursor })
+  } catch (err) {
+    console.error('Error in GET /api/admin/reconciliation/runs:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * GET /api/admin/reconciliation/runs/:id?cursor=
+ * Returns { run, discrepancies, nextCursor }. Discrepancies keyset on
+ * created_at ASC (id tiebreak), page cap 100. Auth: admin only.
+ */
+app.get('/api/admin/reconciliation/runs/:id', clerkAuth, async (req, res) => {
+  try {
+    if (await requireAdmin(req, res)) return
+
+    const runId = req.params.id
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : null
+    const limit = 100
+
+    const { data: run, error: runErr } = await supabase
+      .from('reconciliation_runs')
+      .select('*')
+      .eq('id', runId)
+      .single()
+    if (runErr || !run) {
+      return res.status(404).json({ error: 'Reconciliation run not found' })
+    }
+
+    let dQuery = supabase
+      .from('reconciliation_discrepancies')
+      .select('*')
+      .eq('run_id', runId)
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+      .limit(limit + 1)
+
+    if (cursor) {
+      const [curCreated, curId] = cursor.split('|')
+      dQuery = dQuery.or(
+        `created_at.gt.${curCreated},and(created_at.eq.${curCreated},id.gt.${curId})`
+      )
+    }
+
+    const { data, error: dErr } = await dQuery
+    if (dErr) throw dErr
+
+    const page = data ?? []
+    const hasMore = page.length > limit
+    const discrepancies = page.slice(0, limit)
+    const last = discrepancies[discrepancies.length - 1]
+    const nextCursor = hasMore && last ? `${last.created_at}|${last.id}` : null
+
+    return res.json({ run, discrepancies, nextCursor })
+  } catch (err) {
+    console.error('Error in GET /api/admin/reconciliation/runs/:id:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * PATCH /api/admin/reconciliation/discrepancies/:id
+ * Body: { resolved: boolean }. Sets resolved + resolved_by + resolved_at.
+ * Returns the updated row. Auth: admin only.
+ */
+app.patch('/api/admin/reconciliation/discrepancies/:id', clerkAuth, async (req, res) => {
+  try {
+    if (await requireAdmin(req, res)) return
+
+    const id = req.params.id
+    const resolved = req.body?.resolved
+    if (typeof resolved !== 'boolean') {
+      return res.status(400).json({ code: 'INVALID_BODY', error: 'resolved must be a boolean' })
+    }
+
+    const { data, error } = await supabase
+      .from('reconciliation_discrepancies')
+      .update({
+        resolved,
+        resolved_by: req.auth.userId,
+        resolved_at: resolved ? new Date().toISOString() : null,
+      })
+      .eq('id', id)
+      .select('*')
+      .single()
+    if (error) throw error
+    if (!data) return res.status(404).json({ error: 'Discrepancy not found' })
+
+    return res.json(data)
+  } catch (err) {
+    console.error('Error in PATCH /api/admin/reconciliation/discrepancies/:id:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * GET /api/admin/payment-events?paymentIntentId=&eventType=&cursor=&limit=
+ * Lists payment_event_log rows. Optional equality filters on
+ * stripe_payment_intent_id + event_type. Keyset on created_at DESC (id
+ * tiebreak). Returns { rows, nextCursor }. Auth: admin only.
+ */
+app.get('/api/admin/payment-events', clerkAuth, async (req, res) => {
+  try {
+    if (await requireAdmin(req, res)) return
+
+    const paymentIntentId =
+      typeof req.query.paymentIntentId === 'string' ? req.query.paymentIntentId : null
+    const eventType = typeof req.query.eventType === 'string' ? req.query.eventType : null
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : null
+    const rawLimit = parseInt(req.query.limit, 10)
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 50
+
+    let query = supabase
+      .from('payment_event_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(limit + 1)
+
+    if (paymentIntentId) query = query.eq('stripe_payment_intent_id', paymentIntentId)
+    if (eventType) query = query.eq('event_type', eventType)
+
+    if (cursor) {
+      const [curCreated, curId] = cursor.split('|')
+      query = query.or(
+        `created_at.lt.${curCreated},and(created_at.eq.${curCreated},id.lt.${curId})`
+      )
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    const page = data ?? []
+    const hasMore = page.length > limit
+    const rows = page.slice(0, limit)
+    const last = rows[rows.length - 1]
+    const nextCursor = hasMore && last ? `${last.created_at}|${last.id}` : null
+
+    return res.json({ rows, nextCursor })
+  } catch (err) {
+    console.error('Error in GET /api/admin/payment-events:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
 
 /**
  * List ALL campaigns for the admin Campaign Management view.

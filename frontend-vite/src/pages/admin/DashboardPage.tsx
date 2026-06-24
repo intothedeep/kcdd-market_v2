@@ -61,6 +61,8 @@ import {
   LogIn,
   Plus,
   ClipboardList,
+  Scale,
+  ScrollText,
 } from 'lucide-react'
 import {
   supabase,
@@ -93,6 +95,8 @@ import { useImpersonation } from '@/contexts/ImpersonationContext'
 import { CampaignsAdminPage } from '@/pages/admin/CampaignsAdminPage'
 import { AuditLogPage } from '@/pages/admin/AuditLogPage'
 import { DonationsPage } from '@/pages/admin/DonationsPage'
+import { ReconciliationPage } from '@/pages/admin/ReconciliationPage'
+import { PaymentEventLogPage } from '@/pages/admin/PaymentEventLogPage'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -209,6 +213,8 @@ type SidebarSection =
   | 'pending'
   | 'audit'
   | 'donations'
+  | 'reconciliation'
+  | 'payment-events'
   | 'settings'
   | 'support'
 
@@ -220,6 +226,8 @@ const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
   'pending',
   'audit',
   'donations',
+  'reconciliation',
+  'payment-events',
   'settings',
   'support',
 ]
@@ -3196,6 +3204,10 @@ export function AdminDashboard() {
         return 'Admin Audit Log'
       case 'donations':
         return 'Donations'
+      case 'reconciliation':
+        return 'Reconciliation'
+      case 'payment-events':
+        return 'Payment Events'
       case 'settings':
         return 'Settings'
       case 'support':
@@ -3307,6 +3319,10 @@ export function AdminDashboard() {
         return <AuditLogPage embedded />
       case 'donations':
         return <DonationsPage embedded />
+      case 'reconciliation':
+        return <ReconciliationPage embedded />
+      case 'payment-events':
+        return <PaymentEventLogPage embedded />
       case 'settings':
         return <SettingsContent />
       case 'support':
@@ -3426,6 +3442,30 @@ export function AdminDashboard() {
           >
             <DollarSign className="h-4 w-4 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm">Donations</span>}
+          </button>
+
+          <button
+            onClick={() => selectSection('reconciliation')}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+              activeSection === 'reconciliation'
+                ? 'bg-[#ea580c] text-white'
+                : 'text-[#0a0a0a] hover:bg-gray-100'
+            }`}
+          >
+            <Scale className="h-4 w-4 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm">Reconciliation</span>}
+          </button>
+
+          <button
+            onClick={() => selectSection('payment-events')}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+              activeSection === 'payment-events'
+                ? 'bg-[#ea580c] text-white'
+                : 'text-[#0a0a0a] hover:bg-gray-100'
+            }`}
+          >
+            <ScrollText className="h-4 w-4 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm">Payment Events</span>}
           </button>
 
           <button
