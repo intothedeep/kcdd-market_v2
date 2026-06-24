@@ -78,24 +78,24 @@ export function MobileNavSheet() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open navigation menu"
-        className="fixed bottom-4 left-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[hsl(var(--brand-primary))] text-white shadow-lg transition-colors hover:bg-[hsl(var(--brand-primary))]/90 md:hidden"
+        className="fixed bottom-6 left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-white shadow-xl ring-2 ring-white transition-colors hover:bg-amber-600 md:hidden"
       >
         <Menu className="h-6 w-6" />
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="md:hidden">
+        <SheetContent side="bottom" className="flex max-h-[80vh] flex-col md:hidden">
           {/* Grab handle */}
-          <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-gray-300" aria-hidden="true" />
+          <div className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-gray-300" aria-hidden="true" />
 
-          <SheetHeader className="px-4 pb-2 pt-3">
+          <SheetHeader className="px-4 pb-3 pt-5">
             <SheetTitle>Menu</SheetTitle>
             <SheetDescription className="sr-only">
               Site navigation and account options
             </SheetDescription>
           </SheetHeader>
 
-          <nav className="flex flex-col gap-1 overflow-y-auto px-4 pb-4">
+          <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 pb-10">
             {publicItems.map((item) => (
               <button
                 key={item.path}
