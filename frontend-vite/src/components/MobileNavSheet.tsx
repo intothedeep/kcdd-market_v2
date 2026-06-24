@@ -4,9 +4,9 @@
  * Desktop is unaffected — every element here is gated behind `md:hidden`.
  */
 
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser, SignInButton, useClerk } from '@clerk/clerk-react'
+import { useMobileNavStore } from '@/stores/mobileNavStore'
 import {
   Menu,
   Home,
@@ -41,7 +41,7 @@ const rowClass =
   'flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-3 text-base text-black transition-colors hover:bg-[hsl(var(--brand-primary))]/10'
 
 export function MobileNavSheet() {
-  const [open, setOpen] = useState(false)
+  const { open, setOpen } = useMobileNavStore()
   const { isSignedIn } = useUser()
   const { userType } = useUserType()
   const { openUserProfile, signOut } = useClerk()
