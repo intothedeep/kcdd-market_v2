@@ -1080,6 +1080,75 @@ export type Database = {
           },
         ]
       }
+      payment_event_log: {
+        Row: {
+          actor_clerk_user_id: string | null
+          actor_ip_hash: string | null
+          amount_cents: number | null
+          backend_version: string | null
+          campaign_id: string | null
+          context: Json | null
+          created_at: string
+          currency: string | null
+          error_code: string | null
+          error_message: string | null
+          event_type: string
+          id: number
+          organization_id: string | null
+          outcome: string | null
+          request_id: string | null
+          source: string
+          stripe_charge_id: string | null
+          stripe_event_id: string | null
+          stripe_payment_intent_id: string | null
+          target_kind: string | null
+        }
+        Insert: {
+          actor_clerk_user_id?: string | null
+          actor_ip_hash?: string | null
+          amount_cents?: number | null
+          backend_version?: string | null
+          campaign_id?: string | null
+          context?: Json | null
+          created_at?: string
+          currency?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: never
+          organization_id?: string | null
+          outcome?: string | null
+          request_id?: string | null
+          source: string
+          stripe_charge_id?: string | null
+          stripe_event_id?: string | null
+          stripe_payment_intent_id?: string | null
+          target_kind?: string | null
+        }
+        Update: {
+          actor_clerk_user_id?: string | null
+          actor_ip_hash?: string | null
+          amount_cents?: number | null
+          backend_version?: string | null
+          campaign_id?: string | null
+          context?: Json | null
+          created_at?: string
+          currency?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: never
+          organization_id?: string | null
+          outcome?: string | null
+          request_id?: string | null
+          source?: string
+          stripe_charge_id?: string | null
+          stripe_event_id?: string | null
+          stripe_payment_intent_id?: string | null
+          target_kind?: string | null
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
           amount_total: number
@@ -1209,6 +1278,107 @@ export type Database = {
           updated_by?: string | null
           value?: string | null
           value_type?: string | null
+        }
+        Relationships: []
+      }
+      reconciliation_discrepancies: {
+        Row: {
+          charge_id: string | null
+          created_at: string
+          detail: Json | null
+          id: string
+          our_value: string | null
+          payment_intent_id: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          run_id: string
+          stripe_value: string | null
+          type: string
+        }
+        Insert: {
+          charge_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          our_value?: string | null
+          payment_intent_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_id: string
+          stripe_value?: string | null
+          type: string
+        }
+        Update: {
+          charge_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          our_value?: string | null
+          payment_intent_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_id?: string
+          stripe_value?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_discrepancies_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "reconciliation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliation_runs: {
+        Row: {
+          discrepancy_count: number | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          local_count: number | null
+          matched_count: number | null
+          started_at: string
+          status: string
+          stripe_count: number | null
+          trigger_source: string
+          triggered_by: string
+          window_from: string
+          window_to: string
+        }
+        Insert: {
+          discrepancy_count?: number | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          local_count?: number | null
+          matched_count?: number | null
+          started_at?: string
+          status?: string
+          stripe_count?: number | null
+          trigger_source?: string
+          triggered_by: string
+          window_from: string
+          window_to: string
+        }
+        Update: {
+          discrepancy_count?: number | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          local_count?: number | null
+          matched_count?: number | null
+          started_at?: string
+          status?: string
+          stripe_count?: number | null
+          trigger_source?: string
+          triggered_by?: string
+          window_from?: string
+          window_to?: string
         }
         Relationships: []
       }
@@ -1855,6 +2025,7 @@ export type Database = {
           p_event_id: string
           p_event_type: string
           p_lifecycle_entry: Json
+          p_log_row?: Json
           p_new_status: string
           p_payload: Json
           p_payment_intent_id: string
@@ -1869,6 +2040,7 @@ export type Database = {
           p_is_dispute_lost: boolean
           p_is_full_dispute: boolean
           p_lifecycle_entry: Json
+          p_log_row?: Json
           p_new_status: string
           p_payload: Json
           p_payment_intent_id: string
@@ -1881,6 +2053,7 @@ export type Database = {
           p_event_id: string
           p_event_type: string
           p_lifecycle_entry: Json
+          p_log_row?: Json
           p_payload: Json
           p_payment_intent_id: string
         }
@@ -1895,6 +2068,7 @@ export type Database = {
           p_event_id: string
           p_event_type: string
           p_lifecycle_entry: Json
+          p_log_row?: Json
           p_organization_id: string
           p_payload: Json
           p_payment_intent_id: string
