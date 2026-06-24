@@ -7,12 +7,19 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:push": "supabase db push",
-    "db:status": "supabase status"
+    "db:status": "supabase status",
+    "backfill:images": "node scripts/backfill-base64-images.mjs",
+    "backfill:images:dry": "node scripts/backfill-base64-images.mjs --dry-run"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.7"
   },
   "devDependencies": {
     "supabase": "2.98.2"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["supabase"]
+    "onlyBuiltDependencies": [
+      "supabase"
+    ]
   }
 }

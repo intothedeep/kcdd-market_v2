@@ -377,29 +377,19 @@ export function OrganizationProfilePage() {
 
   // Upload image to Supabase storage
   const uploadImage = async (file: File, path: string): Promise<string | null> => {
-    try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${path}_${Date.now()}.${fileExt}`
-      const { data, error } = await supabase.storage
-        .from('organization-images')
-        .upload(fileName, file, { upsert: true })
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${path}_${Date.now()}.${fileExt}`
+    const { data, error } = await supabase.storage
+      .from('organization-images')
+      .upload(fileName, file, { upsert: true })
 
-      if (error) {
-        console.warn('Storage upload failed, using base64 fallback:', error)
-        // Fallback to base64
-        return new Promise((resolve) => {
-          const reader = new FileReader()
-          reader.onload = (e) => resolve(e.target?.result as string)
-          reader.readAsDataURL(file)
-        })
-      }
-
-      const { data: urlData } = supabase.storage.from('organization-images').getPublicUrl(data.path)
-      return urlData.publicUrl
-    } catch (err) {
-      console.error('Image upload error:', err)
-      return null
+    if (error) {
+      console.error('Storage upload failed:', error)
+      throw new Error(error.message)
     }
+
+    const { data: urlData } = supabase.storage.from('organization-images').getPublicUrl(data.path)
+    return urlData.publicUrl
   }
 
   const handleSaveEdit = async () => {

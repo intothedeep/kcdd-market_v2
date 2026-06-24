@@ -85,6 +85,7 @@ export function CampaignFormModal({
 
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [formData, setFormData] = useState<CampaignFormData>({
     campaignTitle: '',
     creatorName: user?.fullName || '',
@@ -147,6 +148,7 @@ export function CampaignFormModal({
     }
 
     setIsSubmitting(true)
+    setSubmitError(null)
     try {
       // Look up cause area IDs from names
       let causeAreaIds: string[] = []
@@ -161,27 +163,26 @@ export function CampaignFormModal({
         }
       }
 
-      // Upload logo if provided
+      // Upload logo if provided. If the user picked a file, an upload error must
+      // surface (don't silently create the campaign without the logo).
       let logoUrl: string | undefined = undefined
       if (formData.logoFile) {
-        try {
-          const fileExt = formData.logoFile.name.split('.').pop()
-          const fileName = `campaign-${user.id}-${Date.now()}.${fileExt}`
+        const fileExt = formData.logoFile.name.split('.').pop()
+        const fileName = `campaign-${user.id}-${Date.now()}.${fileExt}`
 
-          const { error: uploadError } = await supabase.storage
-            .from('campaign-images')
-            .upload(fileName, formData.logoFile)
+        const { error: uploadError } = await supabase.storage
+          .from('campaign-images')
+          .upload(fileName, formData.logoFile)
 
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage
-              .from('campaign-images')
-              .getPublicUrl(fileName)
-            logoUrl = urlData.publicUrl
-          }
-        } catch (uploadError) {
+        if (uploadError) {
           console.error('Error uploading logo:', uploadError)
-          // Continue even if logo upload fails
+          throw new Error(uploadError.message)
         }
+
+        const { data: urlData } = supabase.storage
+          .from('campaign-images')
+          .getPublicUrl(fileName)
+        logoUrl = urlData.publicUrl
       }
 
       // Create the campaign
@@ -209,6 +210,9 @@ export function CampaignFormModal({
       }
     } catch (error) {
       console.error('Error creating campaign:', error)
+      setSubmitError(
+        error instanceof Error ? error.message : 'Failed to create campaign. Please try again.'
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -626,6 +630,12 @@ export function CampaignFormModal({
 
           {/* Form Content */}
           <div className="flex-1 overflow-y-auto">{renderCurrentStep()}</div>
+
+          {currentStep === TOTAL_STEPS && submitError && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Footer */}
           <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-6">

@@ -253,6 +253,23 @@ Documents:
 - `organization_documents` — CBO-uploaded files (501c3, financials, etc.)
 - `donor_documents`, `tax_documents` — donor-facing receipts and annual summaries (PDF)
 
+**Storage buckets** (provisioned as migrations — `supabase db push` to Cloud does NOT run seed.sql, so buckets must exist as migrations):
+
+| bucket | public | size | mime | write scope | migration |
+| --- | --- | --- | --- | --- | --- |
+| `organization-images` | public | 5 MB | png/jpeg/webp/gif | authenticated | `20260624000000_storage_image_buckets.sql` |
+| `organization-logos` | public | 5 MB | png/jpeg/webp/gif | authenticated | same |
+| `profile-pictures` | public | 5 MB | png/jpeg/webp/gif | authenticated | same |
+| `campaign-images` | public | 5 MB | png/jpeg/webp/gif | authenticated | same |
+| `organization-documents` | private | 10 MB | pdf/png/jpeg | owner-or-admin (`(storage.foldername(name))[1]` = org UUID) | same |
+| `tax-documents` | private | 10 MB | pdf | service-role | `20260623000100_tax_documents_bucket.sql` (untouched) |
+
+The image-bucket migration is idempotent (`INSERT ... ON CONFLICT (id) DO NOTHING` — never DO UPDATE, so manual Cloud buckets are preserved; `DROP POLICY IF EXISTS` before each policy). The frontend's **base64 `data:` URL fallback was removed** from `OrganizationProfilePage.tsx`, `cbo/DashboardPage.tsx`, `CampaignForm.tsx`, and `CampaignFormModal.tsx` — upload errors now throw and surface to the user instead of silently stuffing a base64 string into the DB column.
+
+**Base64 backfill** — for rows that already got a `data:` URL written before the buckets existed: `backend/scripts/backfill-base64-images.mjs` migrates `organizations.logo_url` / `cover_image_url` (and defensively `donor_profiles` / `user_profiles.profile_picture_url`) into the `organization-images` bucket and rewrites the column to the public URL. Run `cd backend && SUPABASE_URL=... SUPABASE_SECRET_KEY=... pnpm backfill:images:dry` (reports count + bytes, no writes), then `pnpm backfill:images`. Idempotent (only matches rows `LIKE 'data:%'`). **PRODUCTION backfill is a one-time, user-run action** against the Cloud project (service key required).
+
+> **Follow-ups (separate PRs):** (a) `organization-documents` is a private bucket but `supabase.ts` still reads it via `getPublicUrl` — should move to `createSignedUrl`. (b) bucket-name consolidation (`organization-images` vs `organization-logos`) is deferred; both are provisioned today.
+
 Misc:
 
 - `support_faqs`, `support_contact_info` — donor dashboard help content

@@ -282,26 +282,26 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
         }
       }
 
-      // Upload logo if provided
+      // Upload logo if provided. If the user picked a file, an upload error must
+      // surface (don't silently create the campaign without the logo).
       let logoUrl: string | undefined = undefined
       if (formData.logoFile) {
-        try {
-          const fileExt = formData.logoFile.name.split('.').pop()
-          const fileName = `campaign-${user.id}-${Date.now()}.${fileExt}`
+        const fileExt = formData.logoFile.name.split('.').pop()
+        const fileName = `campaign-${user.id}-${Date.now()}.${fileExt}`
 
-          const { error: uploadError } = await supabase.storage
-            .from('campaign-images')
-            .upload(fileName, formData.logoFile)
+        const { error: uploadError } = await supabase.storage
+          .from('campaign-images')
+          .upload(fileName, formData.logoFile)
 
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage
-              .from('campaign-images')
-              .getPublicUrl(fileName)
-            logoUrl = urlData.publicUrl
-          }
-        } catch (uploadError) {
+        if (uploadError) {
           console.error('Error uploading logo:', uploadError)
+          throw new Error(uploadError.message)
         }
+
+        const { data: urlData } = supabase.storage
+          .from('campaign-images')
+          .getPublicUrl(fileName)
+        logoUrl = urlData.publicUrl
       }
 
       // Create the campaign with social links

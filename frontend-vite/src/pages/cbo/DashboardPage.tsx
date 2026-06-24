@@ -696,38 +696,23 @@ function ProfileContent({ organization, onRefresh }: { organization: any; onRefr
 
   // Upload image to Supabase Storage
   const uploadImage = async (file: File, path: string): Promise<string | null> => {
-    try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${path}_${Date.now()}.${fileExt}`
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${path}_${Date.now()}.${fileExt}`
 
-      const { data, error } = await supabase.storage
-        .from('organization-images')
-        .upload(fileName, file, { upsert: true })
+    const { data, error } = await supabase.storage
+      .from('organization-images')
+      .upload(fileName, file, { upsert: true })
 
-      if (error) {
-        console.error('Upload error:', error)
-        // If storage bucket doesn't exist, fall back to data URL
-        return new Promise((resolve) => {
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
-          reader.readAsDataURL(file)
-        })
-      }
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('organization-images').getPublicUrl(data.path)
-
-      return publicUrl
-    } catch (err) {
-      console.error('Upload failed:', err)
-      // Fallback to data URL
-      return new Promise((resolve) => {
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
-        reader.readAsDataURL(file)
-      })
+    if (error) {
+      console.error('Upload error:', error)
+      throw new Error(error.message)
     }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('organization-images').getPublicUrl(data.path)
+
+    return publicUrl
   }
 
   const handleSave = async () => {
