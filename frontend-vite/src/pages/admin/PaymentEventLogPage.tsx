@@ -55,6 +55,7 @@ interface PaymentEventsResponse {
 
 function outcomeBadgeClass(outcome: string | null): string {
   switch (outcome) {
+    case 'ok':
     case 'success':
     case 'succeeded':
       return 'bg-green-100 text-green-800'

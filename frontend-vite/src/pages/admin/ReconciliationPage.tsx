@@ -66,7 +66,7 @@ interface DiscrepancyRow {
   type: string
   our_value: string | null
   stripe_value: string | null
-  detail: string | null
+  detail: Record<string, unknown> | null
   resolved: boolean
 }
 
@@ -376,7 +376,7 @@ export function ReconciliationPage({ embedded = false }: { embedded?: boolean } 
                               <TableCell className="text-xs">{d.our_value ?? '—'}</TableCell>
                               <TableCell className="text-xs">{d.stripe_value ?? '—'}</TableCell>
                               <TableCell className="text-xs text-[#737373]">
-                                {d.detail ?? '—'}
+                                {d.detail ? JSON.stringify(d.detail) : '—'}
                               </TableCell>
                               <TableCell>
                                 {d.resolved ? (

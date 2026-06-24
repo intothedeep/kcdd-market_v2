@@ -18,10 +18,11 @@ import { createClient } from '@supabase/supabase-js'
 import { generateDonationReceipt, generateAnnualSummary } from './services/pdfGenerator.js'
 import { clerkAuth } from './middleware/clerkAuth.js'
 import usersRouter from './routes/users.js'
-import { buildPaymentMetadata, appendLifecycle } from './helpers/paymentMetadata.js'
+import { buildPaymentMetadata, appendLifecycle, hashIp } from './helpers/paymentMetadata.js'
 import { upsertDispute } from './helpers/disputes.js'
 import { postToSlack, formatPayload, enqueueSlackAlert } from './helpers/slack.js'
 import { runReconciliation } from './services/reconciliation.js'
+import { logPaymentEvent } from './helpers/paymentEventLog.js'
 import {
   STATES as CAMPAIGN_STATES,
   getCampaignState,
@@ -429,6 +430,12 @@ app.post('/api/payments/create-intent', clerkAuth, async (req, res) => {
     const donorId = req.auth.userId // from Clerk JWT, not client
 
     if (!requestId) {
+      await logPaymentEvent(supabase, {
+        event_type: 'pre_intent_failed',
+        outcome: 'error',
+        error_code: 'validation',
+        source: 'create-intent',
+      })
       return res.status(400).json({ error: 'Missing requestId' })
     }
 
@@ -447,7 +454,28 @@ app.post('/api/payments/create-intent', clerkAuth, async (req, res) => {
       .single()
 
     if (fetchError || !request) {
+      await logPaymentEvent(supabase, {
+        event_type: 'pre_intent_failed',
+        outcome: 'error',
+        error_code: 'not_found',
+        source: 'create-intent',
+        request_id: requestId,
+      })
       return res.status(404).json({ error: 'Request not found' })
+    }
+
+    // NEW guard: only an open request can be donated to. A claimed/fulfilled/
+    // denied request must not spawn a new PaymentIntent.
+    if (request.status !== 'open') {
+      await logPaymentEvent(supabase, {
+        event_type: 'pre_intent_failed',
+        outcome: 'error',
+        error_code: 'REQUEST_NOT_OPEN',
+        source: 'create-intent',
+        request_id: requestId,
+        organization_id: request.organization?.id || null,
+      })
+      return res.status(400).json({ code: 'REQUEST_NOT_OPEN' })
     }
 
     // Check if organization can accept payments. Dev convenience:
@@ -457,6 +485,14 @@ app.post('/api/payments/create-intent', clerkAuth, async (req, res) => {
     const bypassConnect = process.env.STRIPE_BYPASS_CONNECT === 'true'
     const org = request.organization
     if (!bypassConnect && (!org?.stripe_account_id || !org?.stripe_charges_enabled)) {
+      await logPaymentEvent(supabase, {
+        event_type: 'pre_intent_failed',
+        outcome: 'error',
+        error_code: 'STRIPE_NOT_CONNECTED',
+        source: 'create-intent',
+        request_id: requestId,
+        organization_id: org?.id || null,
+      })
       return res.status(400).json({
         error: 'Organization not ready to accept payments',
         code: 'STRIPE_NOT_CONNECTED',
@@ -477,7 +513,9 @@ app.post('/api/payments/create-intent', clerkAuth, async (req, res) => {
       settings?.find((s) => s.key === 'stripe_platform_fee_fixed_cents')?.value || '30'
     )
 
-    // Canonical amount: requests.amount is in dollars in the DB — never trust client body
+    // Canonical amount: requests.amount is in dollars in the DB — never trust client body.
+    // NOTE: donor_profiles.max_per_request is intentionally left unenforced here
+    // per architect decision (request amount is fixed and DB-sourced).
     const amountCents = Math.round(Number(request.amount) * 100)
     const platformFee = Math.round(amountCents * (feePercent / 100)) + feeFixed
     const organizationAmount = amountCents - platformFee
@@ -502,7 +540,23 @@ app.post('/api/payments/create-intent', clerkAuth, async (req, res) => {
       intentParams.application_fee_amount = platformFee
       intentParams.transfer_data = { destination: org.stripe_account_id }
     }
-    const paymentIntent = await stripe.paymentIntents.create(intentParams)
+    let paymentIntent
+    try {
+      paymentIntent = await stripe.paymentIntents.create(intentParams)
+    } catch (err) {
+      await logPaymentEvent(supabase, {
+        event_type: 'pre_intent_failed',
+        outcome: 'error',
+        error_code: err.code || 'stripe_create_failed',
+        error_message: err.message,
+        source: 'create-intent',
+        amount_cents: amountCents,
+        target_kind: 'request',
+        request_id: requestId,
+        organization_id: org.id,
+      })
+      throw err
+    }
 
     // Create payment transaction record
     const { error: txError } = await supabase.from('payment_transactions').insert({
@@ -529,6 +583,19 @@ app.post('/api/payments/create-intent', clerkAuth, async (req, res) => {
       console.error('Error creating transaction record:', txError)
       // Don't fail the request, just log the error
     }
+
+    await logPaymentEvent(supabase, {
+      event_type: 'intent_created',
+      outcome: 'ok',
+      source: 'create-intent',
+      stripe_payment_intent_id: paymentIntent.id,
+      amount_cents: amountCents,
+      target_kind: 'request',
+      request_id: requestId,
+      organization_id: org.id,
+      actor_clerk_user_id: donorId,
+      actor_ip_hash: hashIp(req.ip || req.headers['x-forwarded-for']?.split(',')[0]?.trim()),
+    })
 
     console.log('Created payment intent:', {
       id: paymentIntent.id,
@@ -576,10 +643,23 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
     const donorId = req.auth.userId // from Clerk JWT, not client
 
     if (!campaignId || !amount) {
+      await logPaymentEvent(supabase, {
+        event_type: 'pre_intent_failed',
+        outcome: 'error',
+        error_code: 'validation',
+        source: 'create-campaign-intent',
+      })
       return res.status(400).json({ error: 'Missing campaignId or amount' })
     }
 
     if (amount < 100) {
+      await logPaymentEvent(supabase, {
+        event_type: 'pre_intent_failed',
+        outcome: 'error',
+        error_code: 'validation',
+        source: 'create-campaign-intent',
+        campaign_id: campaignId,
+      })
       return res.status(400).json({ error: 'Minimum donation is $1 (100 cents)' })
     }
 
@@ -598,6 +678,13 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
       .single()
 
     if (fetchError || !campaign) {
+      await logPaymentEvent(supabase, {
+        event_type: 'pre_intent_failed',
+        outcome: 'error',
+        error_code: 'not_found',
+        source: 'create-campaign-intent',
+        campaign_id: campaignId,
+      })
       return res.status(404).json({ error: 'Campaign not found' })
     }
 
@@ -622,6 +709,14 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
     const bypassConnect = process.env.STRIPE_BYPASS_CONNECT === 'true'
     const org = campaign.organization
     if (!bypassConnect && (!org?.stripe_account_id || !org?.stripe_charges_enabled)) {
+      await logPaymentEvent(supabase, {
+        event_type: 'pre_intent_failed',
+        outcome: 'error',
+        error_code: 'STRIPE_NOT_CONNECTED',
+        source: 'create-campaign-intent',
+        campaign_id: campaignId,
+        organization_id: org?.id || null,
+      })
       return res.status(400).json({
         error: 'Organization not ready to accept payments',
         code: 'STRIPE_NOT_CONNECTED',
@@ -647,6 +742,17 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
     const platformFee = Math.round(amountCents * (feePercent / 100)) + feeFixed
     const organizationAmount = amountCents - platformFee
 
+    // Soft over-goal flag (never blocks the donation — soft cap only). If this
+    // donation would push amount_raised past the approved funding_goal, flag it.
+    let overGoal = false
+    const fundingGoal = Number(campaignDetail?.content?.funding_goal)
+    if (Number.isFinite(fundingGoal) && fundingGoal > 0) {
+      const raised = Number(campaign.amount_raised) || 0
+      if (raised + amountCents / 100 > fundingGoal) {
+        overGoal = true
+      }
+    }
+
     // Create payment intent. When Connect is set up, route via destination
     // charge to the org. In bypass mode (dev/test only) just create a direct
     // PaymentIntent against the platform account.
@@ -668,7 +774,23 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
       intentParams.application_fee_amount = platformFee
       intentParams.transfer_data = { destination: org.stripe_account_id }
     }
-    const paymentIntent = await stripe.paymentIntents.create(intentParams)
+    let paymentIntent
+    try {
+      paymentIntent = await stripe.paymentIntents.create(intentParams)
+    } catch (err) {
+      await logPaymentEvent(supabase, {
+        event_type: 'pre_intent_failed',
+        outcome: 'error',
+        error_code: err.code || 'stripe_create_failed',
+        error_message: err.message,
+        source: 'create-campaign-intent',
+        amount_cents: amountCents,
+        target_kind: 'campaign',
+        campaign_id: campaignId,
+        organization_id: org?.id || null,
+      })
+      throw err
+    }
 
     // Create payment transaction record
     const { error: txError } = await supabase.from('payment_transactions').insert({
@@ -698,6 +820,20 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
       // Don't fail the request, just log the error
     }
 
+    await logPaymentEvent(supabase, {
+      event_type: 'intent_created',
+      outcome: 'ok',
+      source: 'create-campaign-intent',
+      stripe_payment_intent_id: paymentIntent.id,
+      amount_cents: amountCents,
+      target_kind: 'campaign',
+      campaign_id: campaignId,
+      organization_id: org?.id || null,
+      actor_clerk_user_id: donorId,
+      actor_ip_hash: hashIp(req.ip || req.headers['x-forwarded-for']?.split(',')[0]?.trim()),
+      context: overGoal ? { over_goal: true } : null,
+    })
+
     console.log('Created campaign payment intent:', {
       id: paymentIntent.id,
       campaignId,
@@ -710,6 +846,7 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
     res.json({
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
+      overGoal,
       breakdown: {
         total: amountCents,
         platformFee,
@@ -823,6 +960,38 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           requestId: requestId || campaignId,
           amount: pi.amount / 100,
         })
+        // AUTO-REFUND a lost-race duplicate. The process_payment_succeeded RPC
+        // marks the loser of a concurrent succeed as
+        // payment_transactions.status='pending_auto_refund' (no org notify).
+        // Re-SELECT to detect that, then issue a Stripe refund. We do NOT set
+        // the tx status here — the resulting charge.refunded webhook settles it.
+        try {
+          const { data: dupTx } = await supabase
+            .from('payment_transactions')
+            .select('status')
+            .eq('stripe_payment_intent_id', pi.id)
+            .maybeSingle()
+          if (dupTx?.status === 'pending_auto_refund') {
+            await stripe.refunds.create(
+              { payment_intent: pi.id },
+              { idempotencyKey: pi.id + ':dup-refund' }
+            )
+            await logPaymentEvent(supabase, {
+              event_type: 'auto_refund_duplicate',
+              outcome: 'ok',
+              source: 'webhook:payment_intent.succeeded',
+              stripe_payment_intent_id: pi.id,
+            })
+          }
+        } catch (refundErr) {
+          await logPaymentEvent(supabase, {
+            event_type: 'auto_refund_duplicate',
+            outcome: 'error',
+            source: 'webhook:payment_intent.succeeded',
+            stripe_payment_intent_id: pi.id,
+            error_message: refundErr.message,
+          })
+        }
         // Non-transactional follow-up: tax receipt PDF. Network + storage
         // upload cannot live inside the Postgres txn; a flaky receipt
         // generator must not block money tracking.
@@ -929,9 +1098,23 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
         await handleAccountDeauthorized(event.data.object)
         break
 
-      case 'transfer.created':
-        await handleTransferCreated(event.data.object)
+      case 'transfer.created': {
+        const transfer = event.data.object
+        await handleTransferCreated(transfer)
+        await logPaymentEvent(supabase, {
+          event_type: event.type,
+          outcome: 'ok',
+          source: `webhook:${event.type}`,
+          stripe_event_id: event.id,
+          amount_cents: transfer.amount ?? null,
+          context: {
+            transfer_id: transfer.id,
+            destination: transfer.destination || null,
+            source_transaction: transfer.source_transaction || null,
+          },
+        })
         break
+      }
 
       case 'charge.dispute.created': {
         const dispute = event.data.object
@@ -947,6 +1130,15 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           dispute_id: dispute.id,
           reason: dispute.reason,
         })
+        await logPaymentEvent(supabase, {
+          event_type: event.type,
+          outcome: 'ok',
+          source: `webhook:${event.type}`,
+          stripe_event_id: event.id,
+          stripe_payment_intent_id: dispute.payment_intent || null,
+          amount_cents: dispute.amount ?? null,
+          context: { dispute_id: dispute.id, reason: dispute.reason || null },
+        })
         break
       }
 
@@ -959,6 +1151,15 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           event: 'charge.dispute.funds_withdrawn',
           event_id: event.id,
           dispute_id: dispute.id,
+        })
+        await logPaymentEvent(supabase, {
+          event_type: event.type,
+          outcome: 'ok',
+          source: `webhook:${event.type}`,
+          stripe_event_id: event.id,
+          stripe_payment_intent_id: dispute.payment_intent || null,
+          amount_cents: dispute.amount ?? null,
+          context: { dispute_id: dispute.id },
         })
         break
       }
@@ -973,6 +1174,15 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
           event: 'charge.dispute.funds_reinstated',
           event_id: event.id,
           dispute_id: dispute.id,
+        })
+        await logPaymentEvent(supabase, {
+          event_type: event.type,
+          outcome: 'ok',
+          source: `webhook:${event.type}`,
+          stripe_event_id: event.id,
+          stripe_payment_intent_id: dispute.payment_intent || null,
+          amount_cents: dispute.amount ?? null,
+          context: { dispute_id: dispute.id },
         })
         break
       }
