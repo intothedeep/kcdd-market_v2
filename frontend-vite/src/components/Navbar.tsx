@@ -16,6 +16,7 @@ import {
 import { ChevronDown, LayoutDashboard, Heart, Building2, Shield } from 'lucide-react'
 import { useUserType } from '@/hooks/useClerkSupabase'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { MobileNavSheet } from '@/components/MobileNavSheet'
 
 export function Navbar() {
   const { isSignedIn } = useUser()
@@ -97,7 +98,7 @@ export function Navbar() {
         {/* Logo - Centered, hugs content */}
         <Link to={routes.home} className="flex-shrink-0">
           <h1
-            className="whitespace-nowrap text-[30px] font-black text-[hsl(var(--brand-primary))]"
+            className="max-w-[55vw] truncate text-xl font-black text-[hsl(var(--brand-primary))] md:max-w-none md:whitespace-nowrap md:text-[30px]"
             style={{ fontFamily: 'Inter, sans-serif' }}
           >
             {brandTitle}
@@ -175,6 +176,7 @@ export function Navbar() {
           )}
         </div>
       </div>
+      <MobileNavSheet />
     </header>
   )
 }

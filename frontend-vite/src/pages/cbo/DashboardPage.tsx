@@ -103,6 +103,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { StripeConnectCard } from '@/components/StripeConnectButton'
 import { useStripeConnect } from '@/hooks/useStripeConnect'
 import { IconByName, IconPicker } from '@/components/ui/icon-picker'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
 // Campaign type
 interface Campaign {
@@ -278,7 +279,7 @@ function DashboardContent({
   return (
     <>
       {/* Stats Cards */}
-      <div className="mb-6 grid grid-cols-4 gap-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {statsCards.map((stat, i) => (
           <Card key={i} className="p-6">
             <div className="space-y-6">
@@ -410,7 +411,7 @@ function CampaignsContent({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card
           className="cursor-pointer p-5 text-center transition-shadow hover:shadow-md"
           onClick={onCreateCampaign}
@@ -1041,7 +1042,7 @@ function ProfileContent({ organization, onRefresh }: { organization: any; onRefr
           )}
 
           {/* Quick Stats */}
-          <div className="mb-4 grid grid-cols-3 gap-4">
+          <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div className="rounded-lg bg-[#f5f5f5] p-3 text-center">
               <p className="text-2xl font-semibold text-[#1b5858]">{completeness}%</p>
               <p className="text-xs text-[#737373]">Profile Complete</p>
@@ -1254,7 +1255,7 @@ function ProfileContent({ organization, onRefresh }: { organization: any; onRefr
         )}
 
       {/* Contact & Location */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card className="p-5">
           <h4 className="mb-3 flex items-center gap-2 font-medium">
             <Mail className="h-4 w-4 text-[#737373]" />
@@ -1320,7 +1321,7 @@ function ProfileContent({ organization, onRefresh }: { organization: any; onRefr
                   placeholder="123 Main Street"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div>
                   <label className="text-xs text-[#737373]">City</label>
                   <Input
@@ -1367,7 +1368,7 @@ function ProfileContent({ organization, onRefresh }: { organization: any; onRefr
             <Users className="h-5 w-5 text-[#1b5858]" />
             Social Media Links
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#1877f2]">
                 <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -1866,7 +1867,7 @@ function AnalyticsContent({
         <p className="text-sm text-[#737373]">Track your organization's impact and performance</p>
       </div>
 
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Card className="p-5 text-center">
           <Users className="mx-auto mb-2 h-8 w-8 text-[#1b5858]" />
           <p className="text-2xl font-semibold">{stats.beneficiariesHelped.toLocaleString()}</p>
@@ -2085,7 +2086,7 @@ function DocumentsContent({ organization, userId }: { organization: any; userId:
                 </p>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-sm font-medium">Document Name</label>
                 <Input
@@ -2110,7 +2111,7 @@ function DocumentsContent({ organization, userId }: { organization: any; userId:
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-sm font-medium">Year</label>
                 <Input
@@ -2202,13 +2203,13 @@ function DocumentsContent({ organization, userId }: { organization: any; userId:
         <div className="space-y-3">
           {documents.map((doc) => (
             <Card key={doc.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-100">
                     <FileText className="h-5 w-5 text-red-600" />
                   </div>
-                  <div>
-                    <h4 className="font-medium">{doc.name}</h4>
+                  <div className="min-w-0">
+                    <h4 className="truncate font-medium">{doc.name}</h4>
                     <p className="text-sm text-[#737373]">
                       {getTypeLabel(doc.type)}
                       {doc.year && ` · ${doc.year}`}
@@ -2221,7 +2222,7 @@ function DocumentsContent({ organization, userId }: { organization: any; userId:
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-shrink-0 items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleDownload(doc)}>
                     <Download className="mr-2 h-4 w-4" />
                     Download
@@ -2439,7 +2440,7 @@ function SettingsContent({
             <h3 className="mb-4 flex items-center gap-2 font-medium text-[#0a0a0a]">
               <Mail className="h-4 w-4" /> Contact Information
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-sm font-medium text-[#737373]">Email</label>
                 {isEditing ? (
@@ -2505,7 +2506,7 @@ function SettingsContent({
             <h3 className="mb-4 flex items-center gap-2 font-medium text-[#0a0a0a]">
               <Building2 className="h-4 w-4" /> Address
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="col-span-2">
                 <label className="text-sm font-medium text-[#737373]">Street Address</label>
                 {isEditing ? (
@@ -2532,7 +2533,7 @@ function SettingsContent({
                   <p className="mt-1 text-[#0a0a0a]">{formData.city || 'Not set'}</p>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-sm font-medium text-[#737373]">State</label>
                   {isEditing ? (
@@ -2570,7 +2571,7 @@ function SettingsContent({
             <h3 className="mb-4 flex items-center gap-2 font-medium text-[#0a0a0a]">
               <Users className="h-4 w-4" /> Social Media Links
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#1877f2]">
                   <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -2734,7 +2735,7 @@ function SupportContent() {
         <p className="text-sm text-[#737373]">Get help with your account</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Card className="cursor-pointer p-5 text-center transition-shadow hover:shadow-md">
           <Mail className="mx-auto mb-3 h-8 w-8 text-[#1b5858]" />
           <h3 className="mb-1 font-medium">Email Support</h3>
@@ -2821,6 +2822,7 @@ export function CBODashboard() {
   // State
   const [searchParams, setSearchParams] = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<SidebarSection>(() => {
     const param = searchParams.get('section')
     return isSidebarSection(param) ? param : 'dashboard'
@@ -3059,6 +3061,205 @@ export function CBODashboard() {
     )
   }
 
+  const renderSidebarNav = (expanded: boolean, onNavigate?: () => void) => {
+    const go = (section: SidebarSection) => {
+      selectSection(section)
+      onNavigate?.()
+    }
+    return (
+      <>
+        <div className="flex-1 space-y-2 overflow-hidden">
+          {/* Main Navigation */}
+          <nav className="space-y-1 p-2">
+            <button
+              onClick={() => go('dashboard')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'dashboard'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
+              {expanded && <span className="text-sm">Dashboard</span>}
+            </button>
+
+            <button
+              onClick={() => go('profile')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'profile'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <Building2 className="h-4 w-4 flex-shrink-0" />
+              {expanded && <span className="text-sm">Organization Profile</span>}
+            </button>
+
+            <button
+              onClick={() => go('campaigns')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'campaigns'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <List className="h-4 w-4 flex-shrink-0" />
+              {expanded && (
+                <span className="flex flex-1 items-center justify-between text-sm">
+                  My Campaigns
+                  {campaigns.length > 0 && (
+                    <span className="rounded bg-[#1b5858]/10 px-1.5 py-0.5 text-xs text-[#1b5858]">
+                      {campaigns.length}
+                    </span>
+                  )}
+                </span>
+              )}
+            </button>
+
+            {/* Campaign Links in Sidebar */}
+            {expanded && campaigns.length > 0 && (
+              <div className="ml-6 mt-1 space-y-1">
+                {campaigns.slice(0, 5).map((campaign) => (
+                  <Link
+                    key={campaign.id}
+                    to={`/campaign/${campaign.slug}`}
+                    onClick={onNavigate}
+                    className="block truncate rounded px-2 py-1.5 text-xs text-[#737373] hover:bg-gray-100 hover:text-[#0a0a0a]"
+                  >
+                    {campaign.title}
+                  </Link>
+                ))}
+                {campaigns.length > 5 && (
+                  <button
+                    onClick={() => go('campaigns')}
+                    className="block px-2 py-1.5 text-xs text-[#1b5858] hover:underline"
+                  >
+                    View all ({campaigns.length})
+                  </button>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => go('questions')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'questions'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <MessageCircleQuestion className="h-4 w-4 flex-shrink-0" />
+              {expanded && (
+                <span className="flex flex-1 items-center justify-between text-sm">
+                  Questions
+                  {questions.filter((q) => q.status === 'pending').length > 0 && (
+                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700">
+                      {questions.filter((q) => q.status === 'pending').length}
+                    </span>
+                  )}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => go('analytics')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'analytics'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <BarChart3 className="h-4 w-4 flex-shrink-0" />
+              {expanded && <span className="text-sm">Analytics</span>}
+            </button>
+
+            <button
+              onClick={() => go('documents')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'documents'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <FileText className="h-4 w-4 flex-shrink-0" />
+              {expanded && <span className="text-sm">Documents</span>}
+            </button>
+          </nav>
+
+          {/* Quick Actions */}
+          <div className="p-2">
+            {expanded && (
+              <h3 className="mb-2 whitespace-nowrap px-2 text-xs font-medium text-[#0a0a0a] opacity-70">
+                Quick Actions
+              </h3>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start whitespace-nowrap"
+              onClick={() => {
+                handleCreateCampaign()
+                onNavigate?.()
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
+              {expanded && 'New Campaign'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Footer Navigation */}
+        <div className="space-y-1 overflow-hidden border-t border-gray-200 p-2 pt-2">
+          <button
+            onClick={() => go('settings')}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+              activeSection === 'settings'
+                ? 'bg-[#1b5858] text-white'
+                : 'text-[#0a0a0a] hover:bg-gray-100'
+            }`}
+          >
+            <Settings className="h-4 w-4 flex-shrink-0" />
+            {expanded && <span className="text-sm">Settings</span>}
+          </button>
+
+          {/* W5-B1: link to per-org campaign defaults page */}
+          <Link
+            to="/cbo/campaign-defaults"
+            onClick={onNavigate}
+            className="flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 text-[#0a0a0a] transition-colors hover:bg-gray-100"
+          >
+            <Settings2 className="h-4 w-4 flex-shrink-0" />
+            {expanded && <span className="text-sm">Campaign defaults</span>}
+          </Link>
+
+          <button
+            onClick={() => go('support')}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+              activeSection === 'support'
+                ? 'bg-[#1b5858] text-white'
+                : 'text-[#0a0a0a] hover:bg-gray-100'
+            }`}
+          >
+            <HelpCircle className="h-4 w-4 flex-shrink-0" />
+            {expanded && <span className="text-sm">Support</span>}
+          </button>
+
+          <button
+            onClick={() => go('search')}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+              activeSection === 'search'
+                ? 'bg-[#1b5858] text-white'
+                : 'text-[#0a0a0a] hover:bg-gray-100'
+            }`}
+          >
+            <Search className="h-4 w-4 flex-shrink-0" />
+            {expanded && <span className="text-sm">Search</span>}
+          </button>
+        </div>
+      </>
+    )
+  }
+
   return (
     <div className="flex h-full bg-[#fafafa]">
       {/* Onboarding Modal */}
@@ -3074,205 +3275,43 @@ export function CBODashboard() {
         userType="cbo"
       />
 
-      {/* Sidebar */}
+      {/* Sidebar (desktop rail) */}
       <aside
-        className={`${sidebarOpen ? 'w-64' : 'w-16'} flex flex-col overflow-hidden bg-[#fafafa] p-2 transition-all duration-300`}
+        className={`${sidebarOpen ? 'w-64' : 'w-16'} hidden flex-col overflow-hidden bg-[#fafafa] p-2 transition-all duration-300 md:flex`}
       >
-        <div className="flex-1 space-y-2 overflow-hidden">
-          {/* Main Navigation */}
-          <nav className="space-y-1 p-2">
-            <button
-              onClick={() => selectSection('dashboard')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'dashboard'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm">Dashboard</span>}
-            </button>
-
-            <button
-              onClick={() => selectSection('profile')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'profile'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <Building2 className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm">Organization Profile</span>}
-            </button>
-
-            <button
-              onClick={() => selectSection('campaigns')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'campaigns'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <List className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && (
-                <span className="flex flex-1 items-center justify-between text-sm">
-                  My Campaigns
-                  {campaigns.length > 0 && (
-                    <span className="rounded bg-[#1b5858]/10 px-1.5 py-0.5 text-xs text-[#1b5858]">
-                      {campaigns.length}
-                    </span>
-                  )}
-                </span>
-              )}
-            </button>
-
-            {/* Campaign Links in Sidebar */}
-            {sidebarOpen && campaigns.length > 0 && (
-              <div className="ml-6 mt-1 space-y-1">
-                {campaigns.slice(0, 5).map((campaign) => (
-                  <Link
-                    key={campaign.id}
-                    to={`/campaign/${campaign.slug}`}
-                    className="block truncate rounded px-2 py-1.5 text-xs text-[#737373] hover:bg-gray-100 hover:text-[#0a0a0a]"
-                  >
-                    {campaign.title}
-                  </Link>
-                ))}
-                {campaigns.length > 5 && (
-                  <button
-                    onClick={() => selectSection('campaigns')}
-                    className="block px-2 py-1.5 text-xs text-[#1b5858] hover:underline"
-                  >
-                    View all ({campaigns.length})
-                  </button>
-                )}
-              </div>
-            )}
-
-            <button
-              onClick={() => selectSection('questions')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'questions'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <MessageCircleQuestion className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && (
-                <span className="flex flex-1 items-center justify-between text-sm">
-                  Questions
-                  {questions.filter((q) => q.status === 'pending').length > 0 && (
-                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700">
-                      {questions.filter((q) => q.status === 'pending').length}
-                    </span>
-                  )}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => selectSection('analytics')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'analytics'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <BarChart3 className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm">Analytics</span>}
-            </button>
-
-            <button
-              onClick={() => selectSection('documents')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'documents'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <FileText className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm">Documents</span>}
-            </button>
-          </nav>
-
-          {/* Quick Actions */}
-          <div className="p-2">
-            {sidebarOpen && (
-              <h3 className="mb-2 whitespace-nowrap px-2 text-xs font-medium text-[#0a0a0a] opacity-70">
-                Quick Actions
-              </h3>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start whitespace-nowrap"
-              onClick={handleCreateCampaign}
-            >
-              <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && 'New Campaign'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Footer Navigation */}
-        <div className="space-y-1 overflow-hidden border-t border-gray-200 p-2 pt-2">
-          <button
-            onClick={() => selectSection('settings')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-              activeSection === 'settings'
-                ? 'bg-[#1b5858] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <Settings className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Settings</span>}
-          </button>
-
-          {/* W5-B1: link to per-org campaign defaults page */}
-          <Link
-            to="/cbo/campaign-defaults"
-            className="flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 text-[#0a0a0a] transition-colors hover:bg-gray-100"
-          >
-            <Settings2 className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Campaign defaults</span>}
-          </Link>
-
-          <button
-            onClick={() => selectSection('support')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-              activeSection === 'support'
-                ? 'bg-[#1b5858] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <HelpCircle className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Support</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('search')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-              activeSection === 'search'
-                ? 'bg-[#1b5858] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <Search className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Search</span>}
-          </button>
-        </div>
+        {renderSidebarNav(sidebarOpen)}
       </aside>
+
+      {/* Sidebar (mobile off-canvas) */}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="left" className="w-64 bg-[#fafafa] p-2">
+          <SheetTitle className="sr-only">Dashboard navigation</SheetTitle>
+          <div className="flex h-full flex-col overflow-y-auto pt-6">
+            {renderSidebarNav(true, () => setMobileNavOpen(false))}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto p-2">
         <div className="flex h-full flex-col rounded-[14px] bg-white shadow-sm">
           {/* Header */}
-          <div className="flex h-[49px] items-center gap-2 border-b border-[#e5e5e5] px-6">
+          <div className="flex h-[49px] items-center gap-2 border-b border-[#e5e5e5] px-4 md:px-6">
+            {/* Desktop: collapse/expand rail */}
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="hidden h-7 w-7 md:inline-flex"
               onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              <PanelLeft className="h-4 w-4" />
+            </Button>
+            {/* Mobile: open off-canvas sidebar */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 md:hidden"
+              onClick={() => setMobileNavOpen(true)}
             >
               <PanelLeft className="h-4 w-4" />
             </Button>
@@ -3281,7 +3320,7 @@ export function CBODashboard() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-auto p-4 md:p-6">
             {/* Onboarding Alert */}
             {needsOnboarding && (
               <Alert className="mb-6 border-amber-200 bg-amber-50">

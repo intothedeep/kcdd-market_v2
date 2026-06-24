@@ -91,6 +91,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useImpersonation } from '@/contexts/ImpersonationContext'
 import { CampaignsAdminPage } from '@/pages/admin/CampaignsAdminPage'
 import { AuditLogPage } from '@/pages/admin/AuditLogPage'
@@ -290,8 +291,8 @@ function StatCard({
       }
       className={
         interactive
-          ? 'cursor-pointer p-5 transition-colors hover:border-[#ea580c] hover:bg-[#ea580c]/5'
-          : 'p-5'
+          ? 'cursor-pointer p-4 transition-colors hover:border-[#ea580c] hover:bg-[#ea580c]/5 sm:p-5'
+          : 'p-4 sm:p-5'
       }
     >
       <div className="flex items-start justify-between">
@@ -692,7 +693,7 @@ function UsersContent({
           <h2 className="text-xl font-semibold">User Management</h2>
           <p className="text-sm text-[#737373]">{users.length} total users</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" onClick={() => setAddUserOpen(true)}>
             <Plus className="mr-1 h-4 w-4" />
             Add User
@@ -763,7 +764,7 @@ function UsersContent({
         value={filterType ?? 'all'}
         onValueChange={(v) => setFilterType(v === 'all' ? null : v)}
       >
-        <TabsList>
+        <TabsList className="max-w-full overflow-x-auto">
           <TabsTrigger value="all" className="gap-2">
             All
             <Badge className="bg-gray-100 px-1.5 text-xs text-[#0a0a0a]">{typeCounts.all}</Badge>
@@ -1527,7 +1528,7 @@ function OrganizationsContent({
                       onChange={(e) => setEditValues((prev) => ({ ...prev, name: e.target.value }))}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-1 block text-sm font-medium">Email</label>
                       <Input
@@ -1557,7 +1558,7 @@ function OrganizationsContent({
                       }
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-1 block text-sm font-medium">City</label>
                       <Input
@@ -1653,7 +1654,7 @@ function OrganizationsContent({
                   </div>
 
                   {/* Details */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-sm text-[#737373]">Email</p>
                       <p className="font-medium">{selectedOrg.email || '—'}</p>
@@ -1865,7 +1866,7 @@ function ReportsContent({
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
@@ -1920,7 +1921,7 @@ function ReportsContent({
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-        <TabsList>
+        <TabsList className="max-w-full overflow-x-auto">
           <TabsTrigger value="pending" className="gap-2">
             Pending
             {reports.filter((r) => r.status === 'pending').length > 0 && (
@@ -2529,7 +2530,7 @@ Use the Help Center for FAQs or email admin@kcdd.org for support.
         <p className="text-sm text-[#737373]">Admin help and resources</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card
           className="cursor-pointer p-5 text-center transition-shadow hover:border-[#ea580c] hover:shadow-md"
           onClick={() =>
@@ -2764,6 +2765,7 @@ export function AdminDashboard() {
 
   // State
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<SidebarSection>(() => {
     const param = searchParams.get('section')
     return isSidebarSection(param) ? param : 'overview'
@@ -3341,190 +3343,209 @@ export function AdminDashboard() {
     )
   }
 
+  // Shared sidebar inner markup — rendered in the desktop rail (collapsible)
+  // and inside the mobile off-canvas Sheet (always expanded).
+  const renderSidebarInner = (expanded: boolean, onSelect: (section: SidebarSection) => void) => (
+    <>
+      {/* Logo */}
+      <div className="mb-2 p-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#ea580c]">
+            <Shield className="h-4 w-4 text-white" />
+          </div>
+          {expanded && (
+            <div className="whitespace-nowrap">
+              <span className="font-semibold text-[#0a0a0a]">KCDD Admin</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Navigation */}
+      <nav className="flex-1 space-y-1 overflow-hidden p-2">
+        <button
+          onClick={() => onSelect('overview')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'overview'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
+          {expanded && <span className="text-sm">Overview</span>}
+        </button>
+
+        <button
+          onClick={() => onSelect('users')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'users'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <Users className="h-4 w-4 flex-shrink-0" />
+          {expanded && <span className="text-sm">Users</span>}
+        </button>
+
+        <button
+          onClick={() => onSelect('organizations')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'organizations'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <Building2 className="h-4 w-4 flex-shrink-0" />
+          {expanded && <span className="text-sm">Organizations</span>}
+        </button>
+
+        <button
+          onClick={() => onSelect('pending')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'pending'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <ClipboardList className="h-4 w-4 flex-shrink-0" />
+          {expanded && <span className="text-sm">Campaigns</span>}
+        </button>
+
+        <button
+          onClick={() => onSelect('reports')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'reports'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <Flag className="h-4 w-4 flex-shrink-0" />
+          {expanded && (
+            <span className="flex items-center gap-2 text-sm">
+              Reports
+              {reports.filter((r) => r.status === 'pending').length > 0 && (
+                <Badge className="h-5 min-w-[20px] bg-red-500 px-1.5 py-0 text-xs text-white">
+                  {reports.filter((r) => r.status === 'pending').length}
+                </Badge>
+              )}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => onSelect('donations')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'donations'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <DollarSign className="h-4 w-4 flex-shrink-0" />
+          {expanded && <span className="text-sm">Donations</span>}
+        </button>
+
+        <button
+          onClick={() => onSelect('reconciliation')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'reconciliation'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <Scale className="h-4 w-4 flex-shrink-0" />
+          {expanded && <span className="text-sm">Reconciliation</span>}
+        </button>
+
+        <button
+          onClick={() => onSelect('payment-events')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'payment-events'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <ScrollText className="h-4 w-4 flex-shrink-0" />
+          {expanded && <span className="text-sm">Payment Events</span>}
+        </button>
+
+        <button
+          onClick={() => onSelect('audit')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'audit'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <Activity className="h-4 w-4 flex-shrink-0" />
+          {expanded && <span className="text-sm">Audit Log</span>}
+        </button>
+      </nav>
+
+      {/* Footer Navigation */}
+      <div className="space-y-1 overflow-hidden border-t border-gray-200 p-2 pt-2">
+        <button
+          onClick={() => onSelect('settings')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'settings'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <Settings className="h-4 w-4 flex-shrink-0" />
+          {expanded && <span className="text-sm">Settings</span>}
+        </button>
+
+        <button
+          onClick={() => onSelect('support')}
+          className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
+            activeSection === 'support'
+              ? 'bg-[#ea580c] text-white'
+              : 'text-[#0a0a0a] hover:bg-gray-100'
+          }`}
+        >
+          <HelpCircle className="h-4 w-4 flex-shrink-0" />
+          {expanded && <span className="text-sm">Support</span>}
+        </button>
+      </div>
+
+      {/* User Info */}
+      {expanded && (
+        <div className="border-t border-gray-200 p-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ea580c]/10 font-medium text-[#ea580c]">
+              {user?.firstName?.[0] || 'A'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-[#0a0a0a]">
+                {user?.firstName || 'Admin'}
+              </p>
+              <p className="text-xs text-[#737373]">Administrator</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+
   return (
     <div className="flex h-full bg-[#fafafa]">
-      {/* Sidebar */}
+      {/* Sidebar — desktop rail (collapsible). Hidden on mobile. */}
       <aside
-        className={`${sidebarOpen ? 'w-64' : 'w-16'} flex flex-col overflow-hidden border-r border-gray-200 bg-white p-2 transition-all duration-300`}
+        className={`${sidebarOpen ? 'w-64' : 'w-16'} hidden flex-col overflow-hidden border-r border-gray-200 bg-white p-2 transition-all duration-300 md:flex`}
       >
-        {/* Logo */}
-        <div className="mb-2 p-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#ea580c]">
-              <Shield className="h-4 w-4 text-white" />
-            </div>
-            {sidebarOpen && (
-              <div className="whitespace-nowrap">
-                <span className="font-semibold text-[#0a0a0a]">KCDD Admin</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Main Navigation */}
-        <nav className="flex-1 space-y-1 overflow-hidden p-2">
-          <button
-            onClick={() => selectSection('overview')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'overview'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Overview</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('users')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'users'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <Users className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Users</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('organizations')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'organizations'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <Building2 className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Organizations</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('pending')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'pending'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <ClipboardList className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Campaigns</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('reports')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'reports'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <Flag className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && (
-              <span className="flex items-center gap-2 text-sm">
-                Reports
-                {reports.filter((r) => r.status === 'pending').length > 0 && (
-                  <Badge className="h-5 min-w-[20px] bg-red-500 px-1.5 py-0 text-xs text-white">
-                    {reports.filter((r) => r.status === 'pending').length}
-                  </Badge>
-                )}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => selectSection('donations')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'donations'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <DollarSign className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Donations</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('reconciliation')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'reconciliation'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <Scale className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Reconciliation</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('payment-events')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'payment-events'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <ScrollText className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Payment Events</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('audit')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'audit'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <Activity className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Audit Log</span>}
-          </button>
-        </nav>
-
-        {/* Footer Navigation */}
-        <div className="space-y-1 overflow-hidden border-t border-gray-200 p-2 pt-2">
-          <button
-            onClick={() => selectSection('settings')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'settings'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <Settings className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Settings</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('support')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 transition-colors ${
-              activeSection === 'support'
-                ? 'bg-[#ea580c] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <HelpCircle className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Support</span>}
-          </button>
-        </div>
-
-        {/* User Info */}
-        {sidebarOpen && (
-          <div className="border-t border-gray-200 p-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ea580c]/10 font-medium text-[#ea580c]">
-                {user?.firstName?.[0] || 'A'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-[#0a0a0a]">
-                  {user?.firstName || 'Admin'}
-                </p>
-                <p className="text-xs text-[#737373]">Administrator</p>
-              </div>
-            </div>
-          </div>
-        )}
+        {renderSidebarInner(sidebarOpen, selectSection)}
       </aside>
+
+      {/* Sidebar — mobile off-canvas (left sheet), opened by the header toggle. */}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="left" className="flex w-64 flex-col overflow-y-auto p-2 md:hidden">
+          <SheetTitle className="sr-only">Dashboard navigation</SheetTitle>
+          {renderSidebarInner(true, (section) => {
+            selectSection(section)
+            setMobileNavOpen(false)
+          })}
+        </SheetContent>
+      </Sheet>
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto p-2">
@@ -3535,7 +3556,16 @@ export function AdminDashboard() {
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={() => {
+                if (
+                  typeof window !== 'undefined' &&
+                  window.matchMedia('(min-width: 768px)').matches
+                ) {
+                  setSidebarOpen((prev) => !prev)
+                } else {
+                  setMobileNavOpen(true)
+                }
+              }}
             >
               <PanelLeft className="h-4 w-4" />
             </Button>

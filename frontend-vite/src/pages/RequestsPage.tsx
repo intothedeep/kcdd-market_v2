@@ -168,17 +168,17 @@ export function RequestsPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <div className="container py-8">
+      <div className="container py-6 md:py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight text-[#0a0a0a]">Browse Campaigns</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-[#0a0a0a] md:text-4xl">Browse Campaigns</h1>
           <p className="mt-2 text-lg text-[#737373]">
             Fund a multi-device campaign — every campaign goes to verified Kansas Citians.
           </p>
         </div>
 
         {/* Search and Filter Bar */}
-        <div className="mb-4 flex gap-3">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#737373]" />
             <Input
@@ -338,7 +338,7 @@ export function RequestsPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredCampaigns
                 .slice(
                   (Math.min(page, Math.max(1, Math.ceil(filteredCampaigns.length / PAGE_SIZE))) -
@@ -352,7 +352,7 @@ export function RequestsPage() {
                     <Card className="flex h-full flex-col overflow-hidden border-[#e5e5e5] transition-shadow duration-200 hover:shadow-lg">
                       <Link to={`/campaign/${campaign.slug}`} className="block">
                         {/* Campaign Image */}
-                        <div className="relative aspect-video overflow-hidden bg-[#f5f5f5]">
+                        <div className="relative aspect-video w-full overflow-hidden bg-[#f5f5f5]">
                           {campaign.image_url ? (
                             <>
                               <img
@@ -385,7 +385,7 @@ export function RequestsPage() {
                           )}
                           {/* Cause Area Tags */}
                           {campaign.cause_area_ids?.length > 0 && (
-                            <div className="absolute bottom-2 left-2 flex gap-1">
+                            <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1">
                               {getCauseAreaNames(campaign.cause_area_ids).map((name) => (
                                 <Badge
                                   key={name}

@@ -29,6 +29,7 @@ import { Separator } from '@/components/ui/separator'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { OnboardingModal } from '@/components/OnboardingModal'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
   ChevronDown,
   ChevronLeft,
@@ -203,7 +204,7 @@ function CampaignContent({
   return (
     <>
       {/* Stats Cards */}
-      <div className="mb-6 grid grid-cols-4 gap-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {statsCards.map((stat, i) => (
           <Card key={i} className="p-6">
             <div className="space-y-6">
@@ -357,11 +358,11 @@ function CampaignContent({
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <span className="text-gray-600">
             {selectedRows.size} of {filteredDonations.length} row(s) selected.
           </span>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6">
             <div className="flex items-center gap-2">
               <span>Rows per page</span>
               <DropdownMenu>
@@ -891,7 +892,7 @@ function BrowseRequestsContent({
         </div>
       ) : viewMode === 'cards' ? (
         /* Card View */
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {filteredRequests.map((request) => (
             <Card key={request.id} className="p-5 transition-shadow hover:shadow-md">
               <div className="mb-3 flex items-start justify-between">
@@ -1033,7 +1034,7 @@ function UpdatesContent({
         <p className="text-sm text-[#737373]">See how your donations are making a difference</p>
       </div>
 
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="p-5 text-center">
           <Users className="mx-auto mb-2 h-8 w-8 text-[#1b5858]" />
           <p className="text-2xl font-semibold">{estimatedPeopleHelped}</p>
@@ -1131,7 +1132,7 @@ function TransfersContent({
         </Button>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card className="p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
@@ -1400,7 +1401,7 @@ function SupportContent() {
         <p className="text-sm text-[#737373]">Get help with your account or donations</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="cursor-pointer p-5 text-center transition-shadow hover:shadow-md">
           <Mail className="mx-auto mb-3 h-8 w-8 text-[#1b5858]" />
           <h3 className="mb-1 font-medium">Email Support</h3>
@@ -1482,6 +1483,7 @@ export function DonorDashboard() {
   // State
   const [searchParams, setSearchParams] = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<SidebarSection>(() => {
     const param = searchParams.get('section')
     return isSidebarSection(param) ? param : 'campaign'
@@ -1664,6 +1666,140 @@ export function DonorDashboard() {
     }
   }
 
+  // Sidebar nav body — reused by the desktop in-flow rail and the mobile Sheet.
+  // showLabels gates the text (collapsed desktop rail hides it). onSelect fires
+  // after a section change so the mobile Sheet can close itself.
+  const renderNavBody = ({
+    showLabels,
+    onSelect,
+  }: {
+    showLabels: boolean
+    onSelect?: () => void
+  }) => {
+    const go = (section: SidebarSection) => {
+      selectSection(section)
+      onSelect?.()
+    }
+    return (
+      <>
+        <div className="flex-1 space-y-2 overflow-hidden">
+          {/* Main Navigation */}
+          <nav className="space-y-1 p-2">
+            <button
+              onClick={() => go('campaign')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'campaign'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
+              {showLabels && <span className="text-sm">My Donations</span>}
+            </button>
+
+            {/* W7-10 Phase 1: Browse Requests sidebar nav removed (campaigns-only).
+                Reversible — uncomment to restore. The 'browse' render branch +
+                BrowseRequestsContent remain defined but unreachable. */}
+            {/* <button
+              onClick={() => go('browse')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'browse'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <Heart className="h-4 w-4 flex-shrink-0" />
+              {showLabels && <span className="text-sm">Browse Campaigns</span>}
+            </button> */}
+
+            <button
+              onClick={() => go('updates')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'updates'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <BarChart3 className="h-4 w-4 flex-shrink-0" />
+              {showLabels && <span className="text-sm">Updates & Proof</span>}
+            </button>
+
+            <button
+              onClick={() => go('transfers')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'transfers'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <FileText className="h-4 w-4 flex-shrink-0" />
+              {showLabels && <span className="text-sm">Payment History</span>}
+            </button>
+          </nav>
+
+          {/* Documents Section */}
+          <div className="p-2">
+            {showLabels && (
+              <h3 className="mb-2 whitespace-nowrap px-2 text-xs font-medium text-[#0a0a0a] opacity-70">
+                Documents
+              </h3>
+            )}
+            <button
+              onClick={() => go('documents')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'documents'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <FileText className="h-4 w-4 flex-shrink-0" />
+              {showLabels && <span className="text-sm">Tax Documents</span>}
+            </button>
+          </div>
+        </div>
+
+        {/* Footer Navigation */}
+        <div className="space-y-1 overflow-hidden border-t border-gray-200 p-2 pt-2">
+          <button
+            onClick={() => go('settings')}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+              activeSection === 'settings'
+                ? 'bg-[#1b5858] text-white'
+                : 'text-[#0a0a0a] hover:bg-gray-100'
+            }`}
+          >
+            <Settings className="h-4 w-4 flex-shrink-0" />
+            {showLabels && <span className="text-sm">Account Information</span>}
+          </button>
+
+          <button
+            onClick={() => go('support')}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+              activeSection === 'support'
+                ? 'bg-[#1b5858] text-white'
+                : 'text-[#0a0a0a] hover:bg-gray-100'
+            }`}
+          >
+            <HelpCircle className="h-4 w-4 flex-shrink-0" />
+            {showLabels && <span className="text-sm">Support</span>}
+          </button>
+
+          <button
+            onClick={() => go('search')}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+              activeSection === 'search'
+                ? 'bg-[#1b5858] text-white'
+                : 'text-[#0a0a0a] hover:bg-gray-100'
+            }`}
+          >
+            <Search className="h-4 w-4 flex-shrink-0" />
+            {showLabels && <span className="text-sm">Search</span>}
+          </button>
+        </div>
+      </>
+    )
+  }
+
   // Loading state
   if (!isLoaded) {
     return (
@@ -1687,125 +1823,22 @@ export function DonorDashboard() {
         userType="donor"
       />
 
-      {/* Sidebar */}
+      {/* Sidebar — desktop in-flow rail (hidden on mobile) */}
       <aside
-        className={`${sidebarOpen ? 'w-64' : 'w-16'} flex flex-col overflow-hidden bg-[#fafafa] p-2 transition-all duration-300`}
+        className={`${sidebarOpen ? 'w-64' : 'w-16'} hidden flex-col overflow-hidden bg-[#fafafa] p-2 transition-all duration-300 md:flex`}
       >
-        <div className="flex-1 space-y-2 overflow-hidden">
-          {/* Main Navigation */}
-          <nav className="space-y-1 p-2">
-            <button
-              onClick={() => selectSection('campaign')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'campaign'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm">My Donations</span>}
-            </button>
-
-            {/* W7-10 Phase 1: Browse Requests sidebar nav removed (campaigns-only).
-                Reversible — uncomment to restore. The 'browse' render branch +
-                BrowseRequestsContent remain defined but unreachable. */}
-            {/* <button
-              onClick={() => selectSection('browse')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'browse'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <Heart className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm">Browse Campaigns</span>}
-            </button> */}
-
-            <button
-              onClick={() => selectSection('updates')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'updates'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <BarChart3 className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm">Updates & Proof</span>}
-            </button>
-
-            <button
-              onClick={() => selectSection('transfers')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'transfers'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <FileText className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm">Payment History</span>}
-            </button>
-          </nav>
-
-          {/* Documents Section */}
-          <div className="p-2">
-            {sidebarOpen && (
-              <h3 className="mb-2 whitespace-nowrap px-2 text-xs font-medium text-[#0a0a0a] opacity-70">
-                Documents
-              </h3>
-            )}
-            <button
-              onClick={() => selectSection('documents')}
-              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-                activeSection === 'documents'
-                  ? 'bg-[#1b5858] text-white'
-                  : 'text-[#0a0a0a] hover:bg-gray-100'
-              }`}
-            >
-              <FileText className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm">Tax Documents</span>}
-            </button>
-          </div>
-        </div>
-
-        {/* Footer Navigation */}
-        <div className="space-y-1 overflow-hidden border-t border-gray-200 p-2 pt-2">
-          <button
-            onClick={() => selectSection('settings')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-              activeSection === 'settings'
-                ? 'bg-[#1b5858] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <Settings className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Account Information</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('support')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-              activeSection === 'support'
-                ? 'bg-[#1b5858] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <HelpCircle className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Support</span>}
-          </button>
-
-          <button
-            onClick={() => selectSection('search')}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
-              activeSection === 'search'
-                ? 'bg-[#1b5858] text-white'
-                : 'text-[#0a0a0a] hover:bg-gray-100'
-            }`}
-          >
-            <Search className="h-4 w-4 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm">Search</span>}
-          </button>
-        </div>
+        {renderNavBody({ showLabels: sidebarOpen })}
       </aside>
+
+      {/* Sidebar — mobile off-canvas Sheet */}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="left" className="flex w-64 flex-col bg-[#fafafa] p-2">
+          <SheetHeader className="px-2 pb-2">
+            <SheetTitle className="text-sm">Menu</SheetTitle>
+          </SheetHeader>
+          {renderNavBody({ showLabels: true, onSelect: () => setMobileNavOpen(false) })}
+        </SheetContent>
+      </Sheet>
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto p-2">
@@ -1816,7 +1849,13 @@ export function DonorDashboard() {
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={() => {
+                if (window.matchMedia('(min-width: 768px)').matches) {
+                  setSidebarOpen(!sidebarOpen)
+                } else {
+                  setMobileNavOpen(true)
+                }
+              }}
             >
               <PanelLeft className="h-4 w-4" />
             </Button>
@@ -1825,7 +1864,7 @@ export function DonorDashboard() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-auto p-4 md:p-6">
             {/* Onboarding Alert */}
             {needsOnboarding && (
               <Alert className="mb-6 border-amber-200 bg-amber-50">
