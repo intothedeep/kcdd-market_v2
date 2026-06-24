@@ -245,8 +245,9 @@ per-event handlers): `_docs/stripe-webhook.md`.
 
 When organizations submit profile edits, edit already-submitted edits, or
 soft-delete their org, the backend enqueues an admin alert into the
-`slack_notification_queue` table. A Vercel cron flushes the queue every
-5 minutes and POSTs each pending row to a Slack Incoming Webhook.
+`slack_notification_queue` table. A Vercel cron flushes the queue once a
+day (Hobby free-tier limit — see Step 5.3) and POSTs each pending row to a
+Slack Incoming Webhook.
 
 CBO and donor notifications are unchanged — they continue to fan out
 through the in-app `NotificationBell`. Slack is **additive** for admins
@@ -295,7 +296,7 @@ The backend's `backend/api/vercel.json` already contains the cron entry
   "crons": [
     {
       "path": "/api/cron/flush-slack-queue",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
@@ -306,10 +307,14 @@ automatically. Verify in **Vercel dashboard → Project → Cron Jobs**
 (also visible under the Functions tab on some dashboard versions).
 The cron uses `GET` with `Authorization: Bearer $CRON_SECRET`.
 
-> **Hobby tier note**: a 5-minute schedule is supported on Hobby; tighter
-> intervals may require Pro. Do not change `*/5 * * * *` without checking
-> the current Vercel pricing page. See `docs/VERCEL_DEPLOYMENT.md` for
-> per-tier details.
+> **Hobby (free) tier note**: Vercel Hobby allows cron **once per day only** —
+> sub-daily schedules like `*/5 * * * *` are rejected/ignored, so the cron
+> silently never registers and the Slack queue never drains. This repo ships
+> `0 0 * * *` (daily, midnight UTC) so it registers on Hobby. Admins still get
+> **real-time in-app** alerts via the `NotificationBell`; the daily cron only
+> batches the *Slack mirror* (so Slack messages can lag up to ~24h). On **Pro**,
+> tighten to e.g. `*/5 * * * *` for near-real-time Slack. See
+> `docs/VERCEL_DEPLOYMENT.md` for per-tier details.
 
 ### Step 5.4 — Smoke test
 
@@ -332,8 +337,8 @@ is the form Vercel uses when firing the cron.
 
 To test end-to-end: as a CBO owner in prod, submit a profile edit. A
 row appears in `slack_notification_queue` with `status='pending'`.
-Within 5 minutes, the cron fires and Slack receives the message; the
-row flips to `status='sent'`.
+At the next daily cron run (or immediately if you hit the curl above), the
+cron fires and Slack receives the message; the row flips to `status='sent'`.
 
 ---
 

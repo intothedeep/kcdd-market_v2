@@ -439,7 +439,7 @@ Post-merge Phase 9 + 10 work (2026-06-05/06):
 - **Phase 10 — Public Impact page** at `/impact`. Three new public views (`platform_impact_summary`, `platform_impact_by_cause`, `platform_top_organizations`) marked `security_invoker = off` and `GRANT SELECT TO anon, authenticated`. Aggregate-only — no donor_id, transaction_id, or amount_total exposed. New page shows 5 hero stats, cause-area split bars, top-10 orgs list, and CTAs back to /requests and /campaigns.
 - **Campaign donation increment bug** fixed: added `increment_campaign_amount(uuid, numeric)` SECURITY DEFINER RPC; webhook now actually moves `campaigns.amount_raised` / `supporters_count`. `request_notifications.campaign_id` column added so CBO sees campaign-donation alerts in the same NotificationsBell.
 
-Vercel cron deployment wiring landed in Phase A6 (`backend/api/vercel.json` `crons` array → `/api/cron/flush-slack-queue` every 5 min). Homepage StatsSection → live `platform_impact_summary` polish remains backlog.
+Vercel cron deployment wiring landed in Phase A6 (`backend/api/vercel.json` `crons` array → `/api/cron/flush-slack-queue`, `0 0 * * *` daily — Vercel Hobby free-tier allows cron once/day only; on Pro tighten for near-real-time Slack). Homepage StatsSection → live `platform_impact_summary` polish remains backlog.
 
 ## File Naming Conventions
 

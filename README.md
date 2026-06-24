@@ -84,7 +84,7 @@ kcdd-market2/
 │   │   ├── helpers/      # paymentMetadata.js, disputes.js (PH-1~3), slack.js (A6-S1)
 │   │   ├── routes/       # users.js
 │   │   ├── services/pdfGenerator.js
-│   │   └── vercel.json   # crons: /api/cron/flush-slack-queue every 5 min (A6-S3)
+│   │   └── vercel.json   # crons: /api/cron/flush-slack-queue daily 0 0 * * * (Hobby free-tier; A6-S3)
 │   └── supabase/
 │       ├── migrations/   # SQL migrations (run in order)
 │       ├── seed.sql      # Mock orgs/donors/campaigns + tax-documents bucket
