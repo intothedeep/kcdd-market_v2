@@ -355,6 +355,21 @@ recent deliveries should show `200 OK`; the `payment_transactions` row +
 your Stripe account (business details). Deeper dive (idempotency, reconciliation,
 per-event handlers): `_docs/stripe-webhook.md`.
 
+### Verify which build is live (`/health` `gitSha`)
+
+`GET https://your-api.example.com/health` returns the deployed commit:
+
+```json
+{ "status": "ok", "environment": "production", "gitSha": "559d7e2…" }
+```
+
+`gitSha` comes from `VERCEL_GIT_COMMIT_SHA` (Vercel auto-injects it), falling back
+to the `GIT_SHA` env var, then `"unknown"`. Use it to confirm a redeploy actually
+shipped the commit you expect — essential when debugging "I fixed it but prod still
+fails" (usually a stale deployment was redeployed; see the Vercel gotcha in
+Troubleshooting). `gitSha: "unknown"` on Vercel means the Git integration isn't
+wired up.
+
 ---
 
 ## Step 5 — Slack notifications (admin alerts)
@@ -515,19 +530,64 @@ are **independent** — you can have all three at the same time.
 | `…/api/users/sync` URL has a **double slash** `//api/…` | frontend build | `VITE_API_URL` has a trailing slash (inlined into the bundle as `${baseUrl}${path}`) | Set `VITE_API_URL=https://your-api.vercel.app` (no trailing slash) → **redeploy frontend** (build-time var; an env change alone does NOT rebuild) |
 | `blocked by CORS policy: No 'Access-Control-Allow-Origin' header` on `…/api/*` | backend CORS | backend `ALLOWED_ORIGINS` doesn't contain the frontend origin (exact match, `split(',')` is **not** trimmed) | Set `ALLOWED_ORIGINS=https://your-frontend.vercel.app` (no trailing slash, no spaces, comma-separate extras) → **redeploy backend** |
 | `GET …supabase.co/rest/v1/… → 401` (frontend querying Supabase directly) | Supabase TPA | Clerk not registered as Third-Party Auth in the **Cloud** project, or `VITE_SUPABASE_PUBLISHABLE_KEY` is the wrong project's key | Register Clerk (Step 1.B) + confirm the publishable key is this project's. Becomes `200` once fixed |
-| `POST …/api/users/sync → 401 {"error":"Invalid token"}` (request **reaches** the backend) | backend Clerk verify | backend `CLERK_SECRET_KEY` is from a **different Clerk instance** than the frontend's publishable key (e.g. `pk_test_` ↔ `sk_live_`, two different apps, or a stray space/newline) | Copy **both** keys from the **same Clerk instance**'s API Keys page (both `_test_` or both `_live_`); set `CLERK_SECRET_KEY` on the **backend** project → redeploy |
+| `POST …/api/users/sync → 401 {"error":"Invalid token","detail":"clerk.verifyToken is not a function"}` (request **reaches** the backend) | backend Clerk verify (code) | A pre-`559d7e2` build is live: `clerkAuth.js` called `verifyToken` as a client method instead of the named export (`@clerk/backend` v3). Masked locally by the dev unverified-decode fallback | Deploy a build at/after commit `559d7e2` (the fix); confirm via `/health` → `gitSha`. Code, not env |
+| `POST …/api/users/sync → 401 {"error":"Invalid token","detail":"…JWKS…/…signature…/…expired…"}` (request **reaches** the backend) | backend Clerk verify (key/token) | `CLERK_SECRET_KEY` is from a **different Clerk instance** than the frontend's publishable key (`pk_test_` ↔ `sk_live_`, two apps, or a stray space/newline); or the token expired | Copy **both** keys from the **same** Clerk instance's API Keys page → set `CLERK_SECRET_KEY` on the backend → redeploy. For expired: re-sign-in |
 
-**Key distinction:** a `401 {"error":"Invalid token"}` from `…/api/users/sync`
-means CORS already works (the request reached the backend and got a JSON
-response) — this is purely Clerk key-instance mismatch. A *CORS* failure, by
-contrast, never reaches the backend and returns no body.
+**Read `detail` first.** Since commit `559d7e2`, a backend `401` echoes a `detail`
+field with the real verification failure. Branch on it:
 
-**Verify the Clerk instance match:** copy the failing request's
-`Authorization: Bearer …` token, decode at [jwt.io](https://jwt.io), and check
-`iss`. The instance in `iss` (e.g. `immense-stallion-77.clerk.accounts.dev`) must
-be the same instance whose `sk_…` you put in the backend `CLERK_SECRET_KEY` and
-whose domain you registered in Supabase TPA. All three (frontend pk, backend sk,
-Supabase TPA domain) must point at one Clerk instance.
+- `detail: "clerk.verifyToken is not a function"` → an **old build** is live (the
+  pre-fix `verifyToken` bug). Redeploy the current commit; verify via `/health`
+  `gitSha`. **Not** a key problem.
+- `detail` mentions **JWKS / signature** → Clerk **key-instance mismatch**: backend
+  `CLERK_SECRET_KEY` and the frontend publishable key are from different Clerk
+  instances. Decode the failing request's `Authorization: Bearer …` token at
+  [jwt.io](https://jwt.io); its `iss` (e.g. `immense-stallion-77.clerk.accounts.dev`)
+  must match the instance whose `sk_…` is in `CLERK_SECRET_KEY` and whose domain is
+  registered in Supabase TPA. All three (frontend pk, backend sk, Supabase TPA
+  domain) must point at one Clerk instance.
+- `detail` mentions **expired** → re-sign-in to mint a fresh token.
+
+**CORS vs auth:** any `401` **with a JSON body** means CORS already works (the
+request reached the backend). A *CORS* failure never reaches the backend and
+returns no body.
+
+> The `detail` field is a temporary debug aid — remove it before a real production
+> launch (see "Pre-production hardening" below).
+
+### Vercel gotcha: "Redeploy" reuses the OLD commit
+
+In the Vercel **Deployments** list, clicking **Redeploy** on a past deployment
+rebuilds **that old commit**, not your latest `main`. Env-var changes only take
+effect on a deployment created **after** the change. So after editing
+`CLERK_SECRET_KEY` / `ALLOWED_ORIGINS` / `VITE_API_URL`, trigger a **new** deploy
+(push a commit, or "Redeploy" the **latest** deployment) — not an older one.
+Confirm with `/health` → `gitSha` (backend) or the deployment's commit hash
+(frontend). This is the most common cause of "I changed the env / pushed the fix
+but prod still 401s."
+
+---
+
+## Pre-production hardening (before real launch)
+
+Intentional dev/debug conveniences that are safe during testing but **must be
+cleaned up before a real production launch**:
+
+- [ ] **Remove the `detail` echo from `clerkAuth.js`.** The 401 response currently
+  returns `{ error: 'Invalid token', detail: <reason> }`
+  (`backend/api/middleware/clerkAuth.js`, the `NODE_ENV === 'production'` branch).
+  `detail` leaks internal verification-failure reasons to clients. Drop `detail`
+  from the JSON response but **keep** the server-side
+  `console.error('[clerkAuth] verifyToken failed:', reason)` as the function-log
+  diagnostic.
+- [ ] **`STRIPE_BYPASS_CONNECT` unset** on the prod backend (orgs must complete real
+  Connect onboarding — Step 4 test-vs-live table).
+- [ ] **`DEV_ROLE_OVERRIDES` unset** in prod (inert under `NODE_ENV=production`, but
+  don't set it — defense in depth).
+- [ ] **`IP_HASH_SALT` is a real 32-byte secret**, not the dev fallback (Step 4).
+- [ ] **`pk_live_*` / `sk_live_*` Clerk + Stripe keys** in use, not `_test_`.
+- [ ] **Slack cron** tightened to sub-daily on Vercel Pro if near-real-time Slack is
+  wanted (Step 5.3 — Hobby is daily-only).
 
 ---
 
@@ -623,9 +683,11 @@ Before first deploy:
 - [ ] Clerk registered as Third-Party Auth provider in cloud Supabase Dashboard (see Step 1)
 - [ ] `/health` endpoint reachable from frontend (check the live API banner on home page)
 - [ ] First admin bootstrapped via SQL (Step 6) — no seeded/mock admin exists in prod
+- [ ] Reviewed **Pre-production hardening** (remove `detail` echo, unset dev-only env, live keys) before real launch
 
 After each deploy:
 
+- [ ] `GET /health` returns the expected `gitSha` (confirms the redeploy shipped your commit, not a stale one)
 - [ ] Visit the production URL
 - [ ] Sign up a new user → verify it appears in cloud Supabase `user_profiles`
 - [ ] Create a test request as CBO → verify in cloud DB
