@@ -168,7 +168,7 @@ export function Navbar() {
                   size="sm"
                   className="h-9 rounded-full border-2 border-[hsl(var(--brand-primary))] px-4 text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
                 >
-                  Sign in
+                  Sign in / Sign up
                 </Button>
               </SignInButton>
             </>

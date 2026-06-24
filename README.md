@@ -30,10 +30,10 @@ cd frontend-vite && pnpm dev
 | File | Purpose |
 |---|---|
 | **[howtoexecute.local.md](./docs/howtoexecute.local.md)** | Complete local dev setup, troubleshooting, debugging |
-| **[howtodeploy.prod.md](./docs/howtodeploy.prod.md)** | Production deployment (Vercel + Supabase Cloud + Stripe) |
+| **[howtodeploy.prod.md](./docs/howtodeploy.prod.md)** | Production deployment (Vercel + Supabase Cloud + Stripe). Step 4 covers Stripe webhook test-vs-live (cloud); Step 6 the first-admin bootstrap |
 | **[CLAUDE.md](./CLAUDE.md)** | Project conventions, architecture, env vars, file structure |
 | `_docs/architecture.md` | Architecture decisions (local-only — `_docs/` is gitignored) |
-| `_docs/stripe-webhook.md` | Webhook flow + idempotency + reconciliation strategy |
+| `_docs/stripe-webhook.md` | Stripe deep dive — webhook flow, idempotency, reconciliation, env setup by environment (local-only — `_docs/` is gitignored; shareable Stripe deploy steps live in `docs/howtodeploy.prod.md` Step 4) |
 | `_docs/clerk-supabase-auth.md` | How Supabase validates Clerk JWTs (Third-Party Auth) |
 | `_docs/debug-payment-flow.md` | Postmortem: BUG-8 → BUG-11 cascade debug walkthrough |
 

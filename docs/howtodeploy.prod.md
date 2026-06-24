@@ -68,7 +68,29 @@ pnpx supabase link --project-ref xyz
 pnpx supabase db push
 ```
 
-`xyz` is the project ref from your Supabase dashboard URL.
+`xyz` is the project ref from your Supabase dashboard URL
+(`https://supabase.com/dashboard/project/<ref>`, or the `<ref>` in
+`https://<ref>.supabase.co`).
+
+#### How `db push` picks its target (login vs link)
+
+These are **two independent things** — `db push` takes no URL/path argument, so
+both must be in place first:
+
+| Step                          | Decides                         | Stored where                                                                 |
+| ----------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| `supabase login`              | **who** (which Supabase account) | `~/.supabase/` access token (or `SUPABASE_ACCESS_TOKEN` env). Machine-wide.   |
+| `supabase link --project-ref` | **which project** (the target)   | `backend/supabase/.temp/` — **gitignored, per-machine**.                      |
+
+`db push` reads the linked ref from `.temp/`, authenticates with the login
+token, then compares local `backend/supabase/migrations/*.sql` against the
+remote `supabase_migrations.schema_migrations` table and applies **only the
+migrations not yet recorded there** (in filename order).
+
+Because `.temp/` is gitignored, the link is **not shared** — every machine (and
+every teammate) must run `login` + `link` once before their first push. CI /
+non-interactive: pass `SUPABASE_ACCESS_TOKEN` instead of `login`, and
+`link -p <db-password>`.
 
 For any new migrations after the initial push:
 
@@ -80,12 +102,18 @@ cd backend && pnpx supabase db push
 
 ### Linked vs unlinked state
 
-After `supabase link`, `db push` targets the cloud. To go back to local-only work:
+After `supabase link`, `db push` targets the cloud. `db push` is **remote-only**
+— it always targets the linked project and has no local mode. To stop targeting
+the cloud:
 
 ```bash
 cd backend && pnpx supabase unlink
-# now `pnpm db:push` applies to your local Supabase again
 ```
+
+After `unlink` there is no linked project, so `db push` simply has no target and
+will error until you `link` again — it does **not** fall back to the local
+stack. To apply migrations to the **local** Docker DB, use `pnpm db:reset`
+(replays all migrations + seed; wipes local data) — never `db push`.
 
 ---
 
@@ -168,13 +196,48 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 No separate scripts, no `--mode` flag. Just the env vars.
 
-### Set up the Stripe webhook (production)
+### Set up the Stripe webhook (cloud — test vs live)
 
-See `_docs/stripe-webhook.md` for the setup checklist. The production webhook URL points at your deployed backend:
+Unlike local dev (`stripe listen` CLI), a deployed backend has a public URL, so
+you **register a webhook endpoint in the Stripe Dashboard** pointing at it:
 
 ```
 https://your-api.example.com/api/payments/webhook
 ```
+
+This app uses **one endpoint + one secret** (`STRIPE_WEBHOOK_SECRET`) for all
+events. When adding the endpoint, select these **9 events**:
+
+```
+payment_intent.succeeded         payment_intent.payment_failed
+charge.refunded                  charge.dispute.created
+charge.dispute.funds_withdrawn   charge.dispute.funds_reinstated
+charge.dispute.closed            account.updated                      (Connect)
+                                 account.application.deauthorized     (Connect)
+```
+
+> ⚠️ The two `account.*` events are **Connect events** — enable **"Listen to
+> events on Connected accounts"** on the endpoint or they won't be delivered.
+
+**Test mode ≠ Live mode.** Stripe keeps separate keys, endpoints, signing
+secrets, and connected accounts per mode; a test secret only verifies test
+events. So run a **test cloud deploy** and **production** with different env:
+
+| | Test cloud deploy (Vercel **Preview**) | Production (Vercel **Production**) |
+| --- | --- | --- |
+| Dashboard mode | Test | **Live** |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | `pk_test_…` | `pk_live_…` |
+| `STRIPE_SECRET_KEY` | `sk_test_…` | `sk_live_…` |
+| Webhook endpoint | registered in **Test** at the preview URL | registered in **Live** at the prod URL |
+| `STRIPE_WEBHOOK_SECRET` | that test endpoint's `whsec_…` | that live endpoint's `whsec_…` |
+| `STRIPE_BYPASS_CONNECT` | `true` (or onboard test connected accounts) | **unset** — orgs complete real Connect onboarding |
+| Cards | test card `4242 4242 4242 4242` | real cards (real charges) |
+
+Verify a deploy: make a donation, then Dashboard → Webhooks → your endpoint →
+recent deliveries should show `200 OK`; the `payment_transactions` row +
+`requests`/campaign totals should update. Going live also requires **activating**
+your Stripe account (business details). Deeper dive (idempotency, reconciliation,
+per-event handlers): `_docs/stripe-webhook.md`.
 
 ---
 
@@ -274,6 +337,53 @@ row flips to `status='sent'`.
 
 ---
 
+## Step 6 — Create the first admin user
+
+Production has **no seeded users** — `seed.sql` only runs against the local
+Docker stack (`pnpm db:reset`), never on `db push`. The dev convenience
+`DEV_ROLE_OVERRIDES` is also fully inert when `NODE_ENV=production`
+(`resolveDevRoleOverride()` returns `null`), so you **cannot** mint an admin via
+env vars in prod. There is no "mock" admin either: `user_profiles.id` is a real
+Clerk user id, so every account must be a genuine Clerk sign-in.
+
+Bootstrap the first admin once, by hand:
+
+1. **Sign in to the production app with Clerk** using the account that should be
+   admin. The `POST /api/users/sync` call creates its `user_profiles` row with
+   the default `user_type='donor'`.
+
+2. **Find that account's Clerk user id** — Supabase Dashboard → Table editor →
+   `user_profiles` (filter by email), or the Clerk Dashboard → Users.
+
+3. **Promote it in Supabase Dashboard → SQL Editor:**
+
+   ```sql
+   -- The prevent_user_type_escalation trigger (migration 20260620000002) only
+   -- lets a service_role caller change user_type. The SQL Editor connects as
+   -- `postgres` (auth.role() is NULL), so set the service_role claim for this
+   -- transaction to satisfy the trigger's bypass, then promote.
+   SET LOCAL request.jwt.claims = '{"role":"service_role"}';
+
+   UPDATE public.user_profiles
+   SET user_type          = 'admin',
+       verification_status = 'verified',
+       onboarding_complete = true
+   WHERE id = 'user_XXXXXXXXXXXXXXXX';   -- the Clerk user id from step 2
+   ```
+
+   > Without the `SET LOCAL request.jwt.claims` line the UPDATE fails with the
+   > escalation guard. (Alternative for a superuser session:
+   > `ALTER TABLE public.user_profiles DISABLE TRIGGER check_user_type_escalation;`
+   > … `UPDATE` … then re-`ENABLE TRIGGER`.)
+
+4. **Re-sign-in** (or refresh) the account → `/admin` is now reachable.
+
+This is a **one-time bootstrap**. After the first admin exists, promote any
+further admins from the in-app **`/admin` user management** UI — the trigger
+permits an existing admin to assign roles, so no more SQL is needed.
+
+---
+
 ## How Env Switching Works (Reference)
 
 ### Vite frontend — uses mode
@@ -365,6 +475,7 @@ Before first deploy:
 - [ ] Clerk `supabase` JWT template created in Clerk Dashboard
 - [ ] Clerk registered as Third-Party Auth provider in cloud Supabase Dashboard (see Step 1)
 - [ ] `/health` endpoint reachable from frontend (check the live API banner on home page)
+- [ ] First admin bootstrapped via SQL (Step 6) — no seeded/mock admin exists in prod
 
 After each deploy:
 
