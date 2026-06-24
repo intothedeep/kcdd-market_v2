@@ -8,7 +8,13 @@ type GetToken = (options?: { template?: string }) => Promise<string | null>
  */
 export const api = {
   async post<T>(path: string, body: unknown, getToken: GetToken): Promise<T> {
-    const token = await getToken({ template: 'supabase' })
+    // Backend calls use the default Clerk SESSION token (verified by
+    // clerk.verifyToken on the server). Do NOT send the 'supabase' JWT-template
+    // token here — that token has no session claims (sid) and the backend's
+    // verifyToken expects a session token, which 401s in production (NODE_ENV
+    // disables the dev decode fallback). The Supabase client keeps the
+    // 'supabase' template (useClerkSupabase.ts) — that one needs role/aud claims.
+    const token = await getToken()
 
     const response = await fetch(`${apiConfig.baseUrl}${path}`, {
       method: 'POST',
@@ -28,7 +34,13 @@ export const api = {
   },
 
   async get<T>(path: string, getToken: GetToken): Promise<T> {
-    const token = await getToken({ template: 'supabase' })
+    // Backend calls use the default Clerk SESSION token (verified by
+    // clerk.verifyToken on the server). Do NOT send the 'supabase' JWT-template
+    // token here — that token has no session claims (sid) and the backend's
+    // verifyToken expects a session token, which 401s in production (NODE_ENV
+    // disables the dev decode fallback). The Supabase client keeps the
+    // 'supabase' template (useClerkSupabase.ts) — that one needs role/aud claims.
+    const token = await getToken()
 
     const response = await fetch(`${apiConfig.baseUrl}${path}`, {
       method: 'GET',
