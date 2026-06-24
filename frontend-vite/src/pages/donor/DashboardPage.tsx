@@ -233,9 +233,9 @@ function CampaignContent({
       {/* Table Section */}
       <div className="space-y-6">
         {/* Filters */}
-        <div className="flex items-center justify-between">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
-            <TabsList>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto max-w-full">
+            <TabsList className="max-w-full overflow-x-auto">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="claimed">In Progress</TabsTrigger>
               <TabsTrigger value="fulfilled">Completed</TabsTrigger>
@@ -243,7 +243,7 @@ function CampaignContent({
             </TabsList>
           </Tabs>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
