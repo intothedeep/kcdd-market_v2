@@ -109,51 +109,54 @@ export function Navbar() {
         <div className="flex flex-1 items-center justify-end gap-[15px]">
           {isSignedIn ? (
             <>
-              {userTypeLoading ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] opacity-50"
-                  disabled
-                >
-                  Dashboard
-                </Button>
-              ) : hasMultipleDashboards ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1 rounded-full border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
-                    >
-                      Dashboard
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    {dashboardOptions.map((option) => (
-                      <DropdownMenuItem
-                        key={option.path}
-                        onClick={() => navigate(option.path)}
-                        className="cursor-pointer gap-2"
-                      >
-                        <option.icon className="h-4 w-4" />
-                        {option.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Link to={defaultDashboard}>
+              {/* Dashboard button — desktop only; on mobile the bottom-sheet nav covers it */}
+              <div className="hidden items-center md:flex">
+                {userTypeLoading ? (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="rounded-full border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
+                    className="rounded-full border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] opacity-50"
+                    disabled
                   >
                     Dashboard
                   </Button>
-                </Link>
-              )}
+                ) : hasMultipleDashboards ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1 rounded-full border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
+                      >
+                        Dashboard
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {dashboardOptions.map((option) => (
+                        <DropdownMenuItem
+                          key={option.path}
+                          onClick={() => navigate(option.path)}
+                          className="cursor-pointer gap-2"
+                        >
+                          <option.icon className="h-4 w-4" />
+                          {option.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Link to={defaultDashboard}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))] hover:bg-[hsl(var(--brand-primary))] hover:text-white"
+                    >
+                      Dashboard
+                    </Button>
+                  </Link>
+                )}
+              </div>
               {/* In-app notification inbox — mounted for every signed-in user.
                   The bell hides itself when the inbox is empty for donors; the
                   current notification kinds (campaign_*) only fan out to

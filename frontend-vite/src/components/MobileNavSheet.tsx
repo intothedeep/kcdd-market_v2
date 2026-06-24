@@ -122,8 +122,13 @@ export function MobileNavSheet() {
                     {item.label}
                   </button>
                 ))}
-                <div className="mt-2 flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-3">
-                  <UserButton afterSignOutUrl={routes.home} />
+                <div className="mt-1 flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-3">
+                  <span className="flex h-5 w-5 items-center justify-center">
+                    <UserButton
+                      afterSignOutUrl={routes.home}
+                      appearance={{ elements: { userButtonAvatarBox: 'h-5 w-5' } }}
+                    />
+                  </span>
                   <span className="text-base text-black">Manage account</span>
                 </div>
               </>
