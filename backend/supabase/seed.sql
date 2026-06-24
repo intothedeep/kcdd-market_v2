@@ -267,7 +267,7 @@ INSERT INTO campaign_details (
      'story_content', '<h2>Why this matters</h2><p>Last semester, 18 of our 25 enrolled students had to share a single shelf of Chromebooks. Homework went home unfinished, and our retention dropped from 82% to 64% in the spring.</p><p>With <strong>$12,000</strong> we can buy 25 refurbished Lenovo ThinkPads, accessory bundles, and a year of break/fix support.</p>',
      'contact_email', 'campaigns@connectingroots.org',
      'phone', '+1-816-555-0111',
-     'image_url', '/demo-images/cover-1.svg',
+     'image_url', '/demo-images/cover-camp-1.svg',
      'logo_url', '/demo-images/logo-connecting-roots.svg',
      'facebook_url', 'https://facebook.com/connectingrootskc',
      'instagram_url', 'https://instagram.com/connectingrootskc'
@@ -290,7 +290,7 @@ INSERT INTO campaign_details (
      'story_content', '<h2>A classroom on wheels</h2><p>Our fixed-site classes have a 4-month waitlist while seniors in the Northland tell us they cannot reach our downtown office. This mobile lab — a 2018 Ford Transit retrofitted with 15 laptop stations and Starlink uplink — will bring 6 weekly classes to 4 community centers north of the river.</p>',
      'contact_email', 'campaigns@digitalfutureskc.org',
      'phone', '+1-816-555-0133',
-     'image_url', '/demo-images/cover-2.svg',
+     'image_url', '/demo-images/cover-camp-2.svg',
      'logo_url', '/demo-images/logo-digital-futures.svg',
      'instagram_url', 'https://instagram.com/digitalfutureskc'
    ),
@@ -312,7 +312,7 @@ INSERT INTO campaign_details (
      'story_content', '<p>Our partners refer 80–90 adults a year who need entry-level digital skills. We currently rent lab time at the library — limited to 2 hours per week. A dedicated 12-station lab unlocks evening and weekend training.</p>',
      'contact_email', 'campaigns@kctechbridge.org',
      'phone', '+1-816-555-0122',
-     'image_url', '/demo-images/cover-3.svg'
+     'image_url', '/demo-images/cover-camp-3.svg'
    ),
    '00000000-0000-0000-0002-000000000002',
    'approved',
@@ -332,7 +332,7 @@ INSERT INTO campaign_details (
      'story_content', '<p>Our Saturday teens have been making zines for 3 years. Half now ask about digital art and beat production. Hardware is the only thing standing between them and a portfolio they can take to art school.</p>',
      'contact_email', 'campaigns@connectingroots.org',
      'phone', '+1-816-555-0111',
-     'image_url', '/demo-images/cover-4.svg',
+     'image_url', '/demo-images/cover-camp-4.svg',
      'facebook_url', 'https://facebook.com/connectingrootskc'
    ),
    '00000000-0000-0000-0002-000000000001',
@@ -454,7 +454,7 @@ INSERT INTO campaign_details (
      'story_content', '<p>Caseworkers report 3 in 10 housing placements fail in the first 90 days because clients cannot be reached for utility setup, employer call-backs, or appointments. A phone changes that.</p>',
      'contact_email', 'campaigns@digitalfutureskc.org',
      'phone', '+1-816-555-0133',
-     'image_url', '/demo-images/cover-5.svg',
+     'image_url', '/demo-images/cover-camp-5.svg',
      'instagram_url', 'https://instagram.com/digitalfutureskc'
    ),
    '00000000-0000-0000-0002-000000000003',
@@ -730,23 +730,23 @@ WHERE id = '00000000-0000-0000-0004-000000000005';
 -- → public profile + cards looked empty). Logos via ui-avatars; covers via Unsplash.
 UPDATE organizations SET
   logo_url        = '/demo-images/logo-connecting-roots-kc.svg',
-  cover_image_url = '/demo-images/cover-6.svg'
+  cover_image_url = '/demo-images/cover-org-connecting-roots-kc.svg'
 WHERE id = '00000000-0000-0000-0004-000000000001';
 UPDATE organizations SET
   logo_url        = '/demo-images/logo-kc-tech-bridge.svg',
-  cover_image_url = '/demo-images/cover-1.svg'
+  cover_image_url = '/demo-images/cover-org-kc-tech-bridge.svg'
 WHERE id = '00000000-0000-0000-0004-000000000002';
 UPDATE organizations SET
   logo_url        = '/demo-images/logo-digital-futures-kc.svg',
-  cover_image_url = '/demo-images/cover-2.svg'
+  cover_image_url = '/demo-images/cover-org-digital-futures-kc.svg'
 WHERE id = '00000000-0000-0000-0004-000000000003';
 UPDATE organizations SET
   logo_url        = '/demo-images/logo-northland-code-coalition.svg',
-  cover_image_url = '/demo-images/cover-3.svg'
+  cover_image_url = '/demo-images/cover-org-northland-code-coalition.svg'
 WHERE id = '00000000-0000-0000-0004-000000000004';
 UPDATE organizations SET
   logo_url        = '/demo-images/logo-heartland-device-bank.svg',
-  cover_image_url = '/demo-images/cover-4.svg'
+  cover_image_url = '/demo-images/cover-org-heartland-device-bank.svg'
 WHERE id = '00000000-0000-0000-0004-000000000005';
 
 -- M6-5: 6 campaigns (3 per new org)
@@ -770,7 +770,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','Three schools, one laptop cart',
      'story_content','<p>Our after-school CS clubs rotate a single 10-laptop cart between three middle schools. Kids code one week, then wait two. With 20 dedicated laptops every club meets weekly.</p>',
      'contact_email','campaigns@northlandcode.org','phone','+1-816-555-0404',
-     'image_url','/demo-images/cover-5.svg'
+     'image_url','/demo-images/cover-camp-6.svg'
    ), '00000000-0000-0000-0002-000000000004','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days'),
   ('00000000-0000-0000-0009-000000000010', 1, jsonb_build_object(
      'title','Robotics Kits for Northland Middle',
@@ -779,7 +779,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','From clubs to competition',
      'story_content','<p>Our coders are ready for the next step. Robotics kits let them build, program, and compete — and every competition season we turn away kids for lack of hardware.</p>',
      'contact_email','campaigns@northlandcode.org','phone','+1-816-555-0404',
-     'image_url','/demo-images/cover-6.svg'
+     'image_url','/demo-images/cover-camp-7.svg'
    ), '00000000-0000-0000-0002-000000000004','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days'),
   ('00000000-0000-0000-0009-000000000011', 1, jsonb_build_object(
      'title','Summer Code Camp Scholarships 2026',
@@ -788,7 +788,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','A summer that changes a trajectory',
      'story_content','<p>Two weeks of full-day coding, robotics, and a showcase project. Last year every scholarship student finished; 40% enrolled in a school CS course in the fall.</p>',
      'contact_email','campaigns@northlandcode.org','phone','+1-816-555-0404',
-     'image_url','/demo-images/cover-1.svg'
+     'image_url','/demo-images/cover-camp-8.svg'
    ), '00000000-0000-0000-0002-000000000004','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days'),
   ('00000000-0000-0000-0009-000000000012', 1, jsonb_build_object(
      'title','Refurb-to-Home: 500 Devices for KC Families',
@@ -797,7 +797,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','A device is the difference',
      'story_content','<p>Donated machines arrive in bins. Turning them into a working, wiped, warrantied laptop in a family''s home costs about $80 in parts and labor. Your gift moves 500 of them.</p>',
      'contact_email','campaigns@heartlanddevicebank.org','phone','+1-913-555-0505',
-     'image_url','/demo-images/cover-2.svg'
+     'image_url','/demo-images/cover-camp-9.svg'
    ), '00000000-0000-0000-0002-000000000005','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days'),
   ('00000000-0000-0000-0009-000000000013', 1, jsonb_build_object(
      'title','Student Hotspot Lending Library',
@@ -806,7 +806,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','The homework gap is a connectivity gap',
      'story_content','<p>A refurbished laptop is half the answer. The other half is getting online. A lending library of 100 hotspots keeps students connected through the school year.</p>',
      'contact_email','campaigns@heartlanddevicebank.org','phone','+1-913-555-0505',
-     'image_url','/demo-images/cover-3.svg'
+     'image_url','/demo-images/cover-camp-10.svg'
    ), '00000000-0000-0000-0002-000000000005','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days'),
   ('00000000-0000-0000-0009-000000000014', 1, jsonb_build_object(
      'title','Repair Bench Tools for the Volunteer Corps',
@@ -815,7 +815,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','Volunteers are our engine',
      'story_content','<p>120 volunteers refurbished 1,800 devices last year sharing two toolkits. Six proper repair benches doubles our throughput without adding staff.</p>',
      'contact_email','campaigns@heartlanddevicebank.org','phone','+1-913-555-0505',
-     'image_url','/demo-images/cover-4.svg'
+     'image_url','/demo-images/cover-camp-11.svg'
    ), '00000000-0000-0000-0002-000000000005','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '6 days', NULL, NOW() - INTERVAL '6 days')
 ON CONFLICT (campaign_id, version) DO NOTHING;
 
@@ -1315,7 +1315,7 @@ WHERE id = '00000000-0000-0000-0004-000000000006';
 -- M11-4: logo + cover image
 UPDATE organizations SET
   logo_url        = '/demo-images/logo-kc-connect-hub.svg',
-  cover_image_url = '/demo-images/cover-6.svg'
+  cover_image_url = '/demo-images/cover-org-kc-connect-hub.svg'
 WHERE id = '00000000-0000-0000-0004-000000000006';
 
 -- M11-5: complete public-profile fields (M10 style)
@@ -1415,7 +1415,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','A device ends the waitlist',
      'story_content','<p>Hundreds of families are on our waitlist with no computer at home. Every refurbished laptop — about $80 in parts and labor — moves one of them off the list and online for good.</p>',
      'contact_email','campaigns@kcconnecthub.org','phone','+1-816-555-0606',
-     'image_url','/demo-images/cover-2.svg'
+     'image_url','/demo-images/cover-camp-12.svg'
    ), '00000000-0000-0000-0002-000000000006','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '5 days', NULL, NOW() - INTERVAL '5 days'),
   ('00000000-0000-0000-0009-000000000046', 1, jsonb_build_object(
      'title','Grow the Digital Navigator Corps',
@@ -1424,7 +1424,7 @@ INSERT INTO campaign_details (campaign_id, version, content, changed_by, status,
      'story_title','Hardware is half the answer',
      'story_content','<p>A laptop and a connection only matter if someone shows you how to use them. Eight trained, bilingual navigators let us coach hundreds more households from first login to confident daily use.</p>',
      'contact_email','campaigns@kcconnecthub.org','phone','+1-816-555-0606',
-     'image_url','/demo-images/cover-1.svg'
+     'image_url','/demo-images/cover-camp-13.svg'
    ), '00000000-0000-0000-0002-000000000006','approved','00000000-0000-0000-0001-000000000001', NOW() - INTERVAL '5 days', NULL, NOW() - INTERVAL '5 days')
 ON CONFLICT (campaign_id, version) DO NOTHING;
 
