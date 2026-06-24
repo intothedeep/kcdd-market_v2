@@ -2803,17 +2803,18 @@ export function AdminDashboard() {
         console.error('Error loading users:', usersError)
       }
 
-      // Fetch organizations.
-      // NOTE: do NOT embed user_profiles(verification_status, org_tier) here —
-      // those columns do not exist on user_profiles in this schema, so the
-      // embed returns a PostgREST 42703 error (not data). Because the error
-      // was previously ignored, orgsData fell back to undefined and the
-      // Organizations tab rendered empty. The render path already tolerates a
-      // missing user_profile via `org.user_profile?.verification_status ||
-      // 'unverified'`, so we simply drop the broken embed and surface errors.
+      // Fetch organizations, embedding the owner's verification_status +
+      // org_tier so the Organizations tab can render its verification badge
+      // and tier. The explicit FK hint (`!organizations_user_id_fkey`) is
+      // required: without it PostgREST cannot disambiguate the join and the
+      // embed errors out. (Both columns DO exist on user_profiles — see
+      // 20260620000004_user_profiles_tier_status.sql.) Same pattern as
+      // `getOrganizationProfile` in lib/supabase.ts.
       const { data: orgsData, error: orgsError } = await supabase
         .from('organizations')
-        .select('*')
+        .select(
+          '*, user_profile:user_profiles!organizations_user_id_fkey(verification_status, org_tier)'
+        )
         .order('created_at', { ascending: false })
 
       if (orgsError) {
