@@ -88,7 +88,7 @@ export function MobileNavSheet() {
           {/* Grab handle */}
           <div className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-gray-300" aria-hidden="true" />
 
-          <SheetHeader className="px-4 pb-3 pt-5">
+          <SheetHeader className="mb-3 border-b px-4 pb-4 pt-5">
             <SheetTitle>Menu</SheetTitle>
             <SheetDescription className="sr-only">
               Site navigation and account options
