@@ -367,6 +367,8 @@ All frontend env vars are accessed through `frontend-vite/src/config/index.ts`.
 - **Amount handling**: Never trust `amount` from client body — always read from DB in backend
 - **Notifications**: Insert into `request_notifications` with `recipient_id` (not `user_id`)
 - **Migrations**: Never edit existing migration files — always add a new migration file
+- **Route code-splitting**: Page components in `src/routes/index.tsx` are lazy-loaded via `React.lazy(() => import('@/pages/X').then(m => ({ default: m.X })))` (pages are **named exports**, so the `.then` default-mapping is required). `HomePage` stays static (LCP hot path). Layouts (`MainLayout`/`DashboardLayout`) wrap `<Outlet/>` in `<Suspense fallback={<RouteFallback/>}>`, so any new route placed under a layout is covered automatically. Adding a page = add one `lazy()` line; don't statically import pages into the entry chunk.
+- **UI barrel hygiene**: Do **not** re-export heavy modules through `src/components/ui/index.ts` (the `@/components/ui` barrel). `rich-text-editor` (TipTap, ~400 kB) was removed from the barrel because re-exporting it pulled TipTap into the entry chunk for every barrel consumer. Import heavy UI directly by path (e.g. `@/components/ui/rich-text-editor`).
 
 ## Adding a new DB table — required workflow
 

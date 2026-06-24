@@ -13,7 +13,6 @@ export * from './label'
 export * from './select'
 export * from './checkbox'
 export * from './switch'
-export * from './rich-text-editor'
 
 // Display Components
 export * from './card'

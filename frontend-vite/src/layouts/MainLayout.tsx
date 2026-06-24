@@ -4,10 +4,12 @@
  * Provides consistent header/footer across pages
  */
 
+import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Navbar } from '@/components/Navbar'
 import { NoticeBanner } from '@/components/NoticeBanner'
 import { Footer } from '@/components/Footer'
+import { RouteFallback } from '@/components/RouteFallback'
 import { footerData } from '@/data/footer'
 
 export function MainLayout() {
@@ -16,7 +18,9 @@ export function MainLayout() {
       <NoticeBanner />
       <Navbar />
       <main className="flex-1">
-        <Outlet />
+        <Suspense fallback={<RouteFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
       <Footer data={footerData} />
     </div>

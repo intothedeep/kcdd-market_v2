@@ -4,9 +4,11 @@
  * Layout for dashboard pages - no footer, content fills remaining viewport height
  */
 
+import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Navbar } from '@/components/Navbar'
 import { NoticeBanner } from '@/components/NoticeBanner'
+import { RouteFallback } from '@/components/RouteFallback'
 
 export function DashboardLayout() {
   return (
@@ -14,7 +16,9 @@ export function DashboardLayout() {
       <NoticeBanner />
       <Navbar />
       <main className="flex-1 overflow-auto">
-        <Outlet />
+        <Suspense fallback={<RouteFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )
