@@ -296,7 +296,7 @@ export function ReconciliationPage({ embedded = false }: { embedded?: boolean } 
   // ---- Run detail view ----
   if (detail || detailLoading) {
     return (
-      <div className={embedded ? 'space-y-6' : 'mx-auto max-w-6xl space-y-6 p-6'}>
+      <div className={embedded ? 'space-y-6' : 'mx-auto max-w-6xl space-y-6 p-4 md:p-6'}>
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
@@ -417,31 +417,33 @@ export function ReconciliationPage({ embedded = false }: { embedded?: boolean } 
 
   // ---- Runs list view ----
   return (
-    <div className={embedded ? 'space-y-6' : 'mx-auto max-w-6xl space-y-6 p-6'}>
-      <div className="flex items-center justify-between">
+    <div className={embedded ? 'space-y-6' : 'mx-auto max-w-6xl space-y-6 p-4 md:p-6'}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Reconciliation</h1>
           <p className="text-sm text-[#737373]">
             Compare Stripe payments against the local ledger and resolve discrepancies.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadRuns} disabled={loading}>
-          <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={loadRuns} disabled={loading}>
+            <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Run panel */}
       <Card className="space-y-4 p-4">
         <h2 className="text-sm font-semibold">Run reconciliation</h2>
-        <div className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-col flex-wrap items-stretch gap-4 sm:flex-row sm:items-end">
           <div className="space-y-1">
             <label className="block text-xs font-medium text-[#737373]">From</label>
             <Input
               type="datetime-local"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="w-[220px]"
+              className="w-full sm:w-[220px]"
             />
           </div>
           <div className="space-y-1">
@@ -450,7 +452,7 @@ export function ReconciliationPage({ embedded = false }: { embedded?: boolean } 
               type="datetime-local"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="w-[220px]"
+              className="w-full sm:w-[220px]"
             />
           </div>
           <Button onClick={runCheck} disabled={running}>

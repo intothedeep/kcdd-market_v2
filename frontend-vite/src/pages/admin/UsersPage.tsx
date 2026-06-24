@@ -294,8 +294,8 @@ export function AdminUsersPage() {
       {/* Filters */}
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="min-w-[200px] flex-1">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+            <div className="w-full sm:min-w-[200px] sm:flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#737373]" />
                 <Input

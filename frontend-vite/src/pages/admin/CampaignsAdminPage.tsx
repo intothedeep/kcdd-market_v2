@@ -404,8 +404,8 @@ export function CampaignsAdminPage({ embedded = false }: { embedded?: boolean } 
       : `No ${STATUS_BADGE[activeTab].label.toLowerCase()} campaigns.`
 
   return (
-    <div className={embedded ? 'space-y-6' : 'mx-auto max-w-5xl space-y-6 p-6'}>
-      <div className="flex items-center justify-between">
+    <div className={embedded ? 'space-y-6' : 'mx-auto max-w-5xl space-y-6 p-4 md:p-6'}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Campaigns</h1>
           <p className="text-sm text-[#737373]">Manage all campaigns</p>
@@ -419,7 +419,7 @@ export function CampaignsAdminPage({ embedded = false }: { embedded?: boolean } 
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => isTabKey(v) && setTab(v)}>
-        <TabsList>
+        <TabsList className="max-w-full overflow-x-auto">
           <TabsTrigger value="all" className="gap-2">
             All
             <Badge className="bg-gray-100 px-1.5 text-xs text-[#0a0a0a]">{counts.all}</Badge>

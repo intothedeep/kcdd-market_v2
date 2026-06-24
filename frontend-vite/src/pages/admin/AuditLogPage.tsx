@@ -160,18 +160,20 @@ export function AuditLogPage({ embedded = false }: { embedded?: boolean } = {}) 
   }, [items])
 
   return (
-    <div className={embedded ? 'space-y-6' : 'mx-auto max-w-6xl space-y-6 p-6'}>
-      <div className="flex items-center justify-between">
+    <div className={embedded ? 'space-y-6' : 'mx-auto max-w-6xl space-y-6 p-4 md:p-6'}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Admin Audit Log</h1>
           <p className="text-sm text-[#737373]">
             Chronological record of admin actions. Filter by action or entity type.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadInitial} disabled={loading}>
-          <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={loadInitial} disabled={loading}>
+            <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4">
