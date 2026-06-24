@@ -604,16 +604,6 @@ SET default_campaign_template = jsonb_build_object(
     SELECT COALESCE(array_agg(id::text), ARRAY[]::text[])
     FROM cause_areas
     WHERE name IN ('Education', 'Youth Development')
-  ),
-  'faqs', jsonb_build_array(
-    jsonb_build_object(
-      'question', 'How are donated funds used?',
-      'answer',   'Every dollar buys refurbished hardware, accessory bundles, or one year of break/fix support for our youth cohort.'
-    ),
-    jsonb_build_object(
-      'question', 'Is my donation tax-deductible?',
-      'answer',   'Yes. Connecting Roots KC is a registered 501(c)(3); a receipt is emailed automatically after payment.'
-    )
   )
 )
 WHERE id = '00000000-0000-0000-0004-000000000001';

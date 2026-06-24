@@ -11,12 +11,11 @@
 import { useEffect, useState } from 'react'
 import { useUser } from '@clerk/clerk-react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Loader2, Plus, Save, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Save } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 
@@ -35,17 +34,11 @@ interface CauseArea {
   description?: string | null
 }
 
-interface FaqDraft {
-  question: string
-  answer: string
-}
-
 const EMPTY_DEFAULTS: OrganizationDefaults = {
   creator_name: '',
   creator_role: '',
   contact_email: '',
   cause_area_ids: [],
-  faqs: [],
 }
 
 export function CampaignDefaultsPage() {
@@ -62,7 +55,6 @@ export function CampaignDefaultsPage() {
   const [creatorRole, setCreatorRole] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [selectedCauseAreaIds, setSelectedCauseAreaIds] = useState<string[]>([])
-  const [faqs, setFaqs] = useState<FaqDraft[]>([])
 
   useEffect(() => {
     if (!isLoaded) return
@@ -104,7 +96,6 @@ export function CampaignDefaultsPage() {
         setCreatorRole(seed.creator_role ?? '')
         setContactEmail(seed.contact_email ?? '')
         setSelectedCauseAreaIds(seed.cause_area_ids ?? [])
-        setFaqs(seed.faqs ?? [])
       } catch (err) {
         console.error('CampaignDefaultsPage load error:', err)
         if (!cancelled) {
@@ -131,32 +122,15 @@ export function CampaignDefaultsPage() {
     )
   }
 
-  function addFaq() {
-    setFaqs((prev) => [...prev, { question: '', answer: '' }])
-  }
-
-  function updateFaq(index: number, field: 'question' | 'answer', value: string) {
-    setFaqs((prev) => prev.map((f, i) => (i === index ? { ...f, [field]: value } : f)))
-  }
-
-  function removeFaq(index: number) {
-    setFaqs((prev) => prev.filter((_, i) => i !== index))
-  }
-
   async function handleSave() {
     if (!orgId) return
     setSaving(true)
     try {
-      const trimmedFaqs = faqs
-        .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() }))
-        .filter((f) => f.question.length > 0 || f.answer.length > 0)
-
       const payload: OrganizationDefaults = {
         creator_name: creatorName.trim() || undefined,
         creator_role: creatorRole.trim() || undefined,
         contact_email: contactEmail.trim() || undefined,
         cause_area_ids: selectedCauseAreaIds,
-        faqs: trimmedFaqs,
       }
 
       await updateOrganizationDefaults(orgId, payload)
@@ -272,63 +246,6 @@ export function CampaignDefaultsPage() {
               )
             })}
           </div>
-        )}
-      </Card>
-
-      <Card className="space-y-3 p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-[#0a0a0a]">FAQs</h2>
-            <p className="text-xs text-[#737373]">
-              These FAQs will pre-populate the campaign FAQ section.
-            </p>
-          </div>
-          <Button type="button" variant="outline" size="sm" onClick={addFaq}>
-            <Plus className="mr-1 h-4 w-4" />
-            Add FAQ
-          </Button>
-        </div>
-
-        {faqs.length === 0 ? (
-          <p className="text-sm text-[#737373]">No FAQs yet. Click "Add FAQ" to start.</p>
-        ) : (
-          <ul className="space-y-3">
-            {faqs.map((faq, index) => (
-              <li key={index} className="space-y-2 rounded-md border border-gray-200 p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-[#737373]">FAQ #{index + 1}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFaq(index)}
-                    aria-label={`Remove FAQ ${index + 1}`}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor={`faq-q-${index}`}>Question</Label>
-                  <Input
-                    id={`faq-q-${index}`}
-                    value={faq.question}
-                    onChange={(e) => updateFaq(index, 'question', e.target.value)}
-                    placeholder="Question donors might ask"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor={`faq-a-${index}`}>Answer</Label>
-                  <Textarea
-                    id={`faq-a-${index}`}
-                    value={faq.answer}
-                    onChange={(e) => updateFaq(index, 'answer', e.target.value)}
-                    placeholder="Default answer"
-                    rows={3}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
         )}
       </Card>
 

@@ -417,7 +417,6 @@ export interface OrganizationDefaults {
   creator_role?: string
   contact_email?: string
   cause_area_ids?: string[]
-  faqs?: Array<{ question: string; answer: string }>
 }
 
 export async function getOrganizationDefaults(orgId: string): Promise<OrganizationDefaults | null> {
@@ -1299,21 +1298,6 @@ export const getActiveCampaigns = async (limit: number = 10) => {
   return Array.from(byId.values()).map(({ __detail_version: _v, ...rest }) => rest)
 }
 
-// Upload campaign image
-export const uploadCampaignImage = async (file: File, campaignId: string) => {
-  const fileExt = file.name.split('.').pop()
-  const fileName = `${campaignId}-${Date.now()}.${fileExt}`
-
-  const { error: uploadError } = await supabase.storage
-    .from('campaign-images')
-    .upload(fileName, file)
-
-  if (uploadError) throw uploadError
-
-  const { data: urlData } = supabase.storage.from('campaign-images').getPublicUrl(fileName)
-
-  return urlData.publicUrl
-}
 
 // Question type for dashboard
 export interface OrganizationQuestion {
