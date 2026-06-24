@@ -321,6 +321,14 @@ you **register a webhook endpoint in the Stripe Dashboard** pointing at it:
 https://your-api.example.com/api/payments/webhook
 ```
 
+> **Dashboard UI note (2026):** Stripe replaced the **Developers Dashboard**
+> with **Workbench**, so the old "Developers → Webhooks → Add endpoint" path is
+> gone. New flow: toggle **Test mode** (top-right) → **Workbench → Webhooks →
+> Add destination** → select events + API version → **Continue** → choose
+> **Webhook endpoint** as the destination type → **Continue** → enter the URL
+> above → **Create destination**. The signing secret (`whsec_…`) appears on the
+> created destination. ("Endpoint" is now "destination" — same concept.)
+
 This app uses **one endpoint + one secret** (`STRIPE_WEBHOOK_SECRET`) for all
 events. When adding the endpoint, select these **9 events**:
 
@@ -349,8 +357,8 @@ events. So run a **test cloud deploy** and **production** with different env:
 | `STRIPE_BYPASS_CONNECT` | `true` (or onboard test connected accounts) | **unset** — orgs complete real Connect onboarding |
 | Cards | test card `4242 4242 4242 4242` | real cards (real charges) |
 
-Verify a deploy: make a donation, then Dashboard → Webhooks → your endpoint →
-recent deliveries should show `200 OK`; the `payment_transactions` row +
+Verify a deploy: make a donation, then **Workbench → Webhooks → your
+destination → Event deliveries** should show `200 OK`; the `payment_transactions` row +
 `requests`/campaign totals should update. Going live also requires **activating**
 your Stripe account (business details). Deeper dive (idempotency, reconciliation,
 per-event handlers): `_docs/stripe-webhook.md`.
