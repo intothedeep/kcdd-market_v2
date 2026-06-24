@@ -153,27 +153,32 @@ export function PaymentEventLogPage({ embedded = false }: { embedded?: boolean }
   const hasFilters = paymentIntentId !== '' || eventType !== ''
 
   return (
-    <div className={embedded ? 'space-y-6' : 'mx-auto max-w-6xl space-y-6 p-6'}>
-      <div className="flex items-center justify-between">
+    <div className={embedded ? 'space-y-6' : 'mx-auto max-w-6xl space-y-6 p-4 md:p-6'}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Payment Events</h1>
           <p className="text-sm text-[#737373]">
             Debug log of payment lifecycle events. Filter by payment intent or event type.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadInitial} disabled={loading}>
-          <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={loadInitial} disabled={loading}>
+            <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
-      <form className="flex flex-wrap items-end gap-3" onSubmit={applyFilters}>
-        <div className="min-w-[240px] flex-1 space-y-1">
+      <form
+        className="flex flex-col flex-wrap items-stretch gap-3 sm:flex-row sm:items-end"
+        onSubmit={applyFilters}
+      >
+        <div className="space-y-1 sm:min-w-[240px] sm:flex-1">
           <label className="block text-xs font-medium text-[#737373]">Payment Intent ID</label>
           <Input placeholder="pi_…" value={piInput} onChange={(e) => setPiInput(e.target.value)} />
         </div>
-        <div className="min-w-[200px] space-y-1">
+        <div className="space-y-1 sm:min-w-[200px]">
           <label className="block text-xs font-medium text-[#737373]">Event type</label>
           <Input
             placeholder="payment_intent.succeeded"
