@@ -6,13 +6,15 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { UserButton, useUser, SignInButton } from '@clerk/clerk-react'
+import { useUser, SignInButton, useClerk } from '@clerk/clerk-react'
 import {
   Menu,
   Home,
   Megaphone,
   Info,
   LogIn,
+  LogOut,
+  UserCircle,
   LayoutDashboard,
   Heart,
   Building2,
@@ -42,6 +44,7 @@ export function MobileNavSheet() {
   const [open, setOpen] = useState(false)
   const { isSignedIn } = useUser()
   const { userType } = useUserType()
+  const { openUserProfile, signOut } = useClerk()
   const navigate = useNavigate()
 
   // Public items — same targets as Navbar.tsx
@@ -126,15 +129,29 @@ export function MobileNavSheet() {
                     {item.label}
                   </button>
                 ))}
-                <div className="mt-1 flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-3">
-                  <span className="flex h-5 w-5 items-center justify-center">
-                    <UserButton
-                      afterSignOutUrl={routes.home}
-                      appearance={{ elements: { userButtonAvatarBox: 'h-5 w-5' } }}
-                    />
-                  </span>
-                  <span className="text-base text-black">Manage account</span>
-                </div>
+                <div className="my-2 border-t" />
+                <button
+                  type="button"
+                  className={rowClass}
+                  onClick={() => {
+                    setOpen(false)
+                    openUserProfile()
+                  }}
+                >
+                  <UserCircle className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
+                  Manage account
+                </button>
+                <button
+                  type="button"
+                  className={rowClass}
+                  onClick={() => {
+                    setOpen(false)
+                    signOut(() => navigate(routes.home))
+                  }}
+                >
+                  <LogOut className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
+                  Sign out
+                </button>
               </>
             ) : (
               <>
