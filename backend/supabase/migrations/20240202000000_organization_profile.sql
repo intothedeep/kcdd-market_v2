@@ -14,7 +14,7 @@ ADD COLUMN IF NOT EXISTS service_area_description TEXT;
 
 -- Organization populations junction table
 CREATE TABLE IF NOT EXISTS organization_populations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   identity_category_id UUID NOT NULL REFERENCES identity_categories(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -25,7 +25,7 @@ CREATE INDEX IF NOT EXISTS idx_organization_populations_org_id ON organization_p
 
 -- Organization updates table
 CREATE TABLE IF NOT EXISTS organization_updates (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   title VARCHAR(200) NOT NULL,
   content TEXT NOT NULL,
@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_organization_updates_org_id ON organization_updat
 
 -- Organization team members table
 CREATE TABLE IF NOT EXISTS organization_team_members (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   name VARCHAR(200) NOT NULL,
   role VARCHAR(200),

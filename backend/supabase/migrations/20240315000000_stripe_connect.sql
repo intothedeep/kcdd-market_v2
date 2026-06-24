@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_organizations_stripe_account_id ON organizations(
 -- 2. PAYMENT TRANSACTIONS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS payment_transactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   request_id UUID REFERENCES requests(id) ON DELETE SET NULL,
   campaign_id UUID REFERENCES campaigns(id) ON DELETE SET NULL,
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -67,7 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_payment_transactions_created_at ON payment_transa
 -- 3. STRIPE CONNECT EVENTS LOG
 -- =============================================
 CREATE TABLE IF NOT EXISTS stripe_connect_events (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   stripe_event_id VARCHAR(255) NOT NULL UNIQUE,
   event_type VARCHAR(100) NOT NULL,
   stripe_account_id VARCHAR(255),

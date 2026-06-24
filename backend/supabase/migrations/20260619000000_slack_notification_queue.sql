@@ -7,7 +7,7 @@
 -- pending row that the 5-min cron flushes.
 
 CREATE TABLE IF NOT EXISTS slack_notification_queue (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   dedupe_key TEXT NOT NULL,
   channel TEXT NOT NULL DEFAULT 'admin',
   payload JSONB NOT NULL,

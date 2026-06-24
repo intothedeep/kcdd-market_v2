@@ -5,7 +5,7 @@
 -- 1. PLATFORM SETTINGS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS platform_settings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   key VARCHAR(100) UNIQUE NOT NULL,
   value TEXT,
   value_type VARCHAR(20) DEFAULT 'string', -- 'string', 'boolean', 'number', 'json'
@@ -33,7 +33,7 @@ ON CONFLICT (key) DO NOTHING;
 -- 2. ADMIN ACTIVITY LOG TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS admin_activity_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   admin_id TEXT NOT NULL,
   action VARCHAR(100) NOT NULL,
   entity_type VARCHAR(50), -- 'user', 'organization', 'request', 'campaign', 'report', 'settings'

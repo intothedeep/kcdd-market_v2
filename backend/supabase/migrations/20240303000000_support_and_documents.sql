@@ -5,7 +5,7 @@
 -- 1. SUPPORT FAQS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS support_faqs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   question TEXT NOT NULL,
   answer TEXT NOT NULL,
   category VARCHAR(100) DEFAULT 'general',
@@ -23,7 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_support_faqs_active ON support_faqs(is_active);
 -- 2. SUPPORT CONTACT INFO TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS support_contact_info (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type VARCHAR(50) NOT NULL, -- 'email', 'phone', 'chat'
   label VARCHAR(100) NOT NULL,
   value VARCHAR(200) NOT NULL,
@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_support_contact_info_active ON support_contact_in
 -- 3. DONOR DOCUMENTS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS donor_documents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id TEXT NOT NULL,
   name VARCHAR(200) NOT NULL,
   type VARCHAR(50) NOT NULL, -- 'tax_receipt', 'annual_summary', 'quarterly_statement'
@@ -58,7 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_donor_documents_year ON donor_documents(year);
 -- 4. NEWSLETTER SUBSCRIPTIONS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS newsletter_subscriptions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(254) NOT NULL UNIQUE,
   source VARCHAR(100) DEFAULT 'footer',
   is_active BOOLEAN DEFAULT TRUE,
@@ -73,7 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_newsletter_active ON newsletter_subscriptions(is_
 -- 5. CAMPAIGNS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS campaigns (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
   created_by TEXT NOT NULL,
   title VARCHAR(200) NOT NULL,
@@ -112,7 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_campaigns_slug ON campaigns(slug);
 -- 6. CAMPAIGN QUESTIONS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS campaign_questions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
   question TEXT NOT NULL,
   submitter_name VARCHAR(200),
@@ -188,7 +188,7 @@ ADD COLUMN IF NOT EXISTS wants_updates BOOLEAN DEFAULT FALSE;
 -- 10. DONOR CAUSE AREAS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS donor_cause_areas (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id TEXT NOT NULL,
   cause_area_id UUID NOT NULL REFERENCES cause_areas(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -255,7 +255,7 @@ ALTER TABLE donor_cause_areas DROP CONSTRAINT IF EXISTS donor_cause_areas_cause_
 
 -- Allow text IDs for cause areas
 ALTER TABLE cause_areas ALTER COLUMN id TYPE TEXT USING id::text;
-ALTER TABLE cause_areas ALTER COLUMN id SET DEFAULT uuid_generate_v4()::text;
+ALTER TABLE cause_areas ALTER COLUMN id SET DEFAULT gen_random_uuid()::text;
 
 -- Update foreign keys
 ALTER TABLE organization_cause_areas ALTER COLUMN cause_area_id TYPE TEXT USING cause_area_id::text;

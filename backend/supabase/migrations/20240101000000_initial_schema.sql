@@ -24,7 +24,7 @@ CREATE TABLE user_profiles (
 
 -- Donor Profiles
 CREATE TABLE donor_profiles (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE UNIQUE,
   location VARCHAR(200),
   bio TEXT,
@@ -37,7 +37,7 @@ CREATE TABLE donor_profiles (
 
 -- Cause Areas
 CREATE TABLE cause_areas (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL UNIQUE,
   description TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -45,21 +45,21 @@ CREATE TABLE cause_areas (
 
 -- Challenge Categories
 CREATE TABLE challenge_categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Identity Categories
 CREATE TABLE identity_categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Organizations
 CREATE TABLE organizations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE UNIQUE,
   name VARCHAR(200) NOT NULL,
   website VARCHAR(200),
@@ -77,7 +77,7 @@ CREATE TABLE organizations (
 
 -- Organization Cause Areas (Many-to-Many)
 CREATE TABLE organization_cause_areas (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   cause_area_id UUID NOT NULL REFERENCES cause_areas(id) ON DELETE CASCADE,
   UNIQUE(organization_id, cause_area_id)
@@ -85,7 +85,7 @@ CREATE TABLE organization_cause_areas (
 
 -- Requests
 CREATE TABLE requests (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   cause_area_id UUID NOT NULL REFERENCES cause_areas(id) ON DELETE RESTRICT,
   donor_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
@@ -107,7 +107,7 @@ CREATE TABLE requests (
 
 -- Request Challenge Categories (Many-to-Many)
 CREATE TABLE request_challenge_categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   request_id UUID NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
   challenge_category_id UUID NOT NULL REFERENCES challenge_categories(id) ON DELETE CASCADE,
   UNIQUE(request_id, challenge_category_id)
@@ -115,7 +115,7 @@ CREATE TABLE request_challenge_categories (
 
 -- Request Identity Categories (Many-to-Many)
 CREATE TABLE request_identity_categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   request_id UUID NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
   identity_category_id UUID NOT NULL REFERENCES identity_categories(id) ON DELETE CASCADE,
   UNIQUE(request_id, identity_category_id)
@@ -123,7 +123,7 @@ CREATE TABLE request_identity_categories (
 
 -- Request History (Audit Log)
 CREATE TABLE request_history (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   request_id UUID NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
   changed_by_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
   old_status request_status_enum,
@@ -134,7 +134,7 @@ CREATE TABLE request_history (
 
 -- Fulfillment Records
 CREATE TABLE fulfillment_records (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   request_id UUID NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
   donor_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   fulfillment_method VARCHAR(100),
@@ -147,7 +147,7 @@ CREATE TABLE fulfillment_records (
 
 -- Notifications
 CREATE TABLE request_notifications (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   request_id UUID REFERENCES requests(id) ON DELETE CASCADE,
   notification_type VARCHAR(50) NOT NULL,
