@@ -36,9 +36,7 @@ import {
   Save,
   X,
   Plus,
-  MessageSquarePlus,
   HelpCircle,
-  Clock,
   Send,
   CheckCircle2,
   AlertCircle,
@@ -78,32 +76,9 @@ import {
 // The page state and JSX now consume the view adapter so donor-visible
 // content is sourced from the published campaign_details row per D-public-page.
 
-interface CampaignImage {
-  id: string
-  image_url: string
-  caption: string | null
-  is_featured: boolean
-  sort_order: number
-}
-
 interface CauseArea {
   id: string
   name: string
-}
-
-interface FAQ {
-  id: string
-  question: string
-  answer: string
-  sort_order: number
-}
-
-interface CampaignUpdate {
-  id: string
-  title: string
-  content: string
-  created_by: string
-  created_at: string
 }
 
 interface OutlineItem {
@@ -158,11 +133,7 @@ export function CampaignPage() {
   const [campaign, setCampaign] = useState<PublishedCampaignView | null>(null)
   const [causeAreas, setCauseAreas] = useState<CauseArea[]>([])
   const [allCauseAreas, setAllCauseAreas] = useState<CauseArea[]>([])
-  const [faqs, setFaqs] = useState<FAQ[]>([])
-  const [updates, setUpdates] = useState<CampaignUpdate[]>([])
   const [submittedQuestions, setSubmittedQuestions] = useState<SubmittedQuestion[]>([])
-  const [campaignImages, setCampaignImages] = useState<CampaignImage[]>([])
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [outline, setOutline] = useState<OutlineItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -182,12 +153,6 @@ export function CampaignPage() {
   const [answerText, setAnswerText] = useState('')
   const [makePublic, setMakePublic] = useState(true)
   const [submittingAnswer, setSubmittingAnswer] = useState(false)
-
-  // Update posting state
-  const [showUpdateForm, setShowUpdateForm] = useState(false)
-  const [newUpdateTitle, setNewUpdateTitle] = useState('')
-  const [newUpdateContent, setNewUpdateContent] = useState('')
-  const [postingUpdate, setPostingUpdate] = useState(false)
 
   // Report campaign state
   const [showReportModal, setShowReportModal] = useState(false)
@@ -290,49 +255,12 @@ export function CampaignPage() {
     tag.setAttribute('content', new Date(campaign.last_edit_approved_at).toISOString())
   }, [campaign?.last_edit_approved_at])
 
-  // Fetch FAQs, updates, submitted questions, and images when campaign loads
+  // Fetch submitted questions when campaign loads
   useEffect(() => {
     if (campaign?.id) {
-      loadFaqs()
-      loadUpdates()
       loadSubmittedQuestions()
-      loadCampaignImages()
     }
   }, [campaign?.id])
-
-  const loadFaqs = async () => {
-    if (!campaign?.id) return
-    try {
-      const { data, error } = await (supabase as any)
-        .from('campaign_faqs')
-        .select('*')
-        .eq('campaign_id', campaign.id)
-        .order('sort_order', { ascending: true })
-
-      if (!error && data) {
-        setFaqs(data)
-      }
-    } catch (err) {
-      console.error('Error loading FAQs:', err)
-    }
-  }
-
-  const loadUpdates = async () => {
-    if (!campaign?.id) return
-    try {
-      const { data, error } = await (supabase as any)
-        .from('campaign_updates')
-        .select('*')
-        .eq('campaign_id', campaign.id)
-        .order('created_at', { ascending: false })
-
-      if (!error && data) {
-        setUpdates(data)
-      }
-    } catch (err) {
-      console.error('Error loading updates:', err)
-    }
-  }
 
   const loadSubmittedQuestions = async () => {
     if (!campaign?.id) return
@@ -409,10 +337,6 @@ export function CampaignPage() {
         setAnswerText('')
         setMakePublic(true)
         loadSubmittedQuestions()
-        // If made public, also reload FAQs as it might show there
-        if (makePublic) {
-          loadFaqs()
-        }
       }
     } catch (err) {
       console.error('Error answering question:', err)
@@ -431,30 +355,6 @@ export function CampaignPage() {
     }
   }
 
-  const loadCampaignImages = async () => {
-    if (!campaign?.id) return
-    try {
-      const { data, error } = await (supabase as any)
-        .from('campaign_images')
-        .select('*')
-        .eq('campaign_id', campaign.id)
-        .order('sort_order', { ascending: true })
-
-      if (!error && data) {
-        setCampaignImages(data)
-        // Set featured image as selected
-        const featured = data.find((img: CampaignImage) => img.is_featured)
-        if (featured) {
-          setSelectedImage(featured.image_url)
-        } else if (data.length > 0) {
-          setSelectedImage(data[0].image_url)
-        }
-      }
-    } catch (err) {
-      console.error('Error loading campaign images:', err)
-    }
-  }
-
   // Check if campaign has any social links
   const hasSocialLinks =
     campaign &&
@@ -465,31 +365,6 @@ export function CampaignPage() {
       campaign.youtube_url ||
       campaign.tiktok_url ||
       campaign.website_url)
-
-  const handlePostUpdate = async () => {
-    if (!campaign?.id || !user?.id || !newUpdateTitle.trim() || !newUpdateContent.trim()) return
-
-    setPostingUpdate(true)
-    try {
-      const { error } = await (supabase as any).from('campaign_updates').insert({
-        campaign_id: campaign.id,
-        title: newUpdateTitle,
-        content: newUpdateContent,
-        created_by: user.id,
-      })
-
-      if (!error) {
-        setNewUpdateTitle('')
-        setNewUpdateContent('')
-        setShowUpdateForm(false)
-        loadUpdates()
-      }
-    } catch (err) {
-      console.error('Error posting update:', err)
-    } finally {
-      setPostingUpdate(false)
-    }
-  }
 
   const scrollToHeading = (index: number) => {
     // Find the heading in the rendered content and scroll to it
@@ -974,7 +849,7 @@ export function CampaignPage() {
               {/* Main Display Image (or embedded YouTube video) */}
               <div className="relative h-[460px] w-full overflow-hidden rounded-[10px] bg-[#f5f5f5]">
                 {(() => {
-                  const src = selectedImage || campaign.image_url || ''
+                  const src = campaign.image_url || ''
                   if (!src) {
                     return (
                       <div className="flex h-full w-full items-center justify-center">
@@ -1010,49 +885,6 @@ export function CampaignPage() {
                   )
                 })()}
               </div>
-
-              {/* Image Thumbnails */}
-              {campaignImages.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {/* Logo as first thumbnail if exists */}
-                  {campaign.logo_url && (
-                    <button
-                      onClick={() => setSelectedImage(campaign.logo_url!)}
-                      className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
-                        selectedImage === campaign.logo_url
-                          ? 'border-[#ea580c] ring-2 ring-[#ea580c]/20'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <img
-                        src={campaign.logo_url}
-                        alt="Organization logo"
-                        className="h-full w-full object-cover"
-                      />
-                    </button>
-                  )}
-
-                  {/* Gallery images */}
-                  {campaignImages.map((img) => (
-                    <button
-                      key={img.id}
-                      onClick={() => setSelectedImage(img.image_url)}
-                      className={`h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
-                        selectedImage === img.image_url
-                          ? 'border-[#ea580c] ring-2 ring-[#ea580c]/20'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      title={img.caption || undefined}
-                    >
-                      <img
-                        src={img.image_url}
-                        alt={img.caption || 'Campaign gallery'}
-                        className="h-full w-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Sidebar */}
@@ -1257,17 +1089,6 @@ export function CampaignPage() {
                   className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   FAQs
-                  {faqs.length > 0 && (
-                    <Badge className="ml-1.5 h-5 min-w-[20px] rounded-full bg-[#171717] px-1.5 py-0 text-xs text-white">
-                      {faqs.length}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger
-                  value="updates"
-                  className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                >
-                  Updates
                 </TabsTrigger>
                 <TabsTrigger
                   value="about"
@@ -1668,29 +1489,9 @@ export function CampaignPage() {
                 )}
 
                 {/* FAQs Accordion */}
-                {faqs.length > 0 ||
-                submittedQuestions.filter((q) => q.status === 'answered' && q.is_public).length >
-                  0 ? (
+                {submittedQuestions.filter((q) => q.status === 'answered' && q.is_public).length >
+                0 ? (
                   <Accordion type="single" collapsible className="space-y-3">
-                    {/* Static FAQs */}
-                    {faqs.map((faq) => (
-                      <AccordionItem
-                        key={faq.id}
-                        value={faq.id}
-                        className="rounded-lg border border-gray-200 px-4 data-[state=open]:bg-gray-50"
-                      >
-                        <AccordionTrigger className="hover:no-underline">
-                          <div className="flex items-center gap-3 text-left">
-                            <HelpCircle className="h-5 w-5 flex-shrink-0 text-[#1b5858]" />
-                            <span className="font-medium text-[#0a0a0a]">{faq.question}</span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pl-8 text-[#737373]">
-                          {faq.answer}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-
                     {/* Answered public questions */}
                     {submittedQuestions
                       .filter((q) => q.status === 'answered' && q.is_public)
@@ -1732,140 +1533,6 @@ export function CampaignPage() {
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Ask a Question
                     </Button>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            {/* Updates Tab */}
-            <TabsContent value="updates" className="mt-0">
-              <div className="max-w-3xl">
-                <div className="mb-6 flex items-center justify-between">
-                  <h2 className="text-2xl font-semibold text-[#0a0a0a]">Campaign Updates</h2>
-
-                  {/* Post Update Button (only for owner) */}
-                  {isOwner && !showUpdateForm && (
-                    <Button
-                      onClick={() => setShowUpdateForm(true)}
-                      className="bg-[#1b5858] hover:bg-[#164444]"
-                    >
-                      <MessageSquarePlus className="mr-2 h-4 w-4" />
-                      Post Update
-                    </Button>
-                  )}
-                </div>
-
-                {/* Update Form (for owner) */}
-                {isOwner && showUpdateForm && (
-                  <Card className="mb-6 border-[#1b5858] p-6">
-                    <h3 className="mb-4 font-semibold text-[#0a0a0a]">
-                      Share an Update with Supporters
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label
-                          htmlFor="update-title"
-                          className="text-sm font-medium text-[#0a0a0a]"
-                        >
-                          Update Title
-                        </label>
-                        <Input
-                          id="update-title"
-                          value={newUpdateTitle}
-                          onChange={(e) => setNewUpdateTitle(e.target.value)}
-                          placeholder="e.g., We reached 50% of our goal!"
-                          className="h-11"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label
-                          htmlFor="update-content"
-                          className="text-sm font-medium text-[#0a0a0a]"
-                        >
-                          Content
-                        </label>
-                        <Textarea
-                          id="update-content"
-                          value={newUpdateContent}
-                          onChange={(e) => setNewUpdateContent(e.target.value)}
-                          placeholder="Share news, progress, or thank your supporters..."
-                          rows={4}
-                          className="resize-none"
-                        />
-                      </div>
-                      <div className="flex items-center justify-end gap-3">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setShowUpdateForm(false)
-                            setNewUpdateTitle('')
-                            setNewUpdateContent('')
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handlePostUpdate}
-                          disabled={
-                            postingUpdate || !newUpdateTitle.trim() || !newUpdateContent.trim()
-                          }
-                          className="bg-[#1b5858] hover:bg-[#164444]"
-                        >
-                          {postingUpdate ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Posting...
-                            </>
-                          ) : (
-                            <>
-                              <Send className="mr-2 h-4 w-4" />
-                              Post Update
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                )}
-
-                {/* Updates List */}
-                {updates.length > 0 ? (
-                  <div className="space-y-4">
-                    {updates.map((update) => (
-                      <Card key={update.id} className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#1b5858]">
-                            <MessageSquarePlus className="h-5 w-5 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="mb-2 flex items-center gap-2">
-                              <h3 className="font-semibold text-[#0a0a0a]">{update.title}</h3>
-                            </div>
-                            <p className="mb-3 leading-relaxed text-[#737373]">{update.content}</p>
-                            <div className="flex items-center gap-2 text-sm text-[#737373]">
-                              <Clock className="h-4 w-4" />
-                              <span>
-                                {new Date(update.created_at).toLocaleDateString('en-US', {
-                                  month: 'long',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                })}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-lg bg-gray-50 py-12 text-center text-[#737373]">
-                    <MessageSquarePlus className="mx-auto mb-4 h-12 w-12 opacity-50" />
-                    <p className="text-lg">No updates have been posted yet.</p>
-                    <p className="mt-2 text-sm">
-                      {isOwner
-                        ? 'Share news and progress with your supporters!'
-                        : 'Check back later for campaign updates.'}
-                    </p>
                   </div>
                 )}
               </div>

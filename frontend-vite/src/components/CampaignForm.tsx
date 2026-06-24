@@ -23,16 +23,12 @@ import {
   Upload,
   Image,
   AlertCircle,
-  Plus,
-  Trash2,
-  HelpCircle,
   Facebook,
   Twitter,
   Instagram,
   Linkedin,
   Youtube,
   Globe,
-  X,
 } from 'lucide-react'
 import { createCampaign, supabase, getOrganizationDefaults, fetchCauseAreas } from '@/lib/supabase'
 
@@ -40,17 +36,6 @@ interface CampaignFormProps {
   organizationId?: string
   onCancel: () => void
   onComplete: () => void
-}
-
-interface FAQ {
-  question: string
-  answer: string
-}
-
-interface ImageFile {
-  file: File
-  preview: string
-  caption: string
 }
 
 interface SocialLinks {
@@ -72,15 +57,13 @@ interface CampaignFormData {
   fundingGoal: string
   shortDescription: string
   logoFile: File | null
-  images: ImageFile[]
   storyTitle: string
   campaignStory: string
   contactEmail: string
-  faqs: FAQ[]
   socialLinks: SocialLinks
 }
 
-type FormDataValue = string | string[] | boolean | File | null | FAQ[] | ImageFile[] | SocialLinks
+type FormDataValue = string | string[] | boolean | File | null | SocialLinks
 
 const CAUSE_AREAS = [
   'Health & Medicine',
@@ -101,14 +84,7 @@ const CAUSE_AREAS = [
   'Senior Services',
 ]
 
-const TOTAL_STEPS = 7
-
-// W5-B2: faqs initial state is `[{question:'', answer:''}]` (one empty row),
-// so length===0 is never true. Treat "all blank" as empty for prefill purposes.
-function faqsAreEmpty(faqs: FAQ[]): boolean {
-  if (!faqs || faqs.length === 0) return true
-  return faqs.every((f) => !f.question.trim() && !f.answer.trim())
-}
+const TOTAL_STEPS = 6
 
 export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignFormProps) {
   const { user } = useUser()
@@ -127,11 +103,9 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
     fundingGoal: '',
     shortDescription: '',
     logoFile: null,
-    images: [],
     storyTitle: '',
     campaignStory: '',
     contactEmail: user?.primaryEmailAddress?.emailAddress || '',
-    faqs: [{ question: '', answer: '' }],
     socialLinks: {
       facebook: '',
       twitter: '',
@@ -142,7 +116,6 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
       website: '',
     },
   })
-  const imageInputRef = useRef<HTMLInputElement>(null)
 
   // W5-B2: Track which fields the user has touched. Any field in this Set
   // will NEVER be overwritten by the late-arriving defaults fetch. The Set
@@ -205,14 +178,6 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
           ) {
             next.causeAreas = defaultCauseNames
           }
-          if (
-            !dirtyFields.has('faqs') &&
-            faqsAreEmpty(prev.faqs) &&
-            defaults.faqs &&
-            defaults.faqs.length > 0
-          ) {
-            next.faqs = defaults.faqs.map((f) => ({ question: f.question, answer: f.answer }))
-          }
           return next
         })
       } catch (err) {
@@ -241,74 +206,6 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
       causeAreas: prev.causeAreas.includes(area)
         ? prev.causeAreas.filter((a) => a !== area)
         : [...prev.causeAreas, area],
-    }))
-  }
-
-  const addFaq = () => {
-    markDirty('faqs')
-    setFormData((prev) => ({
-      ...prev,
-      faqs: [...prev.faqs, { question: '', answer: '' }],
-    }))
-  }
-
-  const removeFaq = (index: number) => {
-    markDirty('faqs')
-    setFormData((prev) => ({
-      ...prev,
-      faqs: prev.faqs.filter((_, i) => i !== index),
-    }))
-  }
-
-  const updateFaq = (index: number, field: 'question' | 'answer', value: string) => {
-    markDirty('faqs')
-    setFormData((prev) => ({
-      ...prev,
-      faqs: prev.faqs.map((faq, i) => (i === index ? { ...faq, [field]: value } : faq)),
-    }))
-  }
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files) return
-
-    const newImages: ImageFile[] = []
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith('image/')) {
-        newImages.push({
-          file,
-          preview: URL.createObjectURL(file),
-          caption: '',
-        })
-      }
-    })
-
-    setFormData((prev) => ({
-      ...prev,
-      images: [...prev.images, ...newImages],
-    }))
-
-    // Reset input
-    if (imageInputRef.current) {
-      imageInputRef.current.value = ''
-    }
-  }
-
-  const removeImage = (index: number) => {
-    setFormData((prev) => {
-      // Revoke the object URL to free memory
-      URL.revokeObjectURL(prev.images[index].preview)
-      return {
-        ...prev,
-        images: prev.images.filter((_, i) => i !== index),
-      }
-    })
-  }
-
-  const updateImageCaption = (index: number, caption: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.map((img, i) => (i === index ? { ...img, caption } : img)),
     }))
   }
 
@@ -430,53 +327,6 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
         website_url: formData.socialLinks.website || undefined,
       })
 
-      const campaignId = (campaign as { id: string }).id
-
-      // Upload and save gallery images
-      if (formData.images.length > 0 && campaignId) {
-        for (let i = 0; i < formData.images.length; i++) {
-          const img = formData.images[i]
-          try {
-            const fileExt = img.file.name.split('.').pop()
-            const fileName = `campaign-${campaignId}-image-${i}-${Date.now()}.${fileExt}`
-
-            const { error: uploadError } = await supabase.storage
-              .from('campaign-images')
-              .upload(fileName, img.file)
-
-            if (!uploadError) {
-              const { data: urlData } = supabase.storage
-                .from('campaign-images')
-                .getPublicUrl(fileName)
-
-              // Insert image record
-              await (supabase as any).from('campaign_images').insert({
-                campaign_id: campaignId,
-                image_url: urlData.publicUrl,
-                caption: img.caption || null,
-                sort_order: i,
-                is_featured: i === 0, // First image is featured
-              })
-            }
-          } catch (imgError) {
-            console.error('Error uploading image:', imgError)
-          }
-        }
-      }
-
-      // Save FAQs
-      const validFaqs = formData.faqs.filter((faq) => faq.question.trim() && faq.answer.trim())
-      if (validFaqs.length > 0 && campaignId) {
-        const faqsToInsert = validFaqs.map((faq, index) => ({
-          campaign_id: campaignId,
-          question: faq.question,
-          answer: faq.answer,
-          sort_order: index,
-        }))
-
-        await (supabase as any).from('campaign_faqs').insert(faqsToInsert)
-      }
-
       onComplete()
 
       // Navigate to the campaign page
@@ -506,7 +356,6 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
     'Funding',
     'Media & Social',
     'Your Story',
-    'FAQs',
     'Review',
   ]
 
@@ -773,65 +622,6 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                 />
               </div>
 
-              {/* Gallery Images */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-[#0a0a0a]">Campaign Gallery</span>
-                  <span className="text-xs text-[#737373]">
-                    {formData.images.length} image{formData.images.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-
-                {/* Image Grid */}
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  {formData.images.map((img, index) => (
-                    <div key={index} className="group relative">
-                      <img
-                        src={img.preview}
-                        alt={`Gallery upload ${index + 1}`}
-                        className="aspect-square w-full rounded-lg border border-gray-200 object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                        aria-label="Remove image"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                      <Input
-                        value={img.caption}
-                        onChange={(e) => updateImageCaption(index, e.target.value)}
-                        placeholder="Caption (optional)"
-                        className="mt-1 h-8 text-xs"
-                      />
-                    </div>
-                  ))}
-
-                  {/* Add Image Button */}
-                  <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    className="flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 transition-colors hover:border-[#1b5858] hover:bg-gray-50"
-                  >
-                    <Plus className="mb-1 h-6 w-6 text-gray-400" />
-                    <span className="text-xs text-[#737373]">Add Image</span>
-                  </button>
-                </div>
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <p className="text-xs text-[#737373]">
-                  Add photos that show your work and impact. The first image will be your featured
-                  image.
-                </p>
-              </div>
-
               {/* Social Media Links */}
               <div className="space-y-4 border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-medium text-[#0a0a0a]">
@@ -977,93 +767,8 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
           </div>
         )}
 
-        {/* Step 6: FAQs */}
+        {/* Step 6: Review */}
         {currentStep === 6 && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="mb-1 text-xl font-semibold text-[#0a0a0a]">
-                Frequently Asked Questions
-              </h2>
-              <p className="text-[#737373]">
-                Add FAQs to help potential donors understand your campaign better
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {formData.faqs.map((faq, index) => (
-                <div key={index} className="space-y-3 rounded-lg border border-gray-200 p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 text-[#1b5858]">
-                      <HelpCircle className="h-5 w-5" />
-                      <span className="font-medium">FAQ #{index + 1}</span>
-                    </div>
-                    {formData.faqs.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeFaq(index)}
-                        className="rounded p-1 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
-                        aria-label={`Remove FAQ #${index + 1}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      htmlFor={`faq-question-${index}`}
-                      className="text-sm font-medium text-[#0a0a0a]"
-                    >
-                      Question
-                    </label>
-                    <Input
-                      id={`faq-question-${index}`}
-                      value={faq.question}
-                      onChange={(e) => updateFaq(index, 'question', e.target.value)}
-                      placeholder="e.g., How will my donation be used?"
-                      className="h-11"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      htmlFor={`faq-answer-${index}`}
-                      className="text-sm font-medium text-[#0a0a0a]"
-                    >
-                      Answer
-                    </label>
-                    <Textarea
-                      id={`faq-answer-${index}`}
-                      value={faq.answer}
-                      onChange={(e) => updateFaq(index, 'answer', e.target.value)}
-                      placeholder="Provide a clear, helpful answer..."
-                      rows={3}
-                      className="resize-none"
-                    />
-                  </div>
-                </div>
-              ))}
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addFaq}
-                className="w-full border-dashed"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Another FAQ
-              </Button>
-            </div>
-
-            <p className="text-xs text-[#737373]">
-              Tip: Common FAQs include questions about how funds will be used, your
-              organization&apos;s mission, and how donors can stay updated.
-            </p>
-          </div>
-        )}
-
-        {/* Step 7: Review */}
-        {currentStep === 7 && (
           <div className="space-y-6">
             <div>
               <h2 className="mb-1 text-xl font-semibold text-[#0a0a0a]">Review & Launch</h2>
@@ -1110,8 +815,8 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                     editStep: 2,
                   },
                   {
-                    label: 'Images',
-                    value: `${formData.images.length} image(s)${formData.logoFile ? ' + logo' : ''}`,
+                    label: 'Logo',
+                    value: formData.logoFile ? formData.logoFile.name : 'Not set',
                     editStep: 4,
                   },
                   {
@@ -1123,12 +828,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                     editStep: 4,
                   },
                   { label: 'Story Title', value: formData.storyTitle || 'Not set', editStep: 5 },
-                  {
-                    label: 'FAQs',
-                    value: `${formData.faqs.filter((f) => f.question.trim()).length} question(s)`,
-                    editStep: 6,
-                  },
-                  { label: 'Contact Email', value: formData.contactEmail, editStep: 7 },
+                  { label: 'Contact Email', value: formData.contactEmail, editStep: 6 },
                 ].map((item) => (
                   <div
                     key={item.label}
@@ -1137,7 +837,7 @@ export function CampaignForm({ organizationId, onCancel, onComplete }: CampaignF
                     <span className="text-sm text-[#737373]">{item.label}:</span>
                     <div className="flex max-w-[60%] items-start gap-2 text-right">
                       <span className="text-sm font-medium text-[#0a0a0a]">{item.value}</span>
-                      {item.editStep !== 7 && (
+                      {item.editStep !== 6 && (
                         <button
                           onClick={() => goToStep(item.editStep)}
                           className="flex-shrink-0 p-1 text-[#737373] transition-colors hover:text-[#1b5858]"
