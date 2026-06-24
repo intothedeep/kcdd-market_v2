@@ -79,6 +79,9 @@ app.get('/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
+    // Deployed commit — lets you confirm which build is actually live on Vercel.
+    // Vercel auto-injects VERCEL_GIT_COMMIT_SHA; GIT_SHA is the manual fallback.
+    gitSha: process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_SHA || 'unknown',
   })
 })
 
