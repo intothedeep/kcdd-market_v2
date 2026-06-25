@@ -94,6 +94,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useSwipeDismiss } from '@/hooks/useSwipeDismiss'
 import { useEdgeSwipeOpen } from '@/hooks/useEdgeSwipeOpen'
+import { useDashboardNavStore } from '@/stores/dashboardNavStore'
 import { useImpersonation } from '@/contexts/ImpersonationContext'
 import { CampaignsAdminPage } from '@/pages/admin/CampaignsAdminPage'
 import { AuditLogPage } from '@/pages/admin/AuditLogPage'
@@ -2837,7 +2838,10 @@ export function AdminDashboard() {
 
   // State
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  // Dashboard sidenav open state lives in a shared store so the bottom-left
+  // speed-dial FAB (MobileNavFab) can open this menu from outside the page.
+  const mobileNavOpen = useDashboardNavStore((s) => s.open)
+  const setMobileNavOpen = useDashboardNavStore((s) => s.setOpen)
 
   const sidebarSwipe = useSwipeDismiss({
     axis: 'x',

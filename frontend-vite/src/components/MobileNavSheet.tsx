@@ -8,7 +8,6 @@ import { useNavigate } from 'react-router-dom'
 import { useUser, SignInButton, useClerk } from '@clerk/clerk-react'
 import { useMobileNavStore } from '@/stores/mobileNavStore'
 import {
-  Menu,
   Home,
   Megaphone,
   Info,
@@ -86,109 +85,97 @@ export function MobileNavSheet() {
   }
 
   return (
-    <>
-      {/* Hamburger FAB — mobile only, bottom-left */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Open navigation menu"
-        className="fixed bottom-6 left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-white shadow-xl ring-2 ring-white transition-colors hover:bg-amber-600 md:hidden"
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetContent
+        ref={swipe.ref}
+        onTouchStart={swipe.onTouchStart}
+        onTouchMove={swipe.onTouchMove}
+        onTouchEnd={swipe.onTouchEnd}
+        side="bottom"
+        className="flex max-h-[80vh] flex-col md:hidden"
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <Menu className="h-6 w-6" />
-      </button>
+        {/* Grab handle */}
+        <div
+          data-grab-handle
+          className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-gray-300"
+          aria-hidden="true"
+        />
 
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent
-          ref={swipe.ref}
-          onTouchStart={swipe.onTouchStart}
-          onTouchMove={swipe.onTouchMove}
-          onTouchEnd={swipe.onTouchEnd}
-          side="bottom"
-          className="flex max-h-[80vh] flex-col md:hidden"
-          onOpenAutoFocus={(e) => e.preventDefault()}
+        <SheetHeader className="mb-3 border-b px-4 pb-4 pt-5">
+          <SheetTitle>Menu</SheetTitle>
+          <SheetDescription className="sr-only">
+            Site navigation and account options
+          </SheetDescription>
+        </SheetHeader>
+
+        <nav
+          data-nav-scroll
+          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 pb-10 pt-2"
         >
-          {/* Grab handle */}
-          <div
-            data-grab-handle
-            className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-gray-300"
-            aria-hidden="true"
-          />
+          {publicItems.map((item) => (
+            <button
+              key={item.path}
+              type="button"
+              onClick={() => go(item.path)}
+              className={rowClass}
+            >
+              <item.icon className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
+              {item.label}
+            </button>
+          ))}
 
-          <SheetHeader className="mb-3 border-b px-4 pb-4 pt-5">
-            <SheetTitle>Menu</SheetTitle>
-            <SheetDescription className="sr-only">
-              Site navigation and account options
-            </SheetDescription>
-          </SheetHeader>
-
-          <nav
-            data-nav-scroll
-            className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 pb-10 pt-2"
-          >
-            {publicItems.map((item) => (
+          {isSignedIn ? (
+            <>
+              <div className="my-2 border-t" />
+              {getDashboardOptions().map((item) => (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => go(item.path)}
+                  className={rowClass}
+                >
+                  <item.icon className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
+                  {item.label}
+                </button>
+              ))}
+              <div className="my-2 border-t" />
               <button
-                key={item.path}
                 type="button"
-                onClick={() => go(item.path)}
                 className={rowClass}
+                onClick={() => {
+                  setOpen(false)
+                  openUserProfile()
+                }}
               >
-                <item.icon className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
-                {item.label}
+                <UserCircle className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
+                Manage account
               </button>
-            ))}
-
-            {isSignedIn ? (
-              <>
-                <div className="my-2 border-t" />
-                {getDashboardOptions().map((item) => (
-                  <button
-                    key={item.path}
-                    type="button"
-                    onClick={() => go(item.path)}
-                    className={rowClass}
-                  >
-                    <item.icon className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
-                    {item.label}
-                  </button>
-                ))}
-                <div className="my-2 border-t" />
-                <button
-                  type="button"
-                  className={rowClass}
-                  onClick={() => {
-                    setOpen(false)
-                    openUserProfile()
-                  }}
-                >
-                  <UserCircle className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
-                  Manage account
+              <button
+                type="button"
+                className={rowClass}
+                onClick={() => {
+                  setOpen(false)
+                  signOut(() => navigate(routes.home))
+                }}
+              >
+                <LogOut className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="my-2 border-t" />
+              <SignInButton mode="modal">
+                <button type="button" className={rowClass} onClick={() => setOpen(false)}>
+                  <LogIn className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
+                  Sign in / Sign up
                 </button>
-                <button
-                  type="button"
-                  className={rowClass}
-                  onClick={() => {
-                    setOpen(false)
-                    signOut(() => navigate(routes.home))
-                  }}
-                >
-                  <LogOut className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="my-2 border-t" />
-                <SignInButton mode="modal">
-                  <button type="button" className={rowClass} onClick={() => setOpen(false)}>
-                    <LogIn className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
-                    Sign in / Sign up
-                  </button>
-                </SignInButton>
-              </>
-            )}
-          </nav>
-        </SheetContent>
-      </Sheet>
-    </>
+              </SignInButton>
+            </>
+          )}
+        </nav>
+      </SheetContent>
+    </Sheet>
   )
 }
