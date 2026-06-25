@@ -394,12 +394,12 @@ function CampaignsContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-[#0a0a0a]">My Campaigns</h2>
           <p className="text-sm text-[#737373]">Create and manage your donation campaigns</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <label className="flex cursor-pointer items-center gap-2 text-sm text-[#737373]">
             <Checkbox checked={showDeleted} onCheckedChange={(v) => setShowDeleted(v === true)} />
             Show deleted
@@ -852,12 +852,12 @@ function ProfileContent({ organization, onRefresh }: { organization: any; onRefr
   return (
     <div className="space-y-6">
       {/* Header with Edit/Save buttons */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-[#0a0a0a]">Organization Profile</h2>
           <p className="text-sm text-[#737373]">Manage how your organization appears to donors</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {organization?.slug && !isEditing && (
             <Link to={`/organizations/${organization.slug}`}>
               <Button variant="outline" size="sm">
@@ -1639,7 +1639,7 @@ function QuestionsContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-[#0a0a0a]">Questions</h2>
           <p className="text-sm text-[#737373]">
@@ -2050,7 +2050,7 @@ function DocumentsContent({ organization, userId }: { organization: any; userId:
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-[#0a0a0a]">Documents</h2>
           <p className="text-sm text-[#737373]">Manage your organization documents</p>
@@ -2332,7 +2332,7 @@ function SettingsContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-[#0a0a0a]">Organization Settings</h2>
           <p className="text-sm text-[#737373]">
@@ -2344,7 +2344,7 @@ function SettingsContent({
             Edit Organization
           </Button>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setIsEditing(false)}>
               Cancel
             </Button>

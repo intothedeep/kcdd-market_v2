@@ -573,14 +573,14 @@ function BrowseRequestsContent({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-[#0a0a0a]">Browse Open Requests</h2>
           <p className="text-sm text-[#737373]">
             {loading ? 'Loading...' : `${filteredRequests.length} donation opportunities available`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>
             <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -1121,7 +1121,7 @@ function TransfersContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-[#0a0a0a]">Payment History</h2>
           <p className="text-sm text-[#737373]">Track your donation payments and transactions</p>
@@ -1241,7 +1241,7 @@ function DocumentsContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-[#0a0a0a]">Tax Documents</h2>
           <p className="text-sm text-[#737373]">
@@ -1324,7 +1324,7 @@ function SettingsContent({ onOpenModal }: { onOpenModal: () => void }) {
 
       <Card className="p-6">
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="font-medium">Profile Settings</h3>
               <p className="text-sm text-[#737373]">
