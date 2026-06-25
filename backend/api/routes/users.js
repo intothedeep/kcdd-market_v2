@@ -42,6 +42,26 @@ function resolveDevRoleOverride(email) {
   return map[email.toLowerCase()] ?? null
 }
 
+// Parses BOOTSTRAP_ADMIN_EMAILS (CSV of emails) into a lowercased Set.
+function parseBootstrapAdminEmails(raw) {
+  const set = new Set()
+  if (!raw) return set
+  for (const part of raw.split(',')) {
+    const email = part.trim().toLowerCase()
+    if (email) set.add(email)
+  }
+  return set
+}
+
+// Resolves whether the given email is a designated bootstrap admin.
+// PROD-ALLOWED (unlike resolveDevRoleOverride): intentionally works in
+// production so the first admin can be minted via env var, no SQL needed.
+// PROMOTE-ONLY: callers must only ELEVATE on a match, never demote on a non-match.
+function resolveBootstrapAdmin(email) {
+  if (!email) return false
+  return parseBootstrapAdminEmails(process.env.BOOTSTRAP_ADMIN_EMAILS).has(email.toLowerCase())
+}
+
 // Fetches email/name for a Clerk user via the Clerk backend SDK.
 // Mirrors the client-creation pattern in middleware/clerkAuth.js. Returns
 // { email, name } or null on any failure (caller falls back to donor-default).
@@ -88,6 +108,15 @@ router.post('/sync', async (req, res) => {
 
     const { email, name } = identity
     const overrideRole = resolveDevRoleOverride(email)
+    const isBootstrapAdmin = resolveBootstrapAdmin(email)
+    // Precedence: bootstrap-admin (PROD-allowed) wins over a dev override.
+    // effectiveRole is non-null only when a role should be FORCE-SET.
+    const effectiveRole = isBootstrapAdmin ? 'admin' : overrideRole
+    const forceVerified = isBootstrapAdmin || !!overrideRole
+    if (isBootstrapAdmin) {
+      // Do NOT log the email (Vercel logs are broadly readable).
+      console.info('[bootstrap-admin] %s promoted via BOOTSTRAP_ADMIN_EMAILS', clerkUserId)
+    }
 
     const { data: current, error: readError } = await supabase
       .from('user_profiles')
@@ -98,11 +127,11 @@ router.post('/sync', async (req, res) => {
     if (readError) throw readError
 
     if (!current) {
-      // New profile: seed email/name + role (override or donor default).
-      const insertFields = { id: clerkUserId, email, name, user_type: overrideRole ?? 'donor' }
-      if (overrideRole) {
-        // DEV-ONLY: designated dev accounts skip the onboarding banner +
-        // verification friction so they land straight in their dashboard.
+      // New profile: seed email/name + role (effective override or donor default).
+      const insertFields = { id: clerkUserId, email, name, user_type: effectiveRole ?? 'donor' }
+      if (forceVerified) {
+        // Designated accounts skip the onboarding banner + verification friction
+        // so they land straight in their dashboard.
         insertFields.onboarding_complete = true
         insertFields.verification_status = VERIFICATION_STATUS.VERIFIED
       }
@@ -111,13 +140,12 @@ router.post('/sync', async (req, res) => {
       return res.json({ success: true })
     }
 
-    // Existing profile: always refresh email/name. Only touch user_type when a
-    // dev override applies — non-listed users keep their current admin/cbo role.
+    // Existing profile: always refresh email/name. Only touch user_type when an
+    // effective role applies (PROMOTE-ONLY) — non-listed users keep their current
+    // admin/cbo/donor role (no user_type key in `update`, never demoted).
     const update = { email, name }
-    if (overrideRole) {
-      update.user_type = overrideRole
-      // DEV-ONLY: designated dev accounts skip the onboarding banner +
-      // verification friction so they land straight in their dashboard.
+    if (effectiveRole) {
+      update.user_type = effectiveRole
       update.onboarding_complete = true
       update.verification_status = VERIFICATION_STATUS.VERIFIED
     }

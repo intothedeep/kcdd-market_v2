@@ -599,13 +599,46 @@ cron fires and Slack receives the message; the row flips to `status='sent'`.
 ## Step 6 — Create the first admin user
 
 Production has **no seeded users** — `seed.sql` only runs against the local
-Docker stack (`pnpm db:reset`), never on `db push`. The dev convenience
-`DEV_ROLE_OVERRIDES` is also fully inert when `NODE_ENV=production`
-(`resolveDevRoleOverride()` returns `null`), so you **cannot** mint an admin via
-env vars in prod. There is no "mock" admin either: `user_profiles.id` is a real
-Clerk user id, so every account must be a genuine Clerk sign-in.
+Docker stack (`pnpm db:reset`), never on `db push`. There is no "mock" admin
+either: `user_profiles.id` is a real Clerk user id, so every account must be a
+genuine Clerk sign-in. The dev convenience `DEV_ROLE_OVERRIDES` is fully inert
+when `NODE_ENV=production`, so it **cannot** mint an admin in prod.
 
-Bootstrap the first admin once, by hand:
+The recommended path is **Step 6.1 — bootstrap via env** (no SQL). If you cannot
+set the env var, fall back to **Step 6.2 — manual SQL**.
+
+### Step 6.1 — Bootstrap via env (recommended)
+
+`BOOTSTRAP_ADMIN_EMAILS` is the **prod-allowed** counterpart to
+`DEV_ROLE_OVERRIDES`: a CSV of operator emails (case-insensitive) that
+`/api/users/sync` force-sets to `user_type=admin` +
+`verification_status=verified` + `onboarding_complete=true` on **both** the
+insert and update path. It is **promote-only** — a non-listed account is never
+touched, and removing an email does **not** demote anyone. Unlike
+`DEV_ROLE_OVERRIDES` it is **not** `NODE_ENV`-gated; it works in production by
+design, and it **survives a cloud reset** (the listed email just signs in again
+and `/sync` re-applies admin).
+
+1. On **Vercel → backend project → Settings → Environment Variables**, set
+   `BOOTSTRAP_ADMIN_EMAILS` to the operator email (comma-separate if more than
+   one), then **redeploy the backend** (env changes only apply to a new deploy).
+
+2. **Sign in to the production app with Clerk** using that exact email. On the
+   next page load `POST /api/users/sync` force-sets the account to admin — no
+   SQL, no manual promotion.
+
+3. **Refresh** → `/admin` is now reachable.
+
+> **Security:** `BOOTSTRAP_ADMIN_EMAILS` grants admin to anyone who can sign in
+> with a listed email, so **Vercel env access == admin power**. Keep it to **1–2
+> operator emails**, confirm the email is **verified in Clerk** (an unverified
+> address must not be matchable), and **never log the value**. The `/sync` code
+> logs only the Clerk user id, never the email.
+
+### Step 6.2 — Manual SQL (fallback)
+
+If you cannot set `BOOTSTRAP_ADMIN_EMAILS`, bootstrap the first admin once, by
+hand:
 
 1. **Sign in to the production app with Clerk** using the account that should be
    admin. The `POST /api/users/sync` call creates its `user_profiles` row with
@@ -712,6 +745,10 @@ cleaned up before a real production launch**:
       Connect onboarding — Step 4 test-vs-live table).
 - [ ] **`DEV_ROLE_OVERRIDES` unset** in prod (inert under `NODE_ENV=production`, but
       don't set it — defense in depth).
+- [ ] **`BOOTSTRAP_ADMIN_EMAILS` trimmed to only the operator account(s).** Unlike
+      `DEV_ROLE_OVERRIDES` this is **intentionally kept in prod** (it is the
+      prod-allowed, promote-only first-admin path — Step 6.1), but keep it
+      **minimal and secret**: 1–2 verified operator emails, never logged.
 - [ ] **`IP_HASH_SALT` is a real 32-byte secret**, not the dev fallback (Step 4).
 - [ ] **`pk_live_*` / `sk_live_*` Clerk + Stripe keys** in use, not `_test_`.
 - [ ] **Slack cron** tightened to sub-daily on Vercel Pro if near-real-time Slack is
@@ -810,7 +847,7 @@ Before first deploy:
 - [ ] Clerk `supabase` JWT template created in Clerk Dashboard
 - [ ] Clerk registered as Third-Party Auth provider in cloud Supabase Dashboard (see Step 1)
 - [ ] `/health` endpoint reachable from frontend (check the live API banner on home page)
-- [ ] First admin bootstrapped via SQL (Step 6) — no seeded/mock admin exists in prod
+- [ ] First admin bootstrapped via `BOOTSTRAP_ADMIN_EMAILS` (Step 6.1, recommended) or manual SQL (Step 6.2 fallback) — no seeded/mock admin exists in prod
 - [ ] Reviewed **Pre-production hardening** (remove `detail` echo, unset dev-only env, live keys) before real launch
 
 After each deploy:
