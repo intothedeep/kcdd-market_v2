@@ -9,6 +9,8 @@ import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/clerk-react'
 import { Search, Filter, ChevronDown, Check, Shield, Building2, User } from 'lucide-react'
 import { supabase, logAdminActivity } from '@/lib/supabase'
+import { useToast } from '@/components/ui/use-toast'
+import { setUserTypeErrorMessage } from '@/lib/setUserTypeError'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -62,6 +64,7 @@ interface UserProfile {
 
 export function AdminUsersPage() {
   const { user } = useUser()
+  const { toast } = useToast()
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -160,19 +163,25 @@ export function AdminUsersPage() {
     }
   }
 
+  // Routes through the guarded set_user_type RPC (admin-only + last-admin /
+  // self-demote guards + in-transaction admin_activity_log audit). We do NOT
+  // call logAdminActivity here — the RPC logs atomically. A dedicated confirm
+  // modal lives in the dashboard's UsersContent; this lighter page relies on
+  // the server-side guards to block dangerous transitions.
   const updateUserType = async (userId: string, newType: UserType) => {
     setUpdating(userId)
     try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ user_type: newType, updated_at: new Date().toISOString() })
-        .eq('id', userId)
+      const { error } = await supabase.rpc('set_user_type', {
+        p_target_id: userId,
+        p_new_type: newType,
+      })
 
-      if (error) throw error
+      if (error) {
+        toast({ title: setUserTypeErrorMessage(error), variant: 'destructive' })
+        return
+      }
 
       setUsers(users.map((u) => (u.id === userId ? { ...u, user_type: newType } : u)))
-    } catch (err) {
-      console.error('Error updating user type:', err)
     } finally {
       setUpdating(null)
     }

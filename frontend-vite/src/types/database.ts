@@ -2076,6 +2076,30 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_user_type: {
+        Args: { p_new_type: string; p_target_id: string }
+        Returns: {
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          onboarding_complete: boolean | null
+          org_tier: string
+          phone: string | null
+          profile_picture_url: string | null
+          updated_at: string | null
+          user_type: Database["public"]["Enums"]["user_type_enum"]
+          verification_status: string
+          vetting_note: string | null
+          wants_updates: boolean | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       county_enum:

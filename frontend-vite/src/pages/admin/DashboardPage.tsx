@@ -108,6 +108,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useToast } from '@/components/ui/use-toast'
+import { setUserTypeErrorMessage } from '@/lib/setUserTypeError'
 import {
   USER_TYPE_LABELS,
   ORG_TIER_LABELS,
@@ -197,6 +199,7 @@ function humanizeAction(action: string, entityType: string | null): string {
     user_verified: 'User verified',
     user_unverified: 'User set to unverified',
     user_deleted: 'User deleted',
+    user_role_changed: 'User role changed',
     settings_updated: 'Settings updated',
   }
   if (map[action]) return map[action]
@@ -640,6 +643,15 @@ function UsersContent({
     id: string
     name: string
   } | null>(null)
+  // Holds a sensitive role transition (promote-to-admin / demote-an-admin)
+  // awaiting confirmation in the AlertDialog below. Benign donor<->cbo changes
+  // bypass this and apply immediately.
+  const [pendingTypeChange, setPendingTypeChange] = useState<{
+    id: string
+    name: string
+    nextType: UserType
+    kind: 'grant' | 'revoke'
+  } | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [addUserOpen, setAddUserOpen] = useState(false)
   const [addUserForm, setAddUserForm] = useState({
@@ -889,7 +901,20 @@ function UsersContent({
                             {Object.entries(USER_TYPES).map(([key, value]) => (
                               <DropdownMenuItem
                                 key={key}
-                                onClick={() => onUpdateType(user.id, value)}
+                                onClick={() => {
+                                  const isGrant = value === 'admin' && user.user_type !== 'admin'
+                                  const isRevoke = user.user_type === 'admin' && value !== 'admin'
+                                  if (isGrant || isRevoke) {
+                                    setPendingTypeChange({
+                                      id: user.id,
+                                      name: displayName,
+                                      nextType: value,
+                                      kind: isGrant ? 'grant' : 'revoke',
+                                    })
+                                    return
+                                  }
+                                  onUpdateType(user.id, value)
+                                }}
                               >
                                 {user.user_type === value && <Check className="mr-2 h-4 w-4" />}
                                 {USER_TYPE_LABELS[value]}
@@ -1127,6 +1152,50 @@ function UsersContent({
                   Delete Permanently
                 </>
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Role-change confirmation — only for sensitive transitions (grant admin
+          / revoke admin). Benign donor<->cbo changes never reach here. */}
+      <AlertDialog
+        open={!!pendingTypeChange}
+        onOpenChange={(open) => !open && setPendingTypeChange(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingTypeChange?.kind === 'grant' ? 'Grant admin access?' : 'Remove admin access?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingTypeChange?.kind === 'grant' ? (
+                <>
+                  Make <span className="font-semibold">{pendingTypeChange?.name}</span> an admin?
+                  Admins can manage all users, organizations, and payments.
+                </>
+              ) : (
+                <>
+                  Remove admin access from{' '}
+                  <span className="font-semibold">{pendingTypeChange?.name}</span>? They will lose
+                  the ability to manage users, organizations, and payments.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={
+                pendingTypeChange?.kind === 'revoke' ? 'bg-red-600 hover:bg-red-700' : undefined
+              }
+              onClick={() => {
+                if (!pendingTypeChange) return
+                onUpdateType(pendingTypeChange.id, pendingTypeChange.nextType)
+                setPendingTypeChange(null)
+              }}
+            >
+              {pendingTypeChange?.kind === 'grant' ? 'Grant admin' : 'Remove admin'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -2762,6 +2831,7 @@ export function AdminDashboard() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { startImpersonating } = useImpersonation()
+  const { toast } = useToast()
 
   // State
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -2975,19 +3045,23 @@ export function AdminDashboard() {
     }
   }
 
-  // Update user type
+  // Update user type via the guarded set_user_type RPC. The RPC enforces
+  // admin-only access, the last-admin + self-demote guards, and writes the
+  // admin_activity_log row in the same transaction — so we must NOT call
+  // logAdminActivity here (that would double-log / risk divergence).
   const handleUpdateType = async (userId: string, newType: UserType) => {
-    try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ user_type: newType, updated_at: new Date().toISOString() })
-        .eq('id', userId)
+    const { error } = await supabase.rpc('set_user_type', {
+      p_target_id: userId,
+      p_new_type: newType,
+    })
 
-      if (error) throw error
-      setUsers(users.map((u) => (u.id === userId ? { ...u, user_type: newType } : u)))
-    } catch (err) {
-      console.error('Error updating user type:', err)
+    if (error) {
+      toast({ title: setUserTypeErrorMessage(error), variant: 'destructive' })
+      return
     }
+
+    setUsers(users.map((u) => (u.id === userId ? { ...u, user_type: newType } : u)))
+    toast({ title: `Role updated to ${USER_TYPE_LABELS[newType]}.` })
   }
 
   // Manually create a test user from the admin UI. There's no Clerk signup

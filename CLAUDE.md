@@ -13,6 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > webhook handlers), CI + onboarding, branch plan docs.
 >
 > **New on this branch**:
+>
 > - **Theme 1** (Waves 1-3 + W4-A/B): campaign approval state machine,
 >   REFA/REFB schema refactor (`campaign_revisions` → `campaign_details`,
 >   campaigns metadata-only, derived state, soft-delete + `deleted_by` audit),
@@ -26,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 >   `organizations.default_campaign_template` JSONB + `/cbo/campaign-defaults`
 >   page, CampaignForm prefill.
 > - **Phase A6** (S1+S2+S3): Slack admin alerts (queue + helper + cron route
->   + trigger wiring + Vercel cron config). Email feature scrubbed entirely.
+>   - trigger wiring + Vercel cron config). Email feature scrubbed entirely.
 > - **Hotfix series H1-H7**: security, schema-drift, concurrency, auth UX,
 >   PR #6 security review, pre-merge cleanup, CI workspace fix.
 >
@@ -255,14 +256,14 @@ Documents:
 
 **Storage buckets** (provisioned as migrations — `supabase db push` to Cloud does NOT run seed.sql, so buckets must exist as migrations):
 
-| bucket | public | size | mime | write scope | migration |
-| --- | --- | --- | --- | --- | --- |
-| `organization-images` | public | 5 MB | png/jpeg/webp/gif | authenticated | `20260624000000_storage_image_buckets.sql` |
-| `organization-logos` | public | 5 MB | png/jpeg/webp/gif | authenticated | same |
-| `profile-pictures` | public | 5 MB | png/jpeg/webp/gif | authenticated | same |
-| `campaign-images` | public | 5 MB | png/jpeg/webp/gif | authenticated | same |
-| `organization-documents` | private | 10 MB | pdf/png/jpeg | owner-or-admin (`(storage.foldername(name))[1]` = org UUID) | same |
-| `tax-documents` | private | 10 MB | pdf | service-role | `20260623000100_tax_documents_bucket.sql` (untouched) |
+| bucket                   | public  | size  | mime              | write scope                                                 | migration                                             |
+| ------------------------ | ------- | ----- | ----------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| `organization-images`    | public  | 5 MB  | png/jpeg/webp/gif | authenticated                                               | `20260624000000_storage_image_buckets.sql`            |
+| `organization-logos`     | public  | 5 MB  | png/jpeg/webp/gif | authenticated                                               | same                                                  |
+| `profile-pictures`       | public  | 5 MB  | png/jpeg/webp/gif | authenticated                                               | same                                                  |
+| `campaign-images`        | public  | 5 MB  | png/jpeg/webp/gif | authenticated                                               | same                                                  |
+| `organization-documents` | private | 10 MB | pdf/png/jpeg      | owner-or-admin (`(storage.foldername(name))[1]` = org UUID) | same                                                  |
+| `tax-documents`          | private | 10 MB | pdf               | service-role                                                | `20260623000100_tax_documents_bucket.sql` (untouched) |
 
 The image-bucket migration is idempotent (`INSERT ... ON CONFLICT (id) DO NOTHING` — never DO UPDATE, so manual Cloud buckets are preserved; `DROP POLICY IF EXISTS` before each policy). The frontend's **base64 `data:` URL fallback was removed** from `OrganizationProfilePage.tsx`, `cbo/DashboardPage.tsx`, `CampaignForm.tsx`, and `CampaignFormModal.tsx` — upload errors now throw and surface to the user instead of silently stuffing a base64 string into the DB column.
 
@@ -301,6 +302,7 @@ All tables use RLS; migrations are in `backend/supabase/migrations/`.
 - `payment_transactions` RLS extended to allow donors to read their own rows in `20260605000200_payment_transactions_donor_read.sql` (was service-role-only)
 
 **Read-only views**:
+
 - **Per-donor (RLS'd via `clerk_user_id()`)** — auto-derived from `payment_transactions` + `fulfillment_records`:
   - `donor_impact_summary` — total_donated, lives_impacted, organizations_helped, months_active
   - `donor_impact_by_cause` — per-cause-area split with percentage
@@ -312,18 +314,22 @@ All tables use RLS; migrations are in `backend/supabase/migrations/`.
   - `platform_top_organizations` — top 10 orgs by amount received
 
 **Audit tables (service-role writes only):**
+
 - _(none currently)_ — `annual_summary_runs` was specced as a per-cron-invocation
   audit table but **no migration ever created it**, and the cron route does not
   write to it (verified 2026-06-24). Treat it as not-yet-implemented, not a live table.
 
 **Postgres RPCs:**
+
 - `increment_campaign_amount(p_campaign_id UUID, p_amount NUMERIC)` — SECURITY DEFINER, service_role only; atomic UPDATE of `campaigns.amount_raised` + `supporters_count`. Called by the Stripe webhook on `payment_intent.succeeded` for campaign donations.
 - `set_donor_cause_areas(p_donor_id TEXT, p_cause_area_ids UUID[])` — Phase 9 Batch A; replaces a donor's cause-area subscriptions in a single transaction.
 - `append_lifecycle(p_id UUID, p_entry JSONB)` — Phase H3; atomic JSONB array append on `payment_transactions.metadata.lifecycle`. Closes lost-update race on concurrent webhook lifecycle entries.
 - `process_payment_succeeded / process_payment_failed / process_charge_refunded / process_dispute_closed` — Phase H3; each is a per-handler RPC that atomically applies the side effect (lifecycle append + status update) AND inserts into `stripe_events`. PK conflict (23505) on duplicate event maps to `{duplicate: true}` so the dedup-before-sideeffect hole in Stripe retries is closed. **`feat/payment-logging-reconciliation` (`20260624000011`)**: each now takes a trailing `p_log_row JSONB` and INSERTs into `payment_event_log` in-transaction (before the `stripe_events` dedup). `process_payment_succeeded` also makes the request claim **conditional** — `UPDATE requests SET status='claimed' ... WHERE id=p_request_id AND status='open' RETURNING`; on a lost race (request already claimed by another concurrent payment) it marks this payment `payment_transactions.status='pending_auto_refund'` and skips the org notification. The webhook JS handler then issues `stripe.refunds.create(... { idempotencyKey: pi.id+':dup-refund' })` and lets the resulting `charge.refunded` settle the final status. Campaign over-funding is a **soft cap** (create-campaign-intent returns `overGoal:true` but never blocks). `donor_profiles.max_per_request` is intentionally left unenforced.
 - `create_campaign_with_detail(p_organization_id UUID, p_content JSONB, p_created_by TEXT)` — Phase H3 / Theme 1; SECURITY DEFINER. Atomic insert of `campaigns` row + `campaign_details(version=1, status='pending_initial_approval')`. Owner gate: `organizations.user_id = clerk_user_id()` (no role bypass — admins also blocked, but admin UI doesn't create campaigns today). Re-used by Wave 5 `duplicateCampaign` helper.
+- `set_user_type(p_target_id TEXT, p_new_type TEXT)` — `feat/admin-role-management` (`20260625000000`); SECURITY DEFINER, admin-only (gated by `is_admin()` + EXECUTE grant to `authenticated`/`service_role`). Safe admin-grants-admin: validates the target role enum (`donor|cbo|admin`), blocks demoting the **last** remaining admin (`LAST_ADMIN`) and an admin demoting **themselves** (`SELF_DEMOTE`), and writes the `admin_activity_log` row (`action='user_role_changed'`, details `{before, after}`) **in the same transaction** as the `user_profiles.user_type` UPDATE — so the role change and its audit row can never diverge. Distinct ERRCODEs (`42501`/`22023`/`P0001`/`P0002`) drive the dashboard's per-error toast copy. Used by admin User Management (`pages/admin/DashboardPage.tsx` + `UsersPage.tsx`); the dashboard further gates promote-to-admin / demote-an-admin behind a confirm modal. The **first** admin still needs the one-time SQL bootstrap (see `docs/howtodeploy.prod.md` Step 6) since `is_admin()` must already be true for this RPC.
 
 **Public routes (no auth):**
+
 - `/impact` — Phase 10 public impact dashboard (PublicImpactPage).
 - `/`, `/about`, `/faq`, `/contact`, `/requests`, `/campaign/:slug`, `/legal/*` — existing public routes.
 
@@ -435,34 +441,35 @@ This validation is not optional. It runs every time a migration touches a table,
 
 Tracked docs live in `docs/` (git tracked, team-shareable). Local PM scratch lives in `_docs/` (gitignored).
 
-| File                                            | Contents                                                                                              |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `README.md` (root)                              | Project entry point, Quick Start, doc index, security conventions                                     |
-| `docs/howtoexecute.local.md`                    | Complete local dev setup, troubleshooting, "Testing Slack admin alerts locally" recipe                |
-| `docs/howtodeploy.prod.md`                      | Production deployment (Vercel + Supabase Cloud + Stripe + Step 5 Slack notifications)                 |
-| `docs/CHANGELOG.feat-post-launch-feedback.md`   | Per-commit task/what/why for everything between `main` and current HEAD (team-shareable)              |
-| `docs/feat-post-launch-feedback.md`             | Branch entry point — Theme 1-4 definitions, D1-D5 architect decisions                                 |
-| `docs/VERCEL_DEPLOYMENT.md`                     | Vercel-specific deep dive (cost, tiers, deployment internals)                                         |
-| `docs/GITHUB_ACTIONS_GUIDE.md`                  | CI workflow reference                                                                                 |
-| `docs/MAZE_TESTING_SCENARIOS.md`                | User-testing scripts for Maze.com                                                                     |
-| `docs/USER_TYPES_AND_STAGES.md`                 | User roles + lifecycle stages baseline                                                                |
-| `docs/TAX_DOCUMENTS.md`                         | IRS compliance reasoning for donation receipts                                                        |
-| `_docs/00.post-launch-feedback.tasks.md`        | Current PM task tracker (this branch). Phase 로드맵 + dispatch briefs + YELLOW follow-ups            |
-| `_docs/00.post-launch-feedback.architecture.md` | Theme 1 D1-D5 architect lock                                                                          |
-| `_docs/stripe-webhook.md`                       | Stripe webhook flow + idempotency + reconciliation                                                    |
-| `_docs/clerk-supabase-auth.md`                  | Clerk JWT → Supabase Third-Party Auth setup                                                           |
-| `_docs/debug-payment-flow.md`                   | Postmortem: BUG-8 → BUG-11 cascade. Symptom-by-symptom debug walkthrough                              |
-| `_docs/auth-strategy-decision.md`               | Why Clerk + Supabase TPA over alternatives                                                            |
-| `_docs/architecture.md`                         | General architecture decisions                                                                        |
-| `_docs/glossary.ko.md`                          | Korean glossary of project terms                                                                      |
+| File                                            | Contents                                                                                  |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `README.md` (root)                              | Project entry point, Quick Start, doc index, security conventions                         |
+| `docs/howtoexecute.local.md`                    | Complete local dev setup, troubleshooting, "Testing Slack admin alerts locally" recipe    |
+| `docs/howtodeploy.prod.md`                      | Production deployment (Vercel + Supabase Cloud + Stripe + Step 5 Slack notifications)     |
+| `docs/CHANGELOG.feat-post-launch-feedback.md`   | Per-commit task/what/why for everything between `main` and current HEAD (team-shareable)  |
+| `docs/feat-post-launch-feedback.md`             | Branch entry point — Theme 1-4 definitions, D1-D5 architect decisions                     |
+| `docs/VERCEL_DEPLOYMENT.md`                     | Vercel-specific deep dive (cost, tiers, deployment internals)                             |
+| `docs/GITHUB_ACTIONS_GUIDE.md`                  | CI workflow reference                                                                     |
+| `docs/MAZE_TESTING_SCENARIOS.md`                | User-testing scripts for Maze.com                                                         |
+| `docs/USER_TYPES_AND_STAGES.md`                 | User roles + lifecycle stages baseline                                                    |
+| `docs/TAX_DOCUMENTS.md`                         | IRS compliance reasoning for donation receipts                                            |
+| `_docs/00.post-launch-feedback.tasks.md`        | Current PM task tracker (this branch). Phase 로드맵 + dispatch briefs + YELLOW follow-ups |
+| `_docs/00.post-launch-feedback.architecture.md` | Theme 1 D1-D5 architect lock                                                              |
+| `_docs/stripe-webhook.md`                       | Stripe webhook flow + idempotency + reconciliation                                        |
+| `_docs/clerk-supabase-auth.md`                  | Clerk JWT → Supabase Third-Party Auth setup                                               |
+| `_docs/debug-payment-flow.md`                   | Postmortem: BUG-8 → BUG-11 cascade. Symptom-by-symptom debug walkthrough                  |
+| `_docs/auth-strategy-decision.md`               | Why Clerk + Supabase TPA over alternatives                                                |
+| `_docs/architecture.md`                         | General architecture decisions                                                            |
+| `_docs/glossary.ko.md`                          | Korean glossary of project terms                                                          |
 
 **Phases 1–10 are complete.** Current branch ships Theme 1-4 of post-launch feedback work — see `docs/CHANGELOG.feat-post-launch-feedback.md` for the full per-commit breakdown.
 
 Most recently merged from `origin/main` (2026-05-18): full homepage design system (Hero/Bento/Stats/Footer), Stripe Connect + platform fees, campaigns feature with rich-text editor, admin redesign + user management, FAQ/Contact/Legal pages, Vercel serverless backend, PDF receipt pipeline.
 
 Post-merge Phase 9 + 10 work (2026-06-05/06):
+
 - **Batch B — tax receipts pipeline** wired up. `donor_documents` got the `campaign_id` / `donor_name` / `donor_email` columns the webhook had been INSERTing into nothing; created the `tax-documents` Storage bucket (private, 10 MB, PDF-only) and its RLS policies (donors read their own, service role writes).
-- **Batch C — impact reports**: `payment_transactions` seeded with 10 mock transactions across 3 donors so the donor_impact_* views populate. RLS added so donors can read their own `payment_transactions` (was service-role-only, which silently killed campaign donations on /donor/dashboard "My Donations").
+- **Batch C — impact reports**: `payment_transactions` seeded with 10 mock transactions across 3 donors so the donor*impact*\* views populate. RLS added so donors can read their own `payment_transactions` (was service-role-only, which silently killed campaign donations on /donor/dashboard "My Donations").
 - **Batch D — annual summary cron**: `POST /api/cron/generate-annual-summaries?year=YYYY` (header `x-cron-secret: $CRON_SECRET`) iterates donors with succeeded transactions in the given year and generates one PDF annual summary per donor via the existing pdfGenerator. (Note: the `annual_summary_runs` audit table described in earlier drafts was never migrated — no such table exists and the route does not write one.) Idempotent per (donor, year) via upsert on `donor_documents`. Filters out the literal `'anonymous'` donor_id sentinel.
 - **Phase 10 — Public Impact page** at `/impact`. Three new public views (`platform_impact_summary`, `platform_impact_by_cause`, `platform_top_organizations`) marked `security_invoker = off` and `GRANT SELECT TO anon, authenticated`. Aggregate-only — no donor_id, transaction_id, or amount_total exposed. New page shows 5 hero stats, cause-area split bars, top-10 orgs list, and CTAs back to /requests and /campaigns.
 - **Campaign donation increment bug** fixed: added `increment_campaign_amount(uuid, numeric)` SECURITY DEFINER RPC; webhook now actually moves `campaigns.amount_raised` / `supporters_count`. `request_notifications.campaign_id` column added so CBO sees campaign-donation alerts in the same NotificationsBell.
