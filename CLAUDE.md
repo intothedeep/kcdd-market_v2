@@ -373,6 +373,15 @@ SLACK_WEBHOOK_URL=               # OPTIONAL — unset = dev mode (console.log
                                  # `[slack:dev]`, queue still marks `sent`)
 APP_URL=http://localhost:3000    # OPTIONAL — link prefix in Slack messages
 
+# Bootstrap admin (prod-allowed). CSV of emails; case-insensitive.
+# On /api/users/sync, force-sets user_type=admin + onboarding_complete +
+# verification_status=verified for the listed email(s) on BOTH insert AND update.
+# PROMOTE-ONLY: a non-listed email is never touched; removing an email does NOT demote.
+# NOT NODE_ENV-gated — works in production by design (unlike DEV_ROLE_OVERRIDES),
+# so the first admin can be minted with no SQL and it survives a cloud reset
+# (the listed email just signs in again). Treat as a secret, keep it short, never log.
+BOOTSTRAP_ADMIN_EMAILS=
+
 # Dev role bootstrap (dev only). CSV of `email:role` (admin|cbo|donor).
 # On /api/users/sync the backend fetches the email via the Clerk API and, for
 # the listed accounts, force-sets user_type + onboarding_complete + verification_status.
@@ -384,7 +393,7 @@ DEV_ROLE_OVERRIDES="taek.lim.us@gmail.com:admin,txl25880@ucmo.edu:donor,mysites.
 
 `IP_HASH_SALT` MUST be set in production (32+ bytes from `openssl rand -hex 32`). Without it, the code fallback (`'dev-only-replace-in-prod'`) is used and donor IP hashes become reversible via rainbow table. `GIT_SHA` is recommended; on Vercel set it to `${VERCEL_GIT_COMMIT_SHA}` so `payment_transactions.metadata.diagnostics.backend_version` traces which build processed each payment.
 
-`DEV_ROLE_OVERRIDES` is **dev-only and inert in production** by two independent layers: (1) a `NODE_ENV !== 'production'` hard guard in `resolveDevRoleOverride()` (`backend/api/routes/users.js`) returns `null` in prod, so the entire override block — `user_type`, `onboarding_complete`, `verification_status` — is skipped; (2) defense-in-depth: never add `DEV_ROLE_OVERRIDES` to the production env (e.g. Vercel project vars) — even if set, layer (1) ignores it. It exists only so designated dev accounts land straight in their dashboard after sign-in (no onboarding banner, owner-vetted org stays public), and it re-applies after `pnpm db:reset`.
+`DEV_ROLE_OVERRIDES` is **dev-only and inert in production** by two independent layers: (1) a `NODE_ENV !== 'production'` hard guard in `resolveDevRoleOverride()` (`backend/api/routes/users.js`) returns `null` in prod, so the entire override block — `user_type`, `onboarding_complete`, `verification_status` — is skipped; (2) defense-in-depth: never add `DEV_ROLE_OVERRIDES` to the production env (e.g. Vercel project vars) — even if set, layer (1) ignores it. It exists only so designated dev accounts land straight in their dashboard after sign-in (no onboarding banner, owner-vetted org stays public), and it re-applies after `pnpm db:reset`. For the production counterpart, see `BOOTSTRAP_ADMIN_EMAILS` — the prod-allowed, admin-only, promote-only env var that mints the first admin in production where `DEV_ROLE_OVERRIDES` is intentionally inert.
 
 All frontend env vars are accessed through `frontend-vite/src/config/index.ts`.
 
