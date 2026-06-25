@@ -49,12 +49,12 @@ Dashboard → **Project Settings → API** → copy:
 The **database (Postgres) password** is what you set at project creation (Step 1.2).
 It is a separate secret from everything in the table above:
 
-| Credential | Used for |
-| ---------- | -------- |
-| **DB (Postgres) password** | direct DB connections — the `psql` connection string, and `supabase link` |
-| Supabase account login | signing into supabase.com |
-| `Publishable` / `Service role` API keys | the app calling the Supabase API |
-| CLI access token (`supabase login`) | authenticating the CLI |
+| Credential                              | Used for                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------- |
+| **DB (Postgres) password**              | direct DB connections — the `psql` connection string, and `supabase link` |
+| Supabase account login                  | signing into supabase.com                                                 |
+| `Publishable` / `Service role` API keys | the app calling the Supabase API                                          |
+| CLI access token (`supabase login`)     | authenticating the CLI                                                    |
 
 It appears in the connection string as `[YOUR-PASSWORD]`:
 
@@ -132,17 +132,17 @@ pnpx supabase db push
 `supabase login` and `supabase link` are independent and each runs **once per
 machine** (neither is committed to git):
 
-| Command | What it does | Stored where |
-| ------- | ------------ | ------------ |
-| `pnpx supabase login` | authenticates the CLI to your Supabase **account** (opens a browser, or paste an access token). On macOS the token lives in the **Keychain**, not a file — so `ls ~/.supabase` showing no token file is normal. Non-interactive / CI: set `SUPABASE_ACCESS_TOKEN` instead of running `login`. | macOS Keychain / `SUPABASE_ACCESS_TOKEN` |
-| `pnpx supabase link --project-ref <ref>` | points the CLI at one **project**; prompts for the **DB password** | `backend/supabase/.temp/` (gitignored) |
+| Command                                  | What it does                                                                                                                                                                                                                                                                                  | Stored where                             |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `pnpx supabase login`                    | authenticates the CLI to your Supabase **account** (opens a browser, or paste an access token). On macOS the token lives in the **Keychain**, not a file — so `ls ~/.supabase` showing no token file is normal. Non-interactive / CI: set `SUPABASE_ACCESS_TOKEN` instead of running `login`. | macOS Keychain / `SUPABASE_ACCESS_TOKEN` |
+| `pnpx supabase link --project-ref <ref>` | points the CLI at one **project**; prompts for the **DB password**                                                                                                                                                                                                                            | `backend/supabase/.temp/` (gitignored)   |
 
 Check the current link any time with `cat backend/supabase/.temp/project-ref`.
 
 > **IPv6 gotcha — "direct connection failed".** The direct DB host
 > `db.<ref>.supabase.co:5432` is **IPv6-only**. On an IPv4-only network (most home /
 > office / CI links) a raw `psql` to that host — or any tool using it — fails with
-> *"could not translate host name"* / timeout, because the hostname has **no IPv4
+> _"could not translate host name"_ / timeout, because the hostname has **no IPv4
 > (A) record**, only IPv6 (AAAA). Use the **Supavisor pooler** (IPv4-compatible)
 > instead — note the username gains the project ref:
 >
@@ -163,10 +163,10 @@ Check the current link any time with `cat backend/supabase/.temp/project-ref`.
 These are **two independent things** — `db push` takes no URL/path argument, so
 both must be in place first:
 
-| Step                          | Decides                         | Stored where                                                                 |
-| ----------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
-| `supabase login`              | **who** (which Supabase account) | `~/.supabase/` access token (or `SUPABASE_ACCESS_TOKEN` env). Machine-wide.   |
-| `supabase link --project-ref` | **which project** (the target)   | `backend/supabase/.temp/` — **gitignored, per-machine**.                      |
+| Step                          | Decides                          | Stored where                                                                |
+| ----------------------------- | -------------------------------- | --------------------------------------------------------------------------- |
+| `supabase login`              | **who** (which Supabase account) | `~/.supabase/` access token (or `SUPABASE_ACCESS_TOKEN` env). Machine-wide. |
+| `supabase link --project-ref` | **which project** (the target)   | `backend/supabase/.temp/` — **gitignored, per-machine**.                    |
 
 `db push` reads the linked ref from `.temp/`, authenticates with the login
 token, then compares local `backend/supabase/migrations/*.sql` against the
@@ -209,7 +209,7 @@ ones (all addressed in-repo as of Wave 9):
 
 - **`uuid_generate_v4()` fails on Cloud** — Cloud installs `uuid-ossp` in the
   `extensions` schema, which is **not** on the migration runner's search_path, so
-  `uuid_generate_v4()` errors with *"function does not exist"* on the first
+  `uuid_generate_v4()` errors with _"function does not exist"_ on the first
   migration. Fix: the repo uses core **`gen_random_uuid()`** (Postgres 15
   `pg_catalog`, no extension) everywhere. If you add SQL, use `gen_random_uuid()`.
 - **`seed.sql` does NOT run on `db push`** — seed only runs on local `db:reset`.
@@ -218,7 +218,7 @@ ones (all addressed in-repo as of Wave 9):
   - To get demo data, load seed manually (Supabase SQL Editor → paste
     `backend/supabase/seed.sql`, or `psql "$CLOUD_URL" < backend/supabase/seed.sql`).
     For real production, create data through the app instead.
-  - Anything a migration *assumed* seed would create must move into a migration.
+  - Anything a migration _assumed_ seed would create must move into a migration.
     The **`tax-documents` storage bucket** (previously seed-only) is now created by
     `20260623000100_tax_documents_bucket.sql` so the PDF receipt pipeline works on
     Cloud.
@@ -234,7 +234,7 @@ After a successful `db push`, run the RLS validation query (see `CLAUDE.md` →
 "Adding a new DB table") against Cloud via the SQL Editor to confirm no table is
 `rls_enabled=true` with `policy_count=0`. The legitimately service-role-only
 tables (`policy_count=0` is correct, by design) are: `stripe_events`,
-`stripe_disputes`, `slack_notification_queue`. Any *other* table showing
+`stripe_disputes`, `slack_notification_queue`. Any _other_ table showing
 `true / 0` is a real misconfiguration to fix before go-live. (Note:
 `stripe_connect_events` is RLS'd but has 4 service-role policies, so it shows
 `policy_count=4`, not 0; `payment_event_log` / `reconciliation_runs` /
@@ -462,15 +462,15 @@ charge.dispute.closed            account.updated                      (Connect)
 secrets, and connected accounts per mode; a test secret only verifies test
 events. So run a **test cloud deploy** and **production** with different env:
 
-| | Test cloud deploy (Vercel **Preview**) | Production (Vercel **Production**) |
-| --- | --- | --- |
-| Dashboard mode | Test | **Live** |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | `pk_test_…` | `pk_live_…` |
-| `STRIPE_SECRET_KEY` | `sk_test_…` | `sk_live_…` |
-| Webhook endpoint | registered in **Test** at the preview URL | registered in **Live** at the prod URL |
-| `STRIPE_WEBHOOK_SECRET` | that test endpoint's `whsec_…` | that live endpoint's `whsec_…` |
-| `STRIPE_BYPASS_CONNECT` | `true` (or onboard test connected accounts) | **unset** — orgs complete real Connect onboarding |
-| Cards | test card `4242 4242 4242 4242` | real cards (real charges) |
+|                               | Test cloud deploy (Vercel **Preview**)      | Production (Vercel **Production**)                |
+| ----------------------------- | ------------------------------------------- | ------------------------------------------------- |
+| Dashboard mode                | Test                                        | **Live**                                          |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | `pk_test_…`                                 | `pk_live_…`                                       |
+| `STRIPE_SECRET_KEY`           | `sk_test_…`                                 | `sk_live_…`                                       |
+| Webhook endpoint              | registered in **Test** at the preview URL   | registered in **Live** at the prod URL            |
+| `STRIPE_WEBHOOK_SECRET`       | that test endpoint's `whsec_…`              | that live endpoint's `whsec_…`                    |
+| `STRIPE_BYPASS_CONNECT`       | `true` (or onboard test connected accounts) | **unset** — orgs complete real Connect onboarding |
+| Cards                         | test card `4242 4242 4242 4242`             | real cards (real charges)                         |
 
 Verify a deploy: make a donation, then **Workbench → Webhooks → your
 destination → Event deliveries** should show `200 OK`; the `payment_transactions` row +
@@ -521,11 +521,11 @@ only.
 
 Vercel project → **Settings → Environment Variables**:
 
-| Key                 | Value                                       | Notes                                                                |
-| ------------------- | ------------------------------------------- | -------------------------------------------------------------------- |
-| `SLACK_WEBHOOK_URL` | URL from Step 5.1                           | Secret. Set on Production env (and Preview if you want preview alerts). |
-| `CRON_SECRET`       | output of `openssl rand -hex 32`            | Authenticates the cron request. Must match what Vercel sends.        |
-| `APP_URL`           | e.g. `https://kcdd-market.vercel.app`       | Prefix used in Slack message links back to admin pages.              |
+| Key                 | Value                                 | Notes                                                                   |
+| ------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| `SLACK_WEBHOOK_URL` | URL from Step 5.1                     | Secret. Set on Production env (and Preview if you want preview alerts). |
+| `CRON_SECRET`       | output of `openssl rand -hex 32`      | Authenticates the cron request. Must match what Vercel sends.           |
+| `APP_URL`           | e.g. `https://kcdd-market.vercel.app` | Prefix used in Slack message links back to admin pages.                 |
 
 > If `SLACK_WEBHOOK_URL` is **missing** on a given environment (common
 > on Preview deploys without the secret), the cron still runs but logs
@@ -566,7 +566,7 @@ The cron uses `GET` with `Authorization: Bearer $CRON_SECRET`.
 > silently never registers and the Slack queue never drains. This repo ships
 > `0 0 * * *` (daily, midnight UTC) so it registers on Hobby. Admins still get
 > **real-time in-app** alerts via the `NotificationBell`; the daily cron only
-> batches the *Slack mirror* (so Slack messages can lag up to ~24h). On **Pro**,
+> batches the _Slack mirror_ (so Slack messages can lag up to ~24h). On **Pro**,
 > tighten to e.g. `*/5 * * * *` for near-real-time Slack. See
 > `docs/VERCEL_DEPLOYMENT.md` for per-tier details.
 
@@ -637,9 +637,14 @@ Bootstrap the first admin once, by hand:
 
 4. **Re-sign-in** (or refresh) the account → `/admin` is now reachable.
 
-This is a **one-time bootstrap**. After the first admin exists, promote any
-further admins from the in-app **`/admin` user management** UI — the trigger
-permits an existing admin to assign roles, so no more SQL is needed.
+This is a **one-time bootstrap**. After the first admin exists, **all further
+admin grants/revokes are done in the admin dashboard → User Management**, never
+by SQL. That UI calls the `set_user_type` RPC (migration `20260625000000`),
+which enforces admin-only access, blocks demoting the **last** admin or an admin
+demoting **themselves**, and writes an `admin_activity_log` audit row
+(`action='user_role_changed'`) in the same transaction as the role change. So
+SQL is only ever needed for the **very first** admin — every promotion or
+demotion after that is guarded and audited through the dashboard.
 
 ---
 
@@ -648,13 +653,13 @@ permits an existing admin to assign roles, so no more SQL is needed.
 The three errors almost everyone hits once, and what each actually means. They
 are **independent** — you can have all three at the same time.
 
-| Symptom (browser console / Network) | Layer | Cause | Fix |
-| ----------------------------------- | ----- | ----- | --- |
-| `…/api/users/sync` URL has a **double slash** `//api/…` | frontend build | `VITE_API_URL` has a trailing slash (inlined into the bundle as `${baseUrl}${path}`) | Set `VITE_API_URL=https://your-api.vercel.app` (no trailing slash) → **redeploy frontend** (build-time var; an env change alone does NOT rebuild) |
-| `blocked by CORS policy: No 'Access-Control-Allow-Origin' header` on `…/api/*` | backend CORS | backend `ALLOWED_ORIGINS` doesn't contain the frontend origin (exact match, `split(',')` is **not** trimmed) | Set `ALLOWED_ORIGINS=https://your-frontend.vercel.app` (no trailing slash, no spaces, comma-separate extras) → **redeploy backend** |
-| `GET …supabase.co/rest/v1/… → 401` (frontend querying Supabase directly) | Supabase TPA | Clerk not registered as Third-Party Auth in the **Cloud** project, or `VITE_SUPABASE_PUBLISHABLE_KEY` is the wrong project's key | Register Clerk (Step 1.B) + confirm the publishable key is this project's. Becomes `200` once fixed |
-| `POST …/api/users/sync → 401 {"error":"Invalid token","detail":"clerk.verifyToken is not a function"}` (request **reaches** the backend) | backend Clerk verify (code) | A pre-`559d7e2` build is live: `clerkAuth.js` called `verifyToken` as a client method instead of the named export (`@clerk/backend` v3). Masked locally by the dev unverified-decode fallback | Deploy a build at/after commit `559d7e2` (the fix); confirm via `/health` → `gitSha`. Code, not env |
-| `POST …/api/users/sync → 401 {"error":"Invalid token","detail":"…JWKS…/…signature…/…expired…"}` (request **reaches** the backend) | backend Clerk verify (key/token) | `CLERK_SECRET_KEY` is from a **different Clerk instance** than the frontend's publishable key (`pk_test_` ↔ `sk_live_`, two apps, or a stray space/newline); or the token expired | Copy **both** keys from the **same** Clerk instance's API Keys page → set `CLERK_SECRET_KEY` on the backend → redeploy. For expired: re-sign-in |
+| Symptom (browser console / Network)                                                                                                      | Layer                            | Cause                                                                                                                                                                                         | Fix                                                                                                                                               |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `…/api/users/sync` URL has a **double slash** `//api/…`                                                                                  | frontend build                   | `VITE_API_URL` has a trailing slash (inlined into the bundle as `${baseUrl}${path}`)                                                                                                          | Set `VITE_API_URL=https://your-api.vercel.app` (no trailing slash) → **redeploy frontend** (build-time var; an env change alone does NOT rebuild) |
+| `blocked by CORS policy: No 'Access-Control-Allow-Origin' header` on `…/api/*`                                                           | backend CORS                     | backend `ALLOWED_ORIGINS` doesn't contain the frontend origin (exact match, `split(',')` is **not** trimmed)                                                                                  | Set `ALLOWED_ORIGINS=https://your-frontend.vercel.app` (no trailing slash, no spaces, comma-separate extras) → **redeploy backend**               |
+| `GET …supabase.co/rest/v1/… → 401` (frontend querying Supabase directly)                                                                 | Supabase TPA                     | Clerk not registered as Third-Party Auth in the **Cloud** project, or `VITE_SUPABASE_PUBLISHABLE_KEY` is the wrong project's key                                                              | Register Clerk (Step 1.B) + confirm the publishable key is this project's. Becomes `200` once fixed                                               |
+| `POST …/api/users/sync → 401 {"error":"Invalid token","detail":"clerk.verifyToken is not a function"}` (request **reaches** the backend) | backend Clerk verify (code)      | A pre-`559d7e2` build is live: `clerkAuth.js` called `verifyToken` as a client method instead of the named export (`@clerk/backend` v3). Masked locally by the dev unverified-decode fallback | Deploy a build at/after commit `559d7e2` (the fix); confirm via `/health` → `gitSha`. Code, not env                                               |
+| `POST …/api/users/sync → 401 {"error":"Invalid token","detail":"…JWKS…/…signature…/…expired…"}` (request **reaches** the backend)        | backend Clerk verify (key/token) | `CLERK_SECRET_KEY` is from a **different Clerk instance** than the frontend's publishable key (`pk_test_` ↔ `sk_live_`, two apps, or a stray space/newline); or the token expired             | Copy **both** keys from the **same** Clerk instance's API Keys page → set `CLERK_SECRET_KEY` on the backend → redeploy. For expired: re-sign-in   |
 
 **Read `detail` first.** Since commit `559d7e2`, a backend `401` echoes a `detail`
 field with the real verification failure. Branch on it:
@@ -672,7 +677,7 @@ field with the real verification failure. Branch on it:
 - `detail` mentions **expired** → re-sign-in to mint a fresh token.
 
 **CORS vs auth:** any `401` **with a JSON body** means CORS already works (the
-request reached the backend). A *CORS* failure never reaches the backend and
+request reached the backend). A _CORS_ failure never reaches the backend and
 returns no body.
 
 > The `detail` field is a temporary debug aid — remove it before a real production
@@ -697,20 +702,20 @@ Intentional dev/debug conveniences that are safe during testing but **must be
 cleaned up before a real production launch**:
 
 - [ ] **Remove the `detail` echo from `clerkAuth.js`.** The 401 response currently
-  returns `{ error: 'Invalid token', detail: <reason> }`
-  (`backend/api/middleware/clerkAuth.js`, the `NODE_ENV === 'production'` branch).
-  `detail` leaks internal verification-failure reasons to clients. Drop `detail`
-  from the JSON response but **keep** the server-side
-  `console.error('[clerkAuth] verifyToken failed:', reason)` as the function-log
-  diagnostic.
+      returns `{ error: 'Invalid token', detail: <reason> }`
+      (`backend/api/middleware/clerkAuth.js`, the `NODE_ENV === 'production'` branch).
+      `detail` leaks internal verification-failure reasons to clients. Drop `detail`
+      from the JSON response but **keep** the server-side
+      `console.error('[clerkAuth] verifyToken failed:', reason)` as the function-log
+      diagnostic.
 - [ ] **`STRIPE_BYPASS_CONNECT` unset** on the prod backend (orgs must complete real
-  Connect onboarding — Step 4 test-vs-live table).
+      Connect onboarding — Step 4 test-vs-live table).
 - [ ] **`DEV_ROLE_OVERRIDES` unset** in prod (inert under `NODE_ENV=production`, but
-  don't set it — defense in depth).
+      don't set it — defense in depth).
 - [ ] **`IP_HASH_SALT` is a real 32-byte secret**, not the dev fallback (Step 4).
 - [ ] **`pk_live_*` / `sk_live_*` Clerk + Stripe keys** in use, not `_test_`.
 - [ ] **Slack cron** tightened to sub-daily on Vercel Pro if near-real-time Slack is
-  wanted (Step 5.3 — Hobby is daily-only).
+      wanted (Step 5.3 — Hobby is daily-only).
 
 ---
 

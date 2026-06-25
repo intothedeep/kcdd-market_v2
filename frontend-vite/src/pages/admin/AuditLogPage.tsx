@@ -38,6 +38,7 @@ const ACTION_OPTIONS = [
   'campaign_soft_deleted',
   'user_verified',
   'user_unverified',
+  'user_role_changed',
 ] as const
 
 const ENTITY_OPTIONS = ['settings', 'campaign', 'user'] as const
@@ -65,6 +66,9 @@ function formatTimestamp(iso: string): string {
 function actionBadgeClass(action: string): string {
   if (action.startsWith('campaign_approved') || action === 'user_verified') {
     return 'bg-green-100 text-green-800'
+  }
+  if (action === 'user_role_changed') {
+    return 'bg-rose-100 text-rose-800'
   }
   if (action.startsWith('campaign_rejected') || action === 'user_unverified') {
     return 'bg-red-100 text-red-800'
