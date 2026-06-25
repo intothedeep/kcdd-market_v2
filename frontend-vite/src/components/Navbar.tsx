@@ -17,6 +17,7 @@ import { ChevronDown, Menu, LayoutDashboard, Heart, Building2, Shield } from 'lu
 import { useUserType } from '@/hooks/useClerkSupabase'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { MobileNavSheet } from '@/components/MobileNavSheet'
+import { MobileNavFab } from '@/components/MobileNavFab'
 import { useMobileNavStore } from '@/stores/mobileNavStore'
 
 export function Navbar() {
@@ -191,6 +192,7 @@ export function Navbar() {
         </div>
       </div>
       <MobileNavSheet />
+      <MobileNavFab />
     </header>
   )
 }

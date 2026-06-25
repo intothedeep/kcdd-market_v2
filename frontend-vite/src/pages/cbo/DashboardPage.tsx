@@ -106,6 +106,7 @@ import { IconByName, IconPicker } from '@/components/ui/icon-picker'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useSwipeDismiss } from '@/hooks/useSwipeDismiss'
 import { useEdgeSwipeOpen } from '@/hooks/useEdgeSwipeOpen'
+import { useDashboardNavStore } from '@/stores/dashboardNavStore'
 
 // Campaign type
 interface Campaign {
@@ -2824,7 +2825,10 @@ export function CBODashboard() {
   // State
   const [searchParams, setSearchParams] = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  // Dashboard sidenav open state lives in a shared store so the bottom-left
+  // speed-dial FAB (MobileNavFab) can open this menu from outside the page.
+  const mobileNavOpen = useDashboardNavStore((s) => s.open)
+  const setMobileNavOpen = useDashboardNavStore((s) => s.setOpen)
 
   const sidebarSwipe = useSwipeDismiss({
     axis: 'x',
