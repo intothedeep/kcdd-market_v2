@@ -104,6 +104,8 @@ import { StripeConnectCard } from '@/components/StripeConnectButton'
 import { useStripeConnect } from '@/hooks/useStripeConnect'
 import { IconByName, IconPicker } from '@/components/ui/icon-picker'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { useSwipeDismiss } from '@/hooks/useSwipeDismiss'
+import { useEdgeSwipeOpen } from '@/hooks/useEdgeSwipeOpen'
 
 // Campaign type
 interface Campaign {
@@ -2823,6 +2825,15 @@ export function CBODashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  const sidebarSwipe = useSwipeDismiss({
+    axis: 'x',
+    dir: 'left',
+    onDismiss: () => setMobileNavOpen(false),
+    distancePct: 0.4,
+    velocity: 0.5,
+  })
+  useEdgeSwipeOpen({ onOpen: () => setMobileNavOpen(true), enabled: !mobileNavOpen })
   const [activeSection, setActiveSection] = useState<SidebarSection>(() => {
     const param = searchParams.get('section')
     return isSidebarSection(param) ? param : 'dashboard'
@@ -3284,7 +3295,14 @@ export function CBODashboard() {
 
       {/* Sidebar (mobile off-canvas) */}
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-        <SheetContent side="left" className="w-64 bg-[#fafafa] p-2">
+        <SheetContent
+          ref={sidebarSwipe.ref}
+          onTouchStart={sidebarSwipe.onTouchStart}
+          onTouchMove={sidebarSwipe.onTouchMove}
+          onTouchEnd={sidebarSwipe.onTouchEnd}
+          side="left"
+          className="w-64 bg-[#fafafa] p-2"
+        >
           <SheetTitle className="sr-only">Dashboard navigation</SheetTitle>
           <div className="flex h-full flex-col overflow-y-auto pt-6">
             {renderSidebarNav(true, () => setMobileNavOpen(false))}

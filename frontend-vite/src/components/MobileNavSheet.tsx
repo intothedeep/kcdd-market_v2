@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { routes } from '@/config'
 import { useUserType } from '@/hooks/useClerkSupabase'
+import { useSwipeDismiss } from '@/hooks/useSwipeDismiss'
 import {
   Sheet,
   SheetContent,
@@ -46,6 +47,16 @@ export function MobileNavSheet() {
   const { userType } = useUserType()
   const { openUserProfile, signOut } = useClerk()
   const navigate = useNavigate()
+
+  const swipe = useSwipeDismiss({
+    axis: 'y',
+    dir: 'down',
+    onDismiss: () => setOpen(false),
+    distancePct: 0.3,
+    velocity: 0.5,
+    getScrollEl: () => swipe.ref.current?.querySelector<HTMLElement>('[data-nav-scroll]') ?? null,
+    handleSelector: '[data-grab-handle]',
+  })
 
   // Public items — same targets as Navbar.tsx
   const publicItems: NavItem[] = [
@@ -88,12 +99,20 @@ export function MobileNavSheet() {
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
+          ref={swipe.ref}
+          onTouchStart={swipe.onTouchStart}
+          onTouchMove={swipe.onTouchMove}
+          onTouchEnd={swipe.onTouchEnd}
           side="bottom"
           className="flex max-h-[80vh] flex-col md:hidden"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {/* Grab handle */}
-          <div className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-gray-300" aria-hidden="true" />
+          <div
+            data-grab-handle
+            className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-gray-300"
+            aria-hidden="true"
+          />
 
           <SheetHeader className="mb-3 border-b px-4 pb-4 pt-5">
             <SheetTitle>Menu</SheetTitle>
@@ -102,7 +121,10 @@ export function MobileNavSheet() {
             </SheetDescription>
           </SheetHeader>
 
-          <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 pb-10 pt-2">
+          <nav
+            data-nav-scroll
+            className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 pb-10 pt-2"
+          >
             {publicItems.map((item) => (
               <button
                 key={item.path}

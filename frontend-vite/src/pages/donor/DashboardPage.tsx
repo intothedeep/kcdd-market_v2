@@ -30,6 +30,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { OnboardingModal } from '@/components/OnboardingModal'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { useSwipeDismiss } from '@/hooks/useSwipeDismiss'
+import { useEdgeSwipeOpen } from '@/hooks/useEdgeSwipeOpen'
 import {
   ChevronDown,
   ChevronLeft,
@@ -1484,6 +1486,15 @@ export function DonorDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  const sidebarSwipe = useSwipeDismiss({
+    axis: 'x',
+    dir: 'left',
+    onDismiss: () => setMobileNavOpen(false),
+    distancePct: 0.4,
+    velocity: 0.5,
+  })
+  useEdgeSwipeOpen({ onOpen: () => setMobileNavOpen(true), enabled: !mobileNavOpen })
   const [activeSection, setActiveSection] = useState<SidebarSection>(() => {
     const param = searchParams.get('section')
     return isSidebarSection(param) ? param : 'campaign'
@@ -1832,7 +1843,14 @@ export function DonorDashboard() {
 
       {/* Sidebar — mobile off-canvas Sheet */}
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-        <SheetContent side="left" className="flex w-64 flex-col bg-[#fafafa] p-2">
+        <SheetContent
+          ref={sidebarSwipe.ref}
+          onTouchStart={sidebarSwipe.onTouchStart}
+          onTouchMove={sidebarSwipe.onTouchMove}
+          onTouchEnd={sidebarSwipe.onTouchEnd}
+          side="left"
+          className="flex w-64 flex-col bg-[#fafafa] p-2"
+        >
           <SheetHeader className="px-2 pb-2">
             <SheetTitle className="text-sm">Menu</SheetTitle>
           </SheetHeader>
