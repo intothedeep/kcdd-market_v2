@@ -1,0 +1,52 @@
+🚀 *KCDD Market — intothedeep Update Summary*
+_Baseline: everything we added since Joshua's last commit (2026-05-18). Ordered by impact. 🔴 High  🟡 Medium  🟢 Low_
+
+🔥 *In one line*
+We fixed the things that were broken on deploy (login 401, image uploads, cloud migrations), made payments *provable* (trace log + reconciliation), and added a mobile UI plus safe admin management.
+
+────────────────
+
+🔴 *Auth / Login production fix*  [Backend][Security]
+Fixed a critical bug where every signed-in action was rejected with 401 in production (Clerk token verification).
+• Without it the deployed app was basically unusable → *launch blocker resolved*
+
+🔴 *Cloud deployability*  [DB][Infra]
+Fixed migrations that worked locally but failed on cloud `db push`, plus a go-live runbook.
+• Duplicate timestamps / `gen_random_uuid` / ordering fixed, prod-safe seed
+• *"works on my machine" → "deploys to production"*
+
+🔴 *Image uploads fixed (storage buckets)*  [DB][Backend]
+The 5 upload buckets are now auto-created on deploy, and the old "stuff base64 into a DB column" fallback is gone.
+• On a fresh deploy, logos / campaign images were silently breaking — now they work
+
+🔴 *Payment observability + reconciliation*  [Backend][DB][Logging]
+Every payment attempt (including failures) is recorded in an append-only log, and admins can run a Stripe-vs-database audit.
+• Lets an operator *prove* "did this donation go through, and is the amount right?"
+
+🔴 *Auto-refund of duplicate payments*  [Backend][DB]
+If two people pay for the same request at once, the loser is auto-refunded (idempotent) — no double charge. Over-goal donations are flagged, never blocked.
+
+🔴 *Safe admin role management*  [Backend][Security]
+Admins can change roles in the UI (can't demote the last admin or yourself, every change audited); the first admin is auto-bootstrapped via env var (no SQL).
+
+🟡 *Mobile responsive UX*  [Frontend]
+Hamburger + slide-up bottom-sheet nav, and off-canvas donor/cbo/admin dashboards + subpages. Desktop unchanged.
+
+🟡 *Post-launch features (PR #6)*  [Frontend][DB]
+Campaign approval workflow + schema refactor (campaign_details), admin pending-edits queue + audit-log page, Slack admin alerts, navbar/hero CTA clarity, CBO duplicate-campaign + defaults.
+
+🟡 *Other hardening / performance*  [Frontend][DB][Security]
+Route code-splitting (faster first load), re-asserted RLS on Stripe Connect table, verification_status refactor (dropped is_vetted), self-hosted demo images.
+
+🟢 *Docs / runbooks*  [Docs]
+Major deploy-guide additions (Stripe webhook, Clerk integration, DB password / db push, first-admin bootstrap).
+
+────────────────
+
+⚠️ *What's missing / not working right now*
+• 🟠 Org *document downloads broken* — a private bucket is read via a public URL → needs signed URLs
+• 🟠 Public image buckets have *no owner scoping* — any signed-in user can overwrite someone else's logo/image
+• 🟠 `BOOTSTRAP_ADMIN_EMAILS` *doesn't check Clerk email-verified* status (only documented, not enforced)
+• 🟡 Reconciliation is *manual only* — no automated cron yet
+• 🟡 New payment paths (auto-refund, log insert, reconciliation) *not yet verified against live Stripe*
+• 🟢 First admin needs a one-time bootstrap (by design) · `max_per_request` not enforced · `annual_summary_runs` table doesn't exist · demo covers are abstract SVGs · no success toast on the admin UsersPage role change

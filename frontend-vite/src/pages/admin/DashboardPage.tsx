@@ -92,6 +92,8 @@ import {
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { useSwipeDismiss } from '@/hooks/useSwipeDismiss'
+import { useEdgeSwipeOpen } from '@/hooks/useEdgeSwipeOpen'
 import { useImpersonation } from '@/contexts/ImpersonationContext'
 import { CampaignsAdminPage } from '@/pages/admin/CampaignsAdminPage'
 import { AuditLogPage } from '@/pages/admin/AuditLogPage'
@@ -2836,6 +2838,15 @@ export function AdminDashboard() {
   // State
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  const sidebarSwipe = useSwipeDismiss({
+    axis: 'x',
+    dir: 'left',
+    onDismiss: () => setMobileNavOpen(false),
+    distancePct: 0.4,
+    velocity: 0.5,
+  })
+  useEdgeSwipeOpen({ onOpen: () => setMobileNavOpen(true), enabled: !mobileNavOpen })
   const [activeSection, setActiveSection] = useState<SidebarSection>(() => {
     const param = searchParams.get('section')
     return isSidebarSection(param) ? param : 'overview'
@@ -3612,7 +3623,14 @@ export function AdminDashboard() {
 
       {/* Sidebar — mobile off-canvas (left sheet), opened by the header toggle. */}
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-        <SheetContent side="left" className="flex w-64 flex-col overflow-y-auto p-2 md:hidden">
+        <SheetContent
+          ref={sidebarSwipe.ref}
+          onTouchStart={sidebarSwipe.onTouchStart}
+          onTouchMove={sidebarSwipe.onTouchMove}
+          onTouchEnd={sidebarSwipe.onTouchEnd}
+          side="left"
+          className="flex w-64 flex-col overflow-y-auto p-2 md:hidden"
+        >
           <SheetTitle className="sr-only">Dashboard navigation</SheetTitle>
           {renderSidebarInner(true, (section) => {
             selectSection(section)
