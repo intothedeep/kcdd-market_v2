@@ -463,6 +463,7 @@ Tracked docs live in `docs/` (git tracked, team-shareable). Local PM scratch liv
 | `docs/howtodeploy.prod.md`                      | Production deployment (Vercel + Supabase Cloud + Stripe + Step 5 Slack notifications)     |
 | `docs/CHANGELOG.feat-post-launch-feedback.md`   | Per-commit task/what/why for everything between `main` and current HEAD (team-shareable)  |
 | `docs/feat-post-launch-feedback.md`             | Branch entry point — Theme 1-4 definitions, D1-D5 architect decisions                     |
+| `docs/rls-authz-portability.md`                 | ADR: keep RLS (Option A) now + phased Option C playbook to move authz to API for DB-portability later |
 | `docs/VERCEL_DEPLOYMENT.md`                     | Vercel-specific deep dive (cost, tiers, deployment internals)                             |
 | `docs/GITHUB_ACTIONS_GUIDE.md`                  | CI workflow reference                                                                     |
 | `docs/MAZE_TESTING_SCENARIOS.md`                | User-testing scripts for Maze.com                                                         |
