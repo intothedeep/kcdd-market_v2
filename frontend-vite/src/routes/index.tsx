@@ -33,15 +33,6 @@ const DonorDashboard = lazy(() =>
 const DonorProfile = lazy(() =>
   import('@/pages/donor/ProfilePage').then((m) => ({ default: m.DonorProfile }))
 )
-const DonorImpact = lazy(() =>
-  import('@/pages/donor/ImpactPage').then((m) => ({ default: m.DonorImpact }))
-)
-const DonorDocuments = lazy(() =>
-  import('@/pages/donor/DocumentsPage').then((m) => ({ default: m.DonorDocuments }))
-)
-const DonorSupport = lazy(() =>
-  import('@/pages/donor/SupportPage').then((m) => ({ default: m.DonorSupport }))
-)
 const CBODashboard = lazy(() =>
   import('@/pages/cbo/DashboardPage').then((m) => ({ default: m.CBODashboard }))
 )
@@ -197,29 +188,18 @@ export function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        {/* Legacy standalone donor pages — consolidated into dashboard sections */}
         <Route
           path="/donor/impact"
-          element={
-            <ProtectedRoute>
-              <DonorImpact />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/donor/dashboard?section=impact" replace />}
         />
         <Route
           path="/donor/documents"
-          element={
-            <ProtectedRoute>
-              <DonorDocuments />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/donor/dashboard?section=documents" replace />}
         />
         <Route
           path="/donor/support"
-          element={
-            <ProtectedRoute>
-              <DonorSupport />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/donor/dashboard?section=support" replace />}
         />
       </Route>
 

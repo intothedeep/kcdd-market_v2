@@ -52,7 +52,7 @@ export function PaymentSuccessPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
           <div className="flex justify-center gap-3">
-            <Link to="/donor/documents">
+            <Link to="/donor/dashboard?section=documents">
               <Button className="bg-[#1b5858] hover:bg-[#164444]">
                 <FileText className="mr-2 h-4 w-4" />
                 View Tax Documents

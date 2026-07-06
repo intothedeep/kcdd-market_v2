@@ -87,6 +87,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/components/ui/use-toast'
 import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_HOURS } from '@/constants/contact'
 import { IconByName } from '@/components/ui/icon-picker'
+import { ImpactContent } from '@/components/donor/ImpactContent'
 
 // Default empty states
 const EMPTY_STATS: DonorDashboardStats = {
@@ -102,6 +103,7 @@ type SidebarSection =
   | 'browse'
   | 'updates'
   | 'transfers'
+  | 'impact'
   | 'verification'
   | 'documents'
   | 'settings'
@@ -113,6 +115,7 @@ const SIDEBAR_SECTIONS: readonly SidebarSection[] = [
   'browse',
   'updates',
   'transfers',
+  'impact',
   'verification',
   'documents',
   'settings',
@@ -1625,6 +1628,8 @@ export function DonorDashboard() {
         return 'Updates & Proof'
       case 'transfers':
         return 'Payment History'
+      case 'impact':
+        return 'Impact Report'
       case 'documents':
         return 'Tax Documents'
       case 'settings':
@@ -1668,6 +1673,8 @@ export function DonorDashboard() {
         return <UpdatesContent donations={donations} stats={stats} />
       case 'transfers':
         return <TransfersContent donations={donations} stats={stats} />
+      case 'impact':
+        return <ImpactContent />
       case 'documents':
         return <DocumentsContent documents={documents} loading={documentsLoading} />
       case 'settings':
@@ -1749,6 +1756,17 @@ export function DonorDashboard() {
             >
               <FileText className="h-4 w-4 flex-shrink-0" />
               {showLabels && <span className="text-sm">Payment History</span>}
+            </button>
+            <button
+              onClick={() => go('impact')}
+              className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2 py-2 transition-colors ${
+                activeSection === 'impact'
+                  ? 'bg-[#1b5858] text-white'
+                  : 'text-[#0a0a0a] hover:bg-gray-100'
+              }`}
+            >
+              <TrendingUp className="h-4 w-4 flex-shrink-0" />
+              {showLabels && <span className="text-sm">Impact Report</span>}
             </button>
           </nav>
 
