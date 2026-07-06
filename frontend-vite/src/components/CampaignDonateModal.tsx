@@ -121,7 +121,12 @@ export function CampaignDonateModal({ open, onOpenChange, campaign }: CampaignDo
       if (paymentIntent && paymentIntent.status === 'succeeded') {
         onOpenChange(false)
         reset()
-        navigate(`${routes.paymentSuccess}?type=campaign&campaign=${campaign.slug}`)
+        // Guard against a missing slug so we never emit `campaign=undefined`.
+        navigate(
+          campaign.slug
+            ? `${routes.paymentSuccess}?type=campaign&campaign=${campaign.slug}`
+            : `${routes.paymentSuccess}?type=campaign`
+        )
       }
     } catch (err: any) {
       console.error('Payment error:', err)

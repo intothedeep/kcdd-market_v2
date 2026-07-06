@@ -7,14 +7,9 @@ import { useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Sidebar, SidebarGroup, SidebarItem, SidebarFooter } from '@/components/ui/sidebar'
+import { DonorSidebar } from '@/components/donor/DonorSidebar'
+import { useDashboardNavStore } from '@/stores/dashboardNavStore'
 import {
-  Settings,
-  LayoutDashboard,
-  Heart,
-  BarChart3,
-  FileText,
-  HelpCircle,
   PanelLeft,
   TrendingUp,
   Users,
@@ -24,18 +19,14 @@ import {
   Target,
   Loader2,
 } from 'lucide-react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { fetchDonorImpactData, type DonorImpactData } from '@/lib/supabase'
 
 export function DonorImpact() {
   const { user, isLoaded } = useUser()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const openNav = useDashboardNavStore((s) => s.openNav)
   const [impactData, setImpactData] = useState<DonorImpactData | null>(null)
   const [loading, setLoading] = useState(true)
-
-  const isActive = (path: string) => location.pathname === path
 
   useEffect(() => {
     const loadData = async () => {
@@ -78,84 +69,7 @@ export function DonorImpact() {
 
   return (
     <div className="flex h-full bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar
-        className={`${sidebarOpen ? 'w-64' : 'w-16'} overflow-hidden border-r border-gray-200 bg-white transition-all duration-300`}
-      >
-        <div className="border-b border-gray-100 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-900">
-              <Heart className="h-4 w-4 text-white" />
-            </div>
-            {sidebarOpen && <span className="font-semibold text-gray-900">KC Digital Drive</span>}
-          </div>
-        </div>
-
-        <SidebarGroup label={sidebarOpen ? 'Menu' : undefined}>
-          <SidebarItem
-            icon={<LayoutDashboard className="h-4 w-4 text-gray-700" />}
-            active={isActive('/donor/dashboard')}
-            onClick={() => navigate('/donor/dashboard')}
-          >
-            {sidebarOpen && 'Dashboard'}
-          </SidebarItem>
-          <SidebarItem
-            icon={<Heart className="h-4 w-4 text-gray-700" />}
-            active={isActive('/campaigns')}
-            onClick={() => navigate('/campaigns')}
-          >
-            {sidebarOpen && 'Browse Campaigns'}
-          </SidebarItem>
-          <SidebarItem
-            icon={<BarChart3 className="h-4 w-4 text-gray-700" />}
-            active={isActive('/donor/impact')}
-            onClick={() => navigate('/donor/impact')}
-          >
-            {sidebarOpen && 'Impact Report'}
-          </SidebarItem>
-          <SidebarItem
-            icon={<FileText className="h-4 w-4 text-gray-700" />}
-            active={isActive('/donor/documents')}
-            onClick={() => navigate('/donor/documents')}
-          >
-            {sidebarOpen && 'Tax Documents'}
-          </SidebarItem>
-        </SidebarGroup>
-
-        <SidebarGroup label={sidebarOpen ? 'Account' : undefined}>
-          <SidebarItem
-            icon={<Settings className="h-4 w-4 text-gray-700" />}
-            onClick={() => navigate('/donor/dashboard')}
-          >
-            {sidebarOpen && 'Settings'}
-          </SidebarItem>
-          <SidebarItem
-            icon={<HelpCircle className="h-4 w-4 text-gray-700" />}
-            active={isActive('/donor/support')}
-            onClick={() => navigate('/donor/support')}
-          >
-            {sidebarOpen && 'Support'}
-          </SidebarItem>
-        </SidebarGroup>
-
-        <SidebarFooter>
-          <div className={`flex items-center gap-3 p-2 ${sidebarOpen ? '' : 'justify-center'}`}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 font-medium text-gray-700">
-              {user?.firstName?.[0] || 'D'}
-            </div>
-            {sidebarOpen && (
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900">
-                  {user?.firstName || 'User'}
-                </p>
-                <p className="truncate text-xs text-gray-500">
-                  {user?.emailAddresses?.[0]?.emailAddress || ''}
-                </p>
-              </div>
-            )}
-          </div>
-        </SidebarFooter>
-      </Sidebar>
+      <DonorSidebar />
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
@@ -165,8 +79,9 @@ export function DonorImpact() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="h-8 w-8 p-0"
+                onClick={openNav}
+                className="h-8 w-8 p-0 md:hidden"
+                aria-label="Open menu"
               >
                 <PanelLeft className="h-4 w-4" />
               </Button>

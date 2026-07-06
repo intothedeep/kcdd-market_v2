@@ -193,7 +193,7 @@ export function CampaignDonatePage() {
 
       if (paymentIntent && paymentIntent.status === 'succeeded') {
         // Redirect to success page
-        navigate(`${routes.paymentSuccess}?type=campaign&campaign=${campaign.slug}`)
+        navigate(`${routes.paymentSuccess}?type=campaign&campaign=${slug}`)
       }
     } catch (err: any) {
       console.error('Payment error:', err)
@@ -274,7 +274,7 @@ export function CampaignDonatePage() {
             <Button variant="outline" onClick={() => navigate(-1)} className="flex-1">
               Go Back
             </Button>
-            <Link to={`/campaign/${campaign.slug}`} className="flex-1">
+            <Link to={`/campaign/${slug}`} className="flex-1">
               <Button variant="outline" className="w-full">
                 View Campaign
               </Button>
@@ -288,7 +288,7 @@ export function CampaignDonatePage() {
   return (
     <div className="container max-w-2xl py-8">
       <Link
-        to={`/campaign/${campaign.slug}`}
+        to={`/campaign/${slug}`}
         className="mb-6 inline-flex items-center text-[#737373] hover:text-[#0a0a0a]"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
