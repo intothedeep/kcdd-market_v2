@@ -1,88 +1,160 @@
 #!/usr/bin/env node
 /**
- * Generate self-hosted demo image assets and rewrite seed.sql to use them.
+ * gen-demo-images.mjs — self-hosted SVG demo assets (editorial redesign).
  *
- * Replaces the external image hotlinks in backend/supabase/seed.sql
- * (images.unsplash.com covers/heroes + ui-avatars.com logos/avatars) with
- * locally-served SVGs under frontend-vite/public/demo-images/, so the demo
- * marketplace renders with ZERO external dependency (Unsplash availability /
- * rate-limits / ui-avatars uptime no longer matter).
+ * Regenerates every /demo-images/*.svg the seed already references, in a clean
+ * editorial "dark-navy banner" style (category eyebrow + bold title + impact
+ * metric + green funding line + byline), replacing the earlier "mesh gradient +
+ * #n + truncated title" covers.
  *
- *   ui-avatars URL  -> /demo-images/logo-<slug>.svg   (initials on the same bg color)
- *   unsplash URL    -> /demo-images/cover-<1..6>.svg  (gradient placeholder, round-robin)
+ * Pure + re-runnable: this only WRITES SVG files at the paths seed.sql already
+ * points to — it does NOT mutate seed.sql, so there are no image-URL changes to
+ * re-apply. Re-run any time after tweaking the design:
  *
- * Idempotent: after a run the seed has no unsplash/ui-avatars URLs left, so a
- * re-run is a no-op. New rows added later with those hosts get converted on the
- * next run. Run from backend/:  node scripts/gen-demo-images.mjs
+ *   run from backend/:  node scripts/gen-demo-images.mjs
+ *
+ * The filenames are the contract with backend/supabase/seed.sql:
+ *   cover-camp-<1..13>.svg   1200×400  campaign hero banner
+ *   cover-org-<slug>.svg     1200×400  org profile hero band
+ *   logo-<slug>.svg          256×256   org + team monogram avatar
+ *   cover-<1..6>.svg         1200×400  org-update post thumbnail (textless)
+ *
+ * (supersedes the old gen-demo-covers.mjs, which was a one-shot seed migration.)
  */
-
 import fs from 'node:fs'
 import path from 'node:path'
 
-const SEED = path.resolve('supabase/seed.sql')
 const OUT = path.resolve('../frontend-vite/public/demo-images')
 fs.mkdirSync(OUT, { recursive: true })
 
-let sql = fs.readFileSync(SEED, 'utf8')
+const BG = '#0d1117'
+const TITLE_FILL = '#e6edf3'
+const METRIC_FILL = '#8b949e'
+const FUND_FILL = '#3fb950'
+const BYLINE_FILL = '#6e7681'
+const FONTS = "'Helvetica Neue', Helvetica, Arial, 'Segoe UI', Roboto, sans-serif"
 
-const slugify = (s) =>
-  s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+const esc = (s) =>
+  String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-const initials = (name) =>
-  name
-    .split(/[\s+]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
+// ── Campaign hero banners: cover-camp-<n>.svg (n matches seed order) ──────────
+const CAMPAIGNS = [
+  { accent: '#4f8bff', eyebrow: 'EDUCATION · DIGITAL ACCESS', title: ['Laptops for the Roots', 'After-School Program'], metric: '25 refurbished laptops for after-school study', funding: 'Goal $12,000   ·   a weekday middle-school cohort', byline: 'Amara Johnson  ·  Program Director  ·  Connecting Roots' },
+  { accent: '#2dd4bf', eyebrow: 'DIGITAL LITERACY · OUTREACH', title: ['Digital Futures', 'Mobile Lab'], metric: 'A retrofitted van + 15 laptop workstations', funding: 'Goal $45,000   ·   4 Northland community centers', byline: 'Devon Park  ·  Executive Director  ·  Digital Futures KC' },
+  { accent: '#f59e0b', eyebrow: 'WORKFORCE · RE-ENTRY', title: ['Workforce', 'Computer Lab'], metric: 'A 12-station job-readiness computer lab', funding: 'Goal $18,000   ·   80–90 adults trained / year', byline: 'Lin Chen  ·  Programs Lead  ·  KC Tech Bridge' },
+  { accent: '#f472b6', eyebrow: 'ARTS · YOUTH', title: ['Arts Studio Tablets', 'for Roots Teens'], metric: '10 iPad + Apple Pencil bundles for teens', funding: 'Goal $5,000   ·   Saturday teen arts studio', byline: 'Amara Johnson  ·  Program Director  ·  Connecting Roots' },
+  { accent: '#34d399', eyebrow: 'HOUSING STABILITY · CONNECTIVITY', title: ['Stay-Connected Phones', 'for Housing Stability'], metric: '50 prepaid smartphones + 6 months of service', funding: 'Goal $6,500   ·   housing-stability caseload', byline: 'Devon Park  ·  Executive Director  ·  Digital Futures KC' },
+  { accent: '#4f8bff', eyebrow: 'EDUCATION · CS CLUBS', title: ['CS Club Laptops for', 'Northland Middle'], metric: '20 refurbished laptops for weekly coding clubs', funding: 'Goal $8,000   ·   3 middle schools share one cart', byline: 'Maya Okafor  ·  Executive Director  ·  Northland Code' },
+  { accent: '#22d3ee', eyebrow: 'ROBOTICS · STEM', title: ['Robotics Kits for', 'Northland Middle'], metric: '15 classroom kits for FIRST LEGO League', funding: 'Goal $9,000   ·   from clubs to competition', byline: 'Maya Okafor  ·  Executive Director  ·  Northland Code' },
+  { accent: '#f472b6', eyebrow: 'SCHOLARSHIPS · YOUTH', title: ['Summer Code Camp', 'Scholarships 2026'], metric: '30 full scholarships to a 2-week code camp', funding: 'Goal $6,000   ·   40% enroll in fall CS', byline: 'Maya Okafor  ·  Executive Director  ·  Northland Code' },
+  { accent: '#f59e0b', eyebrow: 'REFURBISHING · DIGITAL EQUITY', title: ['Refurb-to-Home:', '500 Devices for KC'], metric: 'Wipe, repair & place 500 donated laptops', funding: 'Goal $40,000   ·   ~$80 makes one home-ready', byline: 'Samuel Reyes  ·  Founder & Director  ·  Heartland Device Bank' },
+  { accent: '#34d399', eyebrow: 'CONNECTIVITY · SCHOOLS', title: ['Student Hotspot', 'Lending Library'], metric: '100 LTE hotspots lent out like library books', funding: 'Goal $7,000   ·   closing the homework gap', byline: 'Samuel Reyes  ·  Founder & Director  ·  Heartland Device Bank' },
+  { accent: '#a78bfa', eyebrow: 'VOLUNTEERS · REPAIR', title: ['Repair Bench Tools', 'for the Volunteer Corps'], metric: '6 fully-outfitted volunteer repair stations', funding: 'Goal $5,000   ·   doubles refurb throughput', byline: 'Samuel Reyes  ·  Founder & Director  ·  Heartland Device Bank' },
+  { accent: '#2dd4bf', eyebrow: 'DIGITAL EQUITY · FAMILIES', title: ['200 Home Laptops', 'for KC Families'], metric: 'Refurbish & place 200 laptops from our waitlist', funding: 'Goal $16,000   ·   ~$80 moves one family online', byline: 'Tariq Hassan  ·  Executive Director  ·  KC Connect Hub' },
+  { accent: '#fb7185', eyebrow: 'DIGITAL NAVIGATION · COACHING', title: ['Grow the Digital', 'Navigator Corps'], metric: '8 bilingual navigators coaching families 1-on-1', funding: 'Goal $9,000   ·   hardware is half the answer', byline: 'Tariq Hassan  ·  Executive Director  ·  KC Connect Hub' },
+]
 
-const PALETTE = ['1565C0', '2E7D32', '6A1B9A', 'E65100', '00838F', '00695C', 'AD1457', '4527A0', '283593', '37474F']
-function colorFromString(s) {
-  let h = 0
-  for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0
-  return PALETTE[h % PALETTE.length]
+// ── Organizations: cover-org-<slug>.svg + logo-<slug>.svg ────────────────────
+const ORGS = [
+  { slug: 'connecting-roots-kc', initials: 'CR', brand: '#2E7D32', accent: '#4ade80', eyebrow: 'NONPROFIT 501(c)(3)  ·  KANSAS CITY  ·  EST. 2017', tagline: 'Growing digital equity, one youth at a time.' },
+  { slug: 'kc-tech-bridge', initials: 'TB', brand: '#1565C0', accent: '#60a5fa', eyebrow: 'NONPROFIT 501(c)(3)  ·  KANSAS CITY  ·  EST. 2019', tagline: 'Connecting communities to opportunity through technology.' },
+  { slug: 'digital-futures-kc', initials: 'DF', brand: '#6A1B9A', accent: '#c084fc', eyebrow: 'NONPROFIT 501(c)(3)  ·  KANSAS CITY  ·  EST. 2015', tagline: 'Technology for every stage of life.' },
+  { slug: 'northland-code-coalition', initials: 'NC', brand: '#00695C', accent: '#2dd4bf', eyebrow: 'NONPROFIT 501(c)(3)  ·  NORTHLAND KC  ·  EST. 2020', tagline: 'Every kid north of the river deserves a keyboard.' },
+  { slug: 'heartland-device-bank', initials: 'HD', brand: '#E65100', accent: '#fb923c', eyebrow: 'NONPROFIT 501(c)(3)  ·  GREATER KC  ·  EST. 2016', tagline: 'One refurbished device. One open door.' },
+  { slug: 'kc-connect-hub', initials: 'CH', brand: '#00838F', accent: '#22d3ee', eyebrow: 'NONPROFIT 501(c)(3)  ·  KC URBAN CORE  ·  EST. 2018', tagline: 'Plug every neighbor into opportunity.' },
+]
+
+// ── Monogram logos: org short-name aliases + team members ────────────────────
+const LOGOS = [
+  // org short-name aliases referenced by campaign content logo_url
+  { slug: 'connecting-roots', initials: 'CR', brand: '#2E7D32' },
+  { slug: 'digital-futures', initials: 'DF', brand: '#6A1B9A' },
+  // team members — tinted with their org's brand color
+  { slug: 'amara-diallo', initials: 'AD', brand: '#2E7D32' },
+  { slug: 'luis-mendoza', initials: 'LM', brand: '#2E7D32' },
+  { slug: 'priya-nair', initials: 'PN', brand: '#2E7D32' },
+  { slug: 'marcus-bell', initials: 'MB', brand: '#6A1B9A' },
+  { slug: 'jasmine-carter', initials: 'JC', brand: '#6A1B9A' },
+  { slug: 'daniel-okeke', initials: 'DO', brand: '#6A1B9A' },
+  { slug: 'samuel-reyes', initials: 'SR', brand: '#E65100' },
+  { slug: 'grace-liu', initials: 'GL', brand: '#E65100' },
+  { slug: 'tom-becker', initials: 'TB', brand: '#E65100' },
+  { slug: 'tariq-hassan', initials: 'TH', brand: '#00838F' },
+  { slug: 'rosa-martinez', initials: 'RM', brand: '#00838F' },
+  { slug: 'james-whitfield', initials: 'JW', brand: '#00838F' },
+]
+
+// Accents for the 6 textless org-update post thumbnails (cover-1..6.svg)
+const POST_ACCENTS = ['#4f8bff', '#2dd4bf', '#a78bfa', '#f59e0b', '#f472b6', '#34d399']
+
+const W = 1200
+const H = 400
+const M = 64 // left margin
+
+function campaignSvg(c) {
+  const titleLines = c.title
+    .map((line, i) => `  <text x="${M}" y="${158 + i * 56}" font-family="${FONTS}" font-size="48" font-weight="800" letter-spacing="-0.5" fill="${TITLE_FILL}">${esc(line)}</text>`)
+    .join('\n')
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(c.title.join(' '))}">
+  <rect width="${W}" height="${H}" fill="${BG}"/>
+  <rect width="${W}" height="6" fill="${c.accent}"/>
+  <text x="${M}" y="74" font-family="${FONTS}" font-size="23" font-weight="700" letter-spacing="3" fill="${c.accent}">${esc(c.eyebrow)}</text>
+${titleLines}
+  <text x="${M}" y="300" font-family="${FONTS}" font-size="25" font-weight="400" fill="${METRIC_FILL}">${esc(c.metric)}</text>
+  <text x="${M}" y="340" font-family="${FONTS}" font-size="25" font-weight="700" fill="${FUND_FILL}">${esc(c.funding)}</text>
+  <text x="${M}" y="378" font-family="${FONTS}" font-size="21" font-weight="400" fill="${BYLINE_FILL}">${esc(c.byline)}</text>
+</svg>
+`
 }
 
-const logoSvg = (text, bg) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="${text}"><rect width="256" height="256" rx="36" fill="#${bg}"/><text x="50%" y="50%" dy=".34em" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="108" font-weight="700" fill="#fff">${text}</text></svg>\n`
+function orgCoverSvg(o) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.slug)} cover">
+  <rect width="${W}" height="${H}" fill="${BG}"/>
+  <rect width="${W}" height="6" fill="${o.accent}"/>
+  <text x="1150" y="330" text-anchor="end" font-family="${FONTS}" font-size="300" font-weight="800" fill="#ffffff" opacity="0.05">${esc(o.initials)}</text>
+  <text x="${M}" y="152" font-family="${FONTS}" font-size="23" font-weight="700" letter-spacing="3" fill="${o.accent}">${esc(o.eyebrow)}</text>
+  <text x="${M}" y="226" font-family="${FONTS}" font-size="36" font-weight="700" letter-spacing="-0.5" fill="${TITLE_FILL}">${esc(o.tagline)}</text>
+</svg>
+`
+}
 
-const COVER_PAIRS = [
-  ['1565C0', '42A5F5'],
-  ['2E7D32', '66BB6A'],
-  ['6A1B9A', 'AB47BC'],
-  ['E65100', 'FFA726'],
-  ['00838F', '4DD0E1'],
-  ['00695C', '4DB6AC'],
-]
-const coverSvg = ([c1, c2], i) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-label="cover ${i}"><defs><linearGradient id="g${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#${c1}"/><stop offset="1" stop-color="#${c2}"/></linearGradient></defs><rect width="1200" height="400" fill="url(#g${i})"/><circle cx="980" cy="80" r="170" fill="#fff" opacity="0.08"/><circle cx="200" cy="360" r="240" fill="#fff" opacity="0.06"/></svg>\n`
+function monogramSvg(o) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="${esc(o.slug)}">
+  <rect width="256" height="256" rx="36" fill="${o.brand}"/>
+  <text x="50%" y="50%" dy="0.35em" text-anchor="middle" font-family="${FONTS}" font-size="118" font-weight="800" letter-spacing="-2" fill="#ffffff">${esc(o.initials)}</text>
+</svg>
+`
+}
 
-// 1) logos — ui-avatars
-const writtenLogos = new Set()
-sql = sql.replace(
-  /https:\/\/ui-avatars\.com\/api\/\?name=([^&'"\\]*)(?:&[^'"\\)]*)?/g,
-  (full, nameParam) => {
-    const name = decodeURIComponent(nameParam.replace(/\+/g, ' '))
-    const slug = slugify(name)
-    const bg = (full.match(/background=([0-9A-Fa-f]{6})/) || [])[1] || colorFromString(name)
-    if (!writtenLogos.has(slug)) {
-      fs.writeFileSync(path.join(OUT, `logo-${slug}.svg`), logoSvg(initials(name), bg))
-      writtenLogos.add(slug)
-    }
-    return `/demo-images/logo-${slug}.svg`
-  }
-)
+function postSvg(accent, i) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="post thumbnail ${i}">
+  <defs><filter id="s${i}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="80"/></filter></defs>
+  <rect width="${W}" height="${H}" fill="${BG}"/>
+  <g filter="url(#s${i})" opacity="0.22">
+    <circle cx="980" cy="80" r="180" fill="${accent}"/>
+    <circle cx="230" cy="360" r="220" fill="${accent}"/>
+  </g>
+  <rect width="${W}" height="5" fill="${accent}"/>
+</svg>
+`
+}
 
-// 2) covers — unsplash (distinct URL -> rotating cover)
-const coverAssign = new Map()
-let n = 0
-sql = sql.replace(/https:\/\/images\.unsplash\.com\/[^'"\s)]+/g, (full) => {
-  if (!coverAssign.has(full)) coverAssign.set(full, (n++ % COVER_PAIRS.length) + 1)
-  return `/demo-images/cover-${coverAssign.get(full)}.svg`
+let count = 0
+CAMPAIGNS.forEach((c, i) => {
+  fs.writeFileSync(path.join(OUT, `cover-camp-${i + 1}.svg`), campaignSvg(c))
+  count++
 })
-COVER_PAIRS.forEach((pair, i) => fs.writeFileSync(path.join(OUT, `cover-${i + 1}.svg`), coverSvg(pair, i + 1)))
-
-fs.writeFileSync(SEED, sql)
-console.log(`Wrote ${writtenLogos.size} logo SVGs + 6 cover SVGs to ${OUT}`)
-console.log(`Rewrote ${coverAssign.size} distinct unsplash URLs + ${writtenLogos.size} logo URL groups in seed.sql`)
+for (const o of ORGS) {
+  fs.writeFileSync(path.join(OUT, `cover-org-${o.slug}.svg`), orgCoverSvg(o))
+  fs.writeFileSync(path.join(OUT, `logo-${o.slug}.svg`), monogramSvg(o))
+  count += 2
+}
+for (const l of LOGOS) {
+  fs.writeFileSync(path.join(OUT, `logo-${l.slug}.svg`), monogramSvg(l))
+  count++
+}
+POST_ACCENTS.forEach((a, i) => {
+  fs.writeFileSync(path.join(OUT, `cover-${i + 1}.svg`), postSvg(a, i + 1))
+  count++
+})
+console.log(`Generated ${count} editorial demo SVGs → ${OUT}`)

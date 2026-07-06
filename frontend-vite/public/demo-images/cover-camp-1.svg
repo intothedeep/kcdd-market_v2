@@ -1,17 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-label="Laptops for the Roots After-School Program">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1B5E20"/><stop offset="1" stop-color="#2E7D32"/></linearGradient>
-    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="70"/></filter>
-    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#000" flood-opacity="0.45"/></filter>
-  </defs>
-  <rect width="1200" height="400" fill="url(#bg)"/>
-  <g filter="url(#soft)" opacity="0.6">
-    <circle cx="361" cy="90" r="190" fill="#66BB6A"/>
-    <circle cx="926" cy="360" r="240" fill="#B2FF59"/>
-    <circle cx="1080" cy="60" r="170" fill="#00BFA5"/>
-  </g>
-  <g filter="url(#sh)" font-family="Arial,Helvetica,sans-serif" fill="#fff">
-    <text x="64" y="208" font-size="116" font-weight="800">#1</text>
-    <text x="68" y="270" font-size="40" font-weight="600" opacity="0.96">Laptops for the Roots After-School Pr…</text>
-  </g>
+  <rect width="1200" height="400" fill="#0d1117"/>
+  <rect width="1200" height="6" fill="#4f8bff"/>
+  <text x="64" y="74" font-family="'Helvetica Neue', Helvetica, Arial, 'Segoe UI', Roboto, sans-serif" font-size="23" font-weight="700" letter-spacing="3" fill="#4f8bff">EDUCATION · DIGITAL ACCESS</text>
+  <text x="64" y="158" font-family="'Helvetica Neue', Helvetica, Arial, 'Segoe UI', Roboto, sans-serif" font-size="48" font-weight="800" letter-spacing="-0.5" fill="#e6edf3">Laptops for the Roots</text>
+  <text x="64" y="214" font-family="'Helvetica Neue', Helvetica, Arial, 'Segoe UI', Roboto, sans-serif" font-size="48" font-weight="800" letter-spacing="-0.5" fill="#e6edf3">After-School Program</text>
+  <text x="64" y="300" font-family="'Helvetica Neue', Helvetica, Arial, 'Segoe UI', Roboto, sans-serif" font-size="25" font-weight="400" fill="#8b949e">25 refurbished laptops for after-school study</text>
+  <text x="64" y="340" font-family="'Helvetica Neue', Helvetica, Arial, 'Segoe UI', Roboto, sans-serif" font-size="25" font-weight="700" fill="#3fb950">Goal $12,000   ·   a weekday middle-school cohort</text>
+  <text x="64" y="378" font-family="'Helvetica Neue', Helvetica, Arial, 'Segoe UI', Roboto, sans-serif" font-size="21" font-weight="400" fill="#6e7681">Amara Johnson  ·  Program Director  ·  Connecting Roots</text>
 </svg>
