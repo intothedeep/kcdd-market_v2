@@ -29,7 +29,8 @@ pnpm-debug.log*
 .env.test.local
 .env.production.local
 .env*.local
-.env.taeklim
+.env.ttlg
+.env.tlus
 
 # ============================================
 # BUILD OUTPUTS
