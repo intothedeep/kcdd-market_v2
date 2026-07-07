@@ -1434,5 +1434,3 @@ SET first_approved_at = NOW() - INTERVAL '5 days', last_edit_approved_at = NOW()
 WHERE id IN (
   '00000000-0000-0000-0009-000000000045','00000000-0000-0000-0009-000000000046'
 );
-
-COMMIT;

@@ -13,7 +13,7 @@ major_version = 15
 enabled = true
 port = 54323
 
-[inbucket]
+[local_smtp]
 enabled = true
 port = 54324
 smtp_port = 54325
@@ -47,5 +47,12 @@ domain = "immense-stallion-77.clerk.accounts.dev"
 enabled = true
 
 [edge_runtime]
+enabled = false
+
+# Disabled for Colima: the analytics stack starts a `vector` container that
+# bind-mounts the Docker socket. Colima resolves /var/run/docker.sock to the
+# virtiofs-shared ~/.colima/default/docker.sock, which can't be bind-mounted
+# ("operation not supported"). Off = no vector container = clean start.
+[analytics]
 enabled = false
 

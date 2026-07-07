@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "packageManager": "pnpm@11.1.2",
   "scripts": {
-    "db:start": "[ -S /var/run/docker.sock ] || sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock && supabase start",
-    "db:stop": "supabase stop",
-    "db:reset": "supabase db reset",
-    "db:push": "supabase db push",
-    "db:status": "supabase status",
+    "db:start": "[ -S /var/run/docker.sock ] || sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock && pnpx supabase start",
+    "db:stop": "pnpx supabase stop",
+    "db:status": "pnpx supabase status",
+    "db:reset": "pnpx supabase db reset",
+    "db:reset:linked": "pnpx supabase db reset --linked",
+    "db:push:linked": "pnpx supabase db push",
     "backfill:images": "node scripts/backfill-base64-images.mjs",
     "backfill:images:dry": "node scripts/backfill-base64-images.mjs --dry-run"
   },
