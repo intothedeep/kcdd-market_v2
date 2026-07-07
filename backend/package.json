@@ -8,9 +8,7 @@
     "db:status": "pnpx supabase status",
     "db:reset": "pnpx supabase db reset",
     "db:reset:linked": "pnpx supabase db reset --linked",
-    "db:push:linked": "pnpx supabase db push",
-    "backfill:images": "node scripts/backfill-base64-images.mjs",
-    "backfill:images:dry": "node scripts/backfill-base64-images.mjs --dry-run"
+    "db:push:linked": "pnpx supabase db push"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7"
