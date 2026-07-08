@@ -269,14 +269,14 @@ export const saveOrganizationOnboarding = async (
     const fileName = `${userId}-logo-${Date.now()}.${fileExt}`
 
     const { error: uploadError } = await supabase.storage
-      .from('organization-logos')
+      .from('organization-images')
       .upload(fileName, data.logo)
 
     if (uploadError) {
       console.error('Logo upload error:', uploadError)
       // Continue without logo
     } else {
-      const { data: urlData } = supabase.storage.from('organization-logos').getPublicUrl(fileName)
+      const { data: urlData } = supabase.storage.from('organization-images').getPublicUrl(fileName)
       logoUrl = urlData.publicUrl
     }
   }
