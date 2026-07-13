@@ -9,6 +9,21 @@
 
 ---
 
+> **Update — 2026-07-12:** Architecture review re-counted the direct-query
+> surface. It has grown from the **~74 `supabase.from(` sites across 7 files**
+> cited in the original ADR to **~138 sites across 13 files**, plus 3 browser
+> `.rpc()` calls, 12 storage uploads, and 1 realtime subscription. This growth
+> **strengthens** the case for the Phase-0 freeze rule: the Option-C migration
+> cost is quietly rising each sprint as new features add direct queries.
+> The recommendation is unchanged — keep RLS as the sole enforcement layer for
+> now. **Do NOT drop RLS before those direct queries are moved behind the
+> authenticated Express API.** Dropping policies first would expose PII and the
+> payment ledger to unauthenticated reads via the publishable key in the JS
+> bundle. See the "Data access / RLS portability posture" convention in
+> `CLAUDE.md` (Key Conventions) for the day-to-day freeze rule.
+
+---
+
 ## 1. Decision (TL;DR)
 
 - **Now:** keep Postgres Row-Level Security (RLS) exactly as it is (**Option A**).
@@ -23,7 +38,7 @@ The frontend talks to Postgres **two ways**, and the direct path dominates:
 
 | Path | Key | Count | Guarded by |
 | --- | --- | --- | --- |
-| Browser → Postgres **directly** (`.from()`, storage, `.rpc()`, realtime) | publishable / anon | **~74 ops** across 7 files + storage in 11 files + 3 rpc + 1 realtime sub | **RLS only** |
+| Browser → Postgres **directly** (`.from()`, storage, `.rpc()`, realtime) | publishable / anon | **~74 ops** across 7 files + storage in 11 files + 3 rpc + 1 realtime sub (original ADR count; re-counted at ~138 sites across 13 files as of 2026-07-12) | **RLS only** |
 | Browser → Express API | service_role (server-side) | ~10 call sites → ~35 routes | `clerkAuth` + hand-written checks |
 
 The anon key ships in the JS bundle. **Deleting RLS today would grant the
@@ -70,8 +85,10 @@ Inventory captured 2026-07-05 so future-you knows the size:
   - `frontend-vite/src/pages/CampaignPage.tsx` — 3;
     `components/RoleSelectionModal.tsx` — 2; `HomePage`/`RequestsPage`/
     `CheckoutPage` — 1 each
-- **Storage** direct uploads across **11 files** (`organization-logos`,
-  `profile-pictures`, `campaign-images`, …)
+  - _Re-counted 2026-07-12: **~138 sites across 13 files** (growth from new
+    features added after the original inventory)._
+- **Storage** direct uploads across **11 files** (12 as of 2026-07-12 recount)
+  (`organization-logos`, `profile-pictures`, `campaign-images`, …)
 - **Browser `.rpc()`** — 3: `set_user_type` (`admin/DashboardPage.tsx:3068`,
   `admin/UsersPage.tsx:174`), `create_campaign_with_detail` (`supabase.ts:1073`)
 - **Realtime** — `postgres_changes` subscription (`supabase.ts:111-130`)
