@@ -1,0 +1,33 @@
+name: Supabase Keepalive
+# KC Digital Drive Market runs on a Supabase Cloud project (ref dfgafxbxwsbxkkwwjsxw).
+# Free-tier projects auto-pause after ~7 days with no DB activity — dashboard
+# visits and cached API calls do NOT count, only real DB traffic. To keep the
+# project awake between sporadic use, ping it twice a week with a trivial query.
+#
+# Uses the secret `DATABASE_URL` — the project's *pooled* connection URI
+# (aws-1-us-east-2.pooler.supabase.com, IPv4-friendly). The direct db host is
+# IPv6-only and fails on GitHub runners, so the pooler URI is required here.
+on:
+  schedule:
+    # Mon & Thu at 09:00 UTC — well inside the ~7-day inactivity window.
+    - cron: '0 9 * * 1,4'
+  workflow_dispatch: {} # allow manual trigger from the Actions tab
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase database (SELECT 1)
+        env:
+          # Pooled Supabase URI, e.g.
+          # postgresql://postgres.dfgafxbxwsbxkkwwjsxw:<password>@aws-1-us-east-2.pooler.supabase.com:6543/postgres
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # require = encrypt without cert verification — matches how the app's
+          # pg Pool treats Supabase's self-signed chain (rejectUnauthorized:false).
+          PGSSLMODE: require
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set"
+            exit 1
+          fi
+          psql "$DATABASE_URL" -tAc 'SELECT 1;'
+          echo "Supabase keepalive ping OK"
