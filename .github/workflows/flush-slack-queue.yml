@@ -1,0 +1,28 @@
+# Flush Slack Queue — GitHub Actions cron
+#
+# Replaces the Vercel cron that was in backend/api/vercel.json (removed).
+# Vercel Hobby tier only allows once-per-day crons; GitHub Actions free tier
+# has no such restriction, so this runs every 15 min for near-real-time alerts.
+#
+# Required repo secrets (GitHub → repo Settings → Secrets and variables → Actions):
+#   CRON_SECRET  — must match the CRON_SECRET env var on the backend Vercel deployment
+#   BACKEND_URL  — root URL of the deployed backend, e.g. https://kcdd-market-api.vercel.app
+name: Flush Slack Queue
+on:
+  schedule:
+    - cron: '*/15 * * * *' # every 15 min (free on GH Actions; was daily-capped on Vercel Hobby)
+  workflow_dispatch: {}
+jobs:
+  flush:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST flush-slack-queue
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$BACKEND_URL" ]; then
+            echo "::error::CRON_SECRET or BACKEND_URL secret is not set"; exit 1
+          fi
+          curl -fsS -X POST "$BACKEND_URL/api/cron/flush-slack-queue" \
+            -H "x-cron-secret: $CRON_SECRET"

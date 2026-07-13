@@ -499,9 +499,8 @@ wired up.
 
 When organizations submit profile edits, edit already-submitted edits, or
 soft-delete their org, the backend enqueues an admin alert into the
-`slack_notification_queue` table. A Vercel cron flushes the queue once a
-day (Hobby free-tier limit — see Step 5.3) and POSTs each pending row to a
-Slack Incoming Webhook.
+`slack_notification_queue` table. A GitHub Actions workflow flushes the queue
+every 15 minutes and POSTs each pending row to a Slack Incoming Webhook.
 
 CBO and donor notifications are unchanged — they continue to fan out
 through the in-app `NotificationBell`. Slack is **additive** for admins
@@ -517,15 +516,22 @@ only.
    opaque path under `hooks.slack.com`. Treat this URL as a **secret**:
    anyone who has it can post to the channel.
 
-### Step 5.2 — Add env vars in Vercel
+### Step 5.2 — Add env vars
 
-Vercel project → **Settings → Environment Variables**:
+**Vercel backend** — Vercel project → **Settings → Environment Variables**:
 
 | Key                 | Value                                 | Notes                                                                   |
 | ------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
 | `SLACK_WEBHOOK_URL` | URL from Step 5.1                     | Secret. Set on Production env (and Preview if you want preview alerts). |
-| `CRON_SECRET`       | output of `openssl rand -hex 32`      | Authenticates the cron request. Must match what Vercel sends.           |
+| `CRON_SECRET`       | output of `openssl rand -hex 32`      | Authenticates the cron request. Must match the GH Actions secret.       |
 | `APP_URL`           | e.g. `https://kcdd-market.vercel.app` | Prefix used in Slack message links back to admin pages.                 |
+
+**GitHub Actions** — repo **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret name   | Value                                          |
+| ------------- | ---------------------------------------------- |
+| `CRON_SECRET` | same value set on the Vercel backend above     |
+| `BACKEND_URL` | root URL of your deployed backend, e.g. `https://kcdd-market-api.vercel.app` |
 
 > If `SLACK_WEBHOOK_URL` is **missing** on a given environment (common
 > on Preview deploys without the secret), the cron still runs but logs
@@ -533,42 +539,28 @@ Vercel project → **Settings → Environment Variables**:
 > queue drains silently. Set the var before relying on prod alerts.
 >
 > If `CRON_SECRET` is **missing**, the cron route returns `401` and the
-> queue never drains. Set this before the first prod deploy.
+> queue never drains. Set this before enabling the GH Actions workflow.
 >
 > If `APP_URL` is **missing**, Slack messages still send but the link
 > prefix is empty. Slack will render the path-only link, which usually
 > still navigates if the workspace has link unfurling for your domain
 > configured — but it is much friendlier to set this.
 
-### Step 5.3 — Register the cron
+### Step 5.3 — Register the cron (GitHub Actions)
 
-The backend's `backend/api/vercel.json` already contains the cron entry
-(this is the Vercel project that owns the `/api/cron/*` route):
+The cron is now a GitHub Actions workflow at
+`.github/workflows/flush-slack-queue.yml` — no Vercel cron registration is
+needed. After adding the two repo secrets in Step 5.2:
 
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/flush-slack-queue",
-      "schedule": "0 0 * * *"
-    }
-  ]
-}
-```
+1. Go to **GitHub repo → Actions → Flush Slack Queue**.
+2. Click **Run workflow** to fire a manual run and confirm the endpoint
+   responds (200) and the workflow completes green.
+3. The scheduled trigger (`*/15 * * * *`) activates automatically once the
+   workflow file is on the default branch.
 
-On the next deploy, Vercel reads this file and registers the cron
-automatically. Verify in **Vercel dashboard → Project → Cron Jobs**
-(also visible under the Functions tab on some dashboard versions).
-The cron uses `GET` with `Authorization: Bearer $CRON_SECRET`.
-
-> **Hobby (free) tier note**: Vercel Hobby allows cron **once per day only** —
-> sub-daily schedules like `*/5 * * * *` are rejected/ignored, so the cron
-> silently never registers and the Slack queue never drains. This repo ships
-> `0 0 * * *` (daily, midnight UTC) so it registers on Hobby. Admins still get
-> **real-time in-app** alerts via the `NotificationBell`; the daily cron only
-> batches the _Slack mirror_ (so Slack messages can lag up to ~24h). On **Pro**,
-> tighten to e.g. `*/5 * * * *` for near-real-time Slack. See
-> `docs/VERCEL_DEPLOYMENT.md` for per-tier details.
+The workflow POSTs to `$BACKEND_URL/api/cron/flush-slack-queue` with header
+`x-cron-secret: $CRON_SECRET`. A failed run (non-200 from curl, missing
+secret) shows as a red workflow run in the Actions tab.
 
 ### Step 5.4 — Smoke test
 
@@ -585,14 +577,14 @@ Expected response:
 { "processed": 0, "sent": 0, "failed": 0 }
 ```
 
-(Numbers > 0 if there are pending rows in the queue.) The same route
-also accepts `GET` with `Authorization: Bearer $CRON_SECRET` — that
-is the form Vercel uses when firing the cron.
+(Numbers > 0 if there are pending rows in the queue.) The route also
+accepts `GET` with `Authorization: Bearer $CRON_SECRET` for compatibility
+with tooling that issues GET requests.
 
 To test end-to-end: as a CBO owner in prod, submit a profile edit. A
 row appears in `slack_notification_queue` with `status='pending'`.
-At the next daily cron run (or immediately if you hit the curl above), the
-cron fires and Slack receives the message; the row flips to `status='sent'`.
+At the next GH Actions run (every 15 min, or immediately if you hit the
+curl above), the queue flushes and the row flips to `status='sent'`.
 
 ---
 
@@ -751,8 +743,8 @@ cleaned up before a real production launch**:
       **minimal and secret**: 1–2 verified operator emails, never logged.
 - [ ] **`IP_HASH_SALT` is a real 32-byte secret**, not the dev fallback (Step 4).
 - [ ] **`pk_live_*` / `sk_live_*` Clerk + Stripe keys** in use, not `_test_`.
-- [ ] **Slack cron** tightened to sub-daily on Vercel Pro if near-real-time Slack is
-      wanted (Step 5.3 — Hobby is daily-only).
+- [ ] **Slack cron** GitHub Actions workflow enabled and both repo secrets
+      (`CRON_SECRET`, `BACKEND_URL`) set (Step 5.3).
 
 ---
 

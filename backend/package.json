@@ -4,6 +4,7 @@
   "packageManager": "pnpm@11.1.2",
   "scripts": {
     "db:start": "[ -S /var/run/docker.sock ] || sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock && pnpx supabase start",
+    "db:link": "pnpx supabase link",
     "db:stop": "pnpx supabase stop",
     "db:status": "pnpx supabase status",
     "db:reset": "pnpx supabase db reset",

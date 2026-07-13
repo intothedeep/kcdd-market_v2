@@ -15,11 +15,5 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "crons": [
-    {
-      "path": "/api/cron/flush-slack-queue",
-      "schedule": "0 0 * * *"
-    }
-  ]
+  }
 }

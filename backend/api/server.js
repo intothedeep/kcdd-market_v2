@@ -53,9 +53,11 @@ function assertProductionEnvSafety() {
     )
   }
   if (!process.env.CRON_SECRET) {
-    problems.push(
-      'CRON_SECRET is unset — the Slack cron route will 401 forever. ' +
-        'Set a random value: openssl rand -hex 32'
+    // Operational degradation only — Slack alerts won't flush, but no money/security risk.
+    // GH Actions workflow surfaces failures as a red run, so this does not need to block startup.
+    console.warn(
+      '[startup] CRON_SECRET is unset — the Slack cron flush endpoint will reject calls (401). ' +
+        'Set it if you use Slack admin alerts.'
     )
   }
   if (problems.length > 0) {
