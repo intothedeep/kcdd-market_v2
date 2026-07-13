@@ -58,7 +58,7 @@ export async function clerkAuth(req, res, next) {
       console.error('[clerkAuth] verifyToken failed:', reason)
       // Fall through to unverified decode in dev if SDK verification fails
       if (process.env.NODE_ENV === 'production') {
-        return res.status(401).json({ error: 'Invalid token', detail: reason })
+        return res.status(401).json({ error: 'Invalid token' })
       }
     }
   }

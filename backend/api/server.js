@@ -33,6 +33,41 @@ import {
 // Load environment variables
 dotenv.config()
 
+// Production safety guard: fail fast at cold-start if critical env vars are
+// missing or insecure. Never a no-op in production — operators must fix before
+// the server accepts any traffic.
+function assertProductionEnvSafety() {
+  if (process.env.NODE_ENV !== 'production') return
+  const problems = []
+  const salt = process.env.IP_HASH_SALT
+  if (!salt || salt === 'dev-only-replace-in-prod') {
+    problems.push(
+      'IP_HASH_SALT is unset or still the dev fallback — donor IP hashes are reversible. ' +
+        'Set a random 32-byte hex value: openssl rand -hex 32'
+    )
+  }
+  if (process.env.STRIPE_BYPASS_CONNECT === 'true') {
+    problems.push(
+      'STRIPE_BYPASS_CONNECT=true is set in production — donations would route to the ' +
+        'platform account instead of the org. Remove this variable in production.'
+    )
+  }
+  if (!process.env.CRON_SECRET) {
+    problems.push(
+      'CRON_SECRET is unset — the Slack cron route will 401 forever. ' +
+        'Set a random value: openssl rand -hex 32'
+    )
+  }
+  if (problems.length > 0) {
+    throw new Error(
+      '[startup] Production safety check failed:\n' +
+        problems.map((p, i) => `  ${i + 1}. ${p}`).join('\n')
+    )
+  }
+}
+
+assertProductionEnvSafety()
+
 // Initialize Express
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -482,7 +517,8 @@ app.post('/api/payments/create-intent', clerkAuth, async (req, res) => {
     // STRIPE_BYPASS_CONNECT=true lets us run test-mode donations without
     // having a Connect account set up. Money goes to the platform balance
     // directly (no destination/application_fee). Test mode only.
-    const bypassConnect = process.env.STRIPE_BYPASS_CONNECT === 'true'
+    const bypassConnect =
+      process.env.NODE_ENV !== 'production' && process.env.STRIPE_BYPASS_CONNECT === 'true'
     const org = request.organization
     if (!bypassConnect && (!org?.stripe_account_id || !org?.stripe_charges_enabled)) {
       await logPaymentEvent(supabase, {
@@ -706,7 +742,8 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
     // STRIPE_BYPASS_CONNECT=true lets us run test-mode donations without
     // having a Connect account set up. Money goes to the platform balance
     // directly (no destination/application_fee). Test mode only.
-    const bypassConnect = process.env.STRIPE_BYPASS_CONNECT === 'true'
+    const bypassConnect =
+      process.env.NODE_ENV !== 'production' && process.env.STRIPE_BYPASS_CONNECT === 'true'
     const org = campaign.organization
     if (!bypassConnect && (!org?.stripe_account_id || !org?.stripe_charges_enabled)) {
       await logPaymentEvent(supabase, {

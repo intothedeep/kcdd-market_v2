@@ -2536,9 +2536,7 @@ export const uploadOrganizationDocument = async (
       throw uploadError
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage.from('organization-documents').getPublicUrl(fileName)
-
+    // Store the storage path (not a public URL) so read access goes through signed URLs.
     // Create document record
     const { data, error } = await (supabase.from('organization_documents') as any)
       .insert({
@@ -2547,7 +2545,7 @@ export const uploadOrganizationDocument = async (
         name: metadata.name,
         type: metadata.type,
         size: formatFileSize(file.size),
-        file_url: urlData.publicUrl,
+        file_url: fileName,
         year: metadata.year || new Date().getFullYear(),
         status: 'ready',
         description: metadata.description || null,
@@ -2580,9 +2578,18 @@ export const deleteOrganizationDocument = async (documentId: string): Promise<bo
       .single()
 
     if (doc?.file_url) {
-      // Extract file path from URL and delete from storage
-      const url = new URL(doc.file_url)
-      const filePath = url.pathname.split('/organization-documents/')[1]
+      // Determine storage path: new rows store bare paths; legacy rows store full http URLs.
+      let filePath: string | null = null
+      if (doc.file_url.startsWith('http')) {
+        try {
+          const url = new URL(doc.file_url)
+          filePath = url.pathname.split('/organization-documents/')[1] ?? null
+        } catch {
+          // malformed URL — skip storage delete
+        }
+      } else {
+        filePath = doc.file_url
+      }
       if (filePath) {
         await supabase.storage.from('organization-documents').remove([filePath])
       }
@@ -2603,6 +2610,42 @@ export const deleteOrganizationDocument = async (documentId: string): Promise<bo
     console.error('Error deleting organization document:', error)
     return false
   }
+}
+
+/**
+ * Generate a short-lived signed URL for a private organization document.
+ * Accepts either a bare storage path (new rows) or a legacy full http URL.
+ * Returns null if the path cannot be resolved or the signed URL request fails.
+ */
+export const getOrganizationDocumentSignedUrl = async (
+  fileUrl: string,
+  expiresIn = 3600
+): Promise<string | null> => {
+  // Derive the storage path from whatever is stored in file_url.
+  let storagePath: string
+  if (fileUrl.startsWith('http')) {
+    // Legacy row: extract path from the public URL that was persisted before this fix.
+    try {
+      const url = new URL(fileUrl)
+      const extracted = url.pathname.split('/organization-documents/')[1]
+      if (!extracted) return null
+      storagePath = extracted
+    } catch {
+      return null
+    }
+  } else {
+    storagePath = fileUrl
+  }
+
+  const { data, error } = await supabase.storage
+    .from('organization-documents')
+    .createSignedUrl(storagePath, expiresIn)
+
+  if (error || !data?.signedUrl) {
+    console.error('Error creating signed URL for organization document:', error)
+    return null
+  }
+  return data.signedUrl
 }
 
 /**

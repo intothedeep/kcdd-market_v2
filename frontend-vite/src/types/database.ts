@@ -278,6 +278,13 @@ export type Database = {
             foreignKeyName: "campaigns_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "platform_top_organizations"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "campaigns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "request_details"
             referencedColumns: ["organization_id"]
           },
@@ -444,6 +451,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "donor_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "platform_top_organizations"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "donor_documents_organization_id_fkey"
@@ -723,6 +737,13 @@ export type Database = {
             foreignKeyName: "organization_cause_areas_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "platform_top_organizations"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "organization_cause_areas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "request_details"
             referencedColumns: ["organization_id"]
           },
@@ -786,6 +807,13 @@ export type Database = {
             foreignKeyName: "organization_documents_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "platform_top_organizations"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "organization_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "request_details"
             referencedColumns: ["organization_id"]
           },
@@ -824,6 +852,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_populations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "platform_top_organizations"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "organization_populations_organization_id_fkey"
@@ -883,6 +918,13 @@ export type Database = {
             foreignKeyName: "organization_team_members_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "platform_top_organizations"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "organization_team_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "request_details"
             referencedColumns: ["organization_id"]
           },
@@ -926,6 +968,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_updates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "platform_top_organizations"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "organization_updates_organization_id_fkey"
@@ -1224,6 +1273,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "platform_top_organizations"
+            referencedColumns: ["organization_id"]
           },
           {
             foreignKeyName: "payment_transactions_organization_id_fkey"
@@ -1702,6 +1758,13 @@ export type Database = {
             foreignKeyName: "requests_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "platform_top_organizations"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "request_details"
             referencedColumns: ["organization_id"]
           },
@@ -1963,6 +2026,103 @@ export type Database = {
           total_donations: number | null
           user_id: string | null
           year: number | null
+        }
+        Relationships: []
+      }
+      donor_impact_by_cause: {
+        Row: {
+          amount: number | null
+          cause_area_id: string | null
+          percentage: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_cause_area_id_fkey"
+            columns: ["cause_area_id"]
+            isOneToOne: false
+            referencedRelation: "cause_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_cause_area_id_fkey"
+            columns: ["cause_area_id"]
+            isOneToOne: false
+            referencedRelation: "request_details"
+            referencedColumns: ["cause_area_id"]
+          },
+        ]
+      }
+      donor_impact_stories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          organization_name: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      donor_impact_summary: {
+        Row: {
+          lives_impacted: number | null
+          months_active: number | null
+          organizations_helped: number | null
+          total_donated: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      donor_monthly_donations: {
+        Row: {
+          amount: number | null
+          month: string | null
+          user_id: string | null
+          year: number | null
+        }
+        Relationships: []
+      }
+      platform_impact_by_cause: {
+        Row: {
+          cause_area_id: string | null
+          cause_name: string | null
+          percentage: number | null
+          total_donated: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_cause_area_id_fkey"
+            columns: ["cause_area_id"]
+            isOneToOne: false
+            referencedRelation: "cause_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_cause_area_id_fkey"
+            columns: ["cause_area_id"]
+            isOneToOne: false
+            referencedRelation: "request_details"
+            referencedColumns: ["cause_area_id"]
+          },
+        ]
+      }
+      platform_impact_summary: {
+        Row: {
+          active_campaigns: number | null
+          requests_fulfilled: number | null
+          total_donated: number | null
+          total_donors: number | null
+          total_organizations: number | null
+        }
+        Relationships: []
+      }
+      platform_top_organizations: {
+        Row: {
+          donor_count: number | null
+          logo_url: string | null
+          name: string | null
+          organization_id: string | null
+          requests_fulfilled: number | null
+          total_received: number | null
         }
         Relationships: []
       }

@@ -89,6 +89,7 @@ import {
   fetchOrganizationDocuments,
   uploadOrganizationDocument,
   deleteOrganizationDocument,
+  getOrganizationDocumentSignedUrl,
   ORGANIZATION_DOCUMENT_TYPES,
   updateOrganization,
   supabase,
@@ -2032,9 +2033,13 @@ function DocumentsContent({ organization, userId }: { organization: any; userId:
     }
   }
 
-  const handleDownload = (doc: OrganizationDocument) => {
-    if (doc.file_url) {
-      window.open(doc.file_url, '_blank')
+  const handleDownload = async (doc: OrganizationDocument) => {
+    if (!doc.file_url) return
+    const signedUrl = await getOrganizationDocumentSignedUrl(doc.file_url)
+    if (signedUrl) {
+      window.open(signedUrl, '_blank')
+    } else {
+      console.error('Failed to generate signed URL for document', doc.id)
     }
   }
 
