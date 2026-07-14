@@ -668,7 +668,7 @@ export function CampaignPage() {
     <div className="min-h-screen bg-[#fafafa]">
       <div className="mx-auto max-w-[1200px]">
         {/* Header Section */}
-        <div className="px-4 md:px-6 pb-0 pt-7">
+        <div className="px-4 pb-0 pt-7 md:px-6">
           {/* Edit Mode Banner */}
           {isEditing && (
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
@@ -730,7 +730,7 @@ export function CampaignPage() {
                 placeholder="Campaign Title"
               />
             ) : (
-              <h1 className="mb-3 text-3xl md:text-5xl font-bold leading-tight text-[#0a0a0a]">
+              <h1 className="mb-3 text-3xl font-bold leading-tight text-[#0a0a0a] md:text-5xl">
                 {campaign.title}
               </h1>
             )}
@@ -845,9 +845,9 @@ export function CampaignPage() {
           {/* Hero Section */}
           <div className="flex flex-col gap-5 lg:flex-row">
             {/* Main Image and Gallery */}
-            <div className="w-full lg:w-[824px] lg:flex-shrink-0 space-y-3">
+            <div className="w-full space-y-3 lg:w-[824px] lg:flex-shrink-0">
               {/* Main Display Image (or embedded YouTube video) */}
-              <div className="relative h-[240px] sm:h-[360px] lg:h-[460px] w-full overflow-hidden rounded-[10px] bg-[#f5f5f5]">
+              <div className="relative h-[240px] w-full overflow-hidden rounded-[10px] bg-[#f5f5f5] sm:h-[360px] lg:h-[460px]">
                 {(() => {
                   const src = campaign.image_url || ''
                   if (!src) {
@@ -888,7 +888,7 @@ export function CampaignPage() {
             </div>
 
             {/* Sidebar */}
-            <Card className="w-full lg:flex-1 rounded-[10px] border-[#f5f5f5] p-2">
+            <Card className="w-full rounded-[10px] border-[#f5f5f5] p-2 lg:flex-1">
               <div className="flex h-full flex-col gap-5">
                 {/* Creator Info */}
                 <div className="space-y-2.5">
@@ -1109,7 +1109,7 @@ export function CampaignPage() {
             <TabsContent value="campaign" className="mt-0">
               <div className="flex flex-col gap-5 lg:flex-row lg:gap-2.5">
                 {/* Outline Sidebar */}
-                <div className="w-full lg:w-[323px] lg:flex-shrink-0 space-y-4">
+                <div className="w-full space-y-4 lg:w-[323px] lg:flex-shrink-0">
                   {/* YELLOW Y4: hide the Outline heading entirely for visitors
                       when there's no outline to render. Owners still see the
                       heading + empty-state CTA so they're nudged to publish. */}
@@ -1229,7 +1229,7 @@ export function CampaignPage() {
                     />
                   ) : (
                     campaign.story_title && (
-                      <h2 className="text-3xl md:text-5xl font-extrabold text-[#0a0a0a]">
+                      <h2 className="text-3xl font-extrabold text-[#0a0a0a] md:text-5xl">
                         {campaign.story_title}
                       </h2>
                     )
@@ -1246,13 +1246,13 @@ export function CampaignPage() {
                     </div>
                   ) : campaign.story_content ? (
                     <div
-                      className="campaign-story max-w-none text-base leading-relaxed text-[#0a0a0a] [&_img]:max-w-full [&_img]:h-auto [&_iframe]:max-w-full
-                                 [&_a]:font-medium [&_a]:text-[#ea580c] [&_a]:underline [&_a]:underline-offset-2 [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#ea580c]
-                                 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-[#404040] [&_h2]:mb-3 [&_h2]:mt-8
-                                 [&_h2]:text-2xl [&_h2]:font-semibold
-                                 [&_h2]:tracking-tight [&_h2]:text-[#0a0a0a] first:[&_h2]:mt-0 [&_h3]:mb-2 [&_h3]:mt-6
-                                 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-[#0a0a0a] [&_iframe]:mt-2 [&_iframe]:w-full
-                                 [&_iframe]:rounded-lg
+                      className="campaign-story max-w-none text-base leading-relaxed text-[#0a0a0a] [&_a]:font-medium [&_a]:text-[#ea580c] [&_a]:underline
+                                 [&_a]:underline-offset-2 [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#ea580c] [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-[#404040]
+                                 [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight
+                                 [&_h2]:text-[#0a0a0a] first:[&_h2]:mt-0
+                                 [&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-[#0a0a0a]
+                                 [&_iframe]:mt-2 [&_iframe]:w-full [&_iframe]:max-w-full [&_iframe]:rounded-lg [&_img]:h-auto
+                                 [&_img]:max-w-full
                                  [&_li]:pl-1 [&_ol]:mb-4
                                  [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-6
                                  [&_p]:mb-4 [&_p]:leading-relaxed [&_strong]:font-semibold

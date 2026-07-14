@@ -1298,7 +1298,6 @@ export const getActiveCampaigns = async (limit: number = 10) => {
   return Array.from(byId.values()).map(({ __detail_version: _v, ...rest }) => rest)
 }
 
-
 // Question type for dashboard
 export interface OrganizationQuestion {
   id: string

@@ -179,9 +179,7 @@ export function CampaignFormModal({
           throw new Error(uploadError.message)
         }
 
-        const { data: urlData } = supabase.storage
-          .from('campaign-images')
-          .getPublicUrl(fileName)
+        const { data: urlData } = supabase.storage.from('campaign-images').getPublicUrl(fileName)
         logoUrl = urlData.publicUrl
       }
 

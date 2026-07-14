@@ -171,7 +171,9 @@ export function RequestsPage() {
       <div className="container py-6 md:py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight text-[#0a0a0a] md:text-4xl">Browse Campaigns</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-[#0a0a0a] md:text-4xl">
+            Browse Campaigns
+          </h1>
           <p className="mt-2 text-lg text-[#737373]">
             Fund a multi-device campaign — every campaign goes to verified Kansas Citians.
           </p>
@@ -338,7 +340,7 @@ export function RequestsPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
               {filteredCampaigns
                 .slice(
                   (Math.min(page, Math.max(1, Math.ceil(filteredCampaigns.length / PAGE_SIZE))) -
