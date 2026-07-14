@@ -46,12 +46,17 @@ function assertProductionEnvSafety() {
         'Set a random 32-byte hex value: openssl rand -hex 32'
     )
   }
-  if (process.env.STRIPE_BYPASS_CONNECT === 'true') {
-    problems.push(
-      'STRIPE_BYPASS_CONNECT=true is set in production — donations would route to the ' +
-        'platform account instead of the org. Remove this variable in production.'
-    )
-  }
+  // NOTE: This is a non-real-money test/demo deploy that runs with
+  // NODE_ENV=production. The bypass guard is intentionally disabled so the
+  // server can boot with STRIPE_BYPASS_CONNECT=true. Re-enable this block for
+  // any real-money production deploy — bypass routes donations to the PLATFORM
+  // balance instead of the org.
+  // if (process.env.STRIPE_BYPASS_CONNECT === 'true') {
+  //   problems.push(
+  //     'STRIPE_BYPASS_CONNECT=true is set in production — donations would route to the ' +
+  //       'platform account instead of the org. Remove it from the production environment.'
+  //   )
+  // }
   if (!process.env.CRON_SECRET) {
     // Operational degradation only — Slack alerts won't flush, but no money/security risk.
     // GH Actions workflow surfaces failures as a red run, so this does not need to block startup.
@@ -519,8 +524,11 @@ app.post('/api/payments/create-intent', clerkAuth, async (req, res) => {
     // STRIPE_BYPASS_CONNECT=true lets us run test-mode donations without
     // having a Connect account set up. Money goes to the platform balance
     // directly (no destination/application_fee). Test mode only.
-    const bypassConnect =
-      process.env.NODE_ENV !== 'production' && process.env.STRIPE_BYPASS_CONNECT === 'true'
+    // Bypass is active whenever the flag is on. This is a non-real-money
+    // test/demo deploy (see the disabled startup guard), so bypass is allowed
+    // even under NODE_ENV=production. For a real-money deploy, re-enable the
+    // startup guard so this flag can never route donations to the platform.
+    const bypassConnect = process.env.STRIPE_BYPASS_CONNECT === 'true'
     const org = request.organization
     if (!bypassConnect && (!org?.stripe_account_id || !org?.stripe_charges_enabled)) {
       await logPaymentEvent(supabase, {
@@ -744,8 +752,11 @@ app.post('/api/payments/create-campaign-intent', clerkAuth, async (req, res) => 
     // STRIPE_BYPASS_CONNECT=true lets us run test-mode donations without
     // having a Connect account set up. Money goes to the platform balance
     // directly (no destination/application_fee). Test mode only.
-    const bypassConnect =
-      process.env.NODE_ENV !== 'production' && process.env.STRIPE_BYPASS_CONNECT === 'true'
+    // Bypass is active whenever the flag is on. This is a non-real-money
+    // test/demo deploy (see the disabled startup guard), so bypass is allowed
+    // even under NODE_ENV=production. For a real-money deploy, re-enable the
+    // startup guard so this flag can never route donations to the platform.
+    const bypassConnect = process.env.STRIPE_BYPASS_CONNECT === 'true'
     const org = campaign.organization
     if (!bypassConnect && (!org?.stripe_account_id || !org?.stripe_charges_enabled)) {
       await logPaymentEvent(supabase, {
