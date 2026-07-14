@@ -46,11 +46,6 @@ export const supabaseConfig = {
   // Docs: https://supabase.com/docs/reference/javascript/introduction
 }
 
-// TEMP DIAGNOSTIC (remove after prod env is confirmed): prints the Supabase URL
-// that was inlined at BUILD time, so we can see which env value the deployed
-// bundle actually compiled against. See debugging session 2026-07-14.
-console.info('[build-diagnostic] VITE_SUPABASE_URL =', supabaseConfig.url)
-
 // ============================================
 // STRIPE CONFIGURATION
 // ============================================
