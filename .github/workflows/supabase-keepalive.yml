@@ -1,5 +1,5 @@
 name: Supabase Keepalive
-# KC Digital Drive Market runs on a Supabase Cloud project (ref dfgafxbxwsbxkkwwjsxw).
+# KC Digital Drive Market runs on a Supabase Cloud project (ref wudpxyvardjqybwtwnlv).
 # Free-tier projects auto-pause after ~7 days with no DB activity — dashboard
 # visits and cached API calls do NOT count, only real DB traffic. To keep the
 # project awake between sporadic use, ping it twice a week with a trivial query.
